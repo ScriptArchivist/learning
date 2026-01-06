@@ -56,10 +56,11 @@ def create(explorer: Explorer) -> Explorer:
     return get_one(explorer.name)       # Возврат созданного исследователя (читаем из БД для проверки)
 
 
-def modify(name: str, explorer: dict) -> Explorer:
-    if not (name and explorer): 
+def modify(name: str, explorer) -> Explorer:
+    if not (name and explorer):
         return None
-    # Формируем список SET только для переданных полей
+    if hasattr(explorer, "dict"):        # ← ВОТ КЛЮЧЕВОЕ МЕСТО
+        explorer = explorer.dict()
     fields = []
     params = {}
     for key, value in explorer.items():
@@ -70,10 +71,13 @@ def modify(name: str, explorer: dict) -> Explorer:
     curs.execute(qry, params)
     if curs.rowcount == 1:
         conn.commit()
-        # Если имя было изменено, берем новое имя, иначе старое
         return get_one(params.get("name", name))
     else:
         raise Missing(msg=f"Explorer {name} not found")
+    
+
+def replace(name: str, explorer) -> Explorer:
+    return modify(name, explorer)
 
 
 def delete(name: str) -> bool:

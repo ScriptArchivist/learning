@@ -40,7 +40,7 @@ def modify(name: str, explorer: dict) -> Explorer:
 
 @router.put("/{name}")
 def replace(name: str, explorer: Explorer) -> Explorer:
-    return service.replace(explorer)
+    return service.replace(name, explorer.dict())
 
 
 @router.delete("/{name}")
