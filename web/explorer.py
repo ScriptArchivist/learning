@@ -26,6 +26,7 @@ def get_one(name: str) -> Explorer:
 def create(explorer: Explorer) -> Explorer:
     try:
         return service.create(explorer)
+        return service.create(explorer)
     except Duplicate as exc:
         raise HTTPException(status_code=404, detail=exc.msg)
 
