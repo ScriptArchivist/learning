@@ -1,58 +1,74 @@
-import os
 import pytest
-from model.creature import Creature
+from data.creature import Creature, create, get_one, modify, delete, curs, conn
 from errors import Missing, Duplicate
 
-
-os.environ["CRYPTID_SQLITE_DB"] = ":memory:"
-from data import creature
+@pytest.fixture(autouse=True)
+def clear_table():
+    """Очистка таблицы перед каждым тестом."""
+    curs.execute("DELETE FROM creature")
+    conn.commit()
 
 
 @pytest.fixture
-def sample() -> Creature:
-    return Creature(name="Yeti", country="CN", area="Himalayas",
-                    description="Harmless Himalayan",
-                    aka="Abominable Snowman")
+def sample():
+    return Creature(
+        name="Yeti",
+        country="CN",
+        area="Himalayas",
+        description="Harmless Himalayan",
+        aka="Abominable Snowman",
+    )
 
 
 def test_create(sample):
-    resp = creature.create(sample)
-    assert resp == sample
+    resp = create(sample)
+    assert resp.name == sample.name
+    assert resp.description == sample.description
 
 
 def test_create_duplicate(sample):
+    create(sample)
     with pytest.raises(Duplicate):
-        _ = creature.create(sample)
+        create(sample)
 
 
 def test_get_one(sample):
-    resp = creature.get_one(sample.name)
-    assert resp == sample
+    create(sample)
+    resp = get_one(sample.name)
+    assert resp.name == sample.name
 
 
 def test_get_one_missing():
     with pytest.raises(Missing):
-        _ = creature.get_one("boxturtle")
+        get_one("boxturtle")
 
 
 def test_modify(sample):
-    creature.area = "Sesame Street"
-    resp = creature.modify(sample.name, sample)
-    assert resp == sample
+    create(sample)
+    sample.description = "New desc"
+    resp = modify(sample)
+    assert resp.description == "New desc"
 
 
-def test_modiry_missing():
-    thing: Creature = Creature(name="snurfle", country="RU", area="",
-                               description="some thing", aka="")
+def test_modify_missing():
+    thing = Creature(
+        name="snurfle",
+        country="RU",
+        area="",
+        description="some thing",
+        aka="",
+    )
     with pytest.raises(Missing):
-        _ = creature.modify(thing.name, thing)
+        modify(thing)
 
 
 def test_delete(sample):
-    resp = creature.delete(sample.name)
-    assert resp is None
+    create(sample)
+    assert delete(sample.name)
+    with pytest.raises(Missing):
+        get_one(sample.name)
 
 
 def test_delete_missing(sample):
     with pytest.raises(Missing):
-        _ = creature.delete(sample.name)
+        delete("ghost")

@@ -1,69 +1,90 @@
-from .init import conn, curs
-from model.creature import Creature
+from pydantic import BaseModel
+import sqlite3
+from errors import Missing, Duplicate    # твои кастомные исключения
 
-curs.execute(       # Создание таблицы creature, если она не существует
-    """
-    create table if not exists creature(
-        name text primary key,
-        description text,
-        country text,
-        area text,
-        aka text
-    )
-    """
+# --- Настройка подключения к SQLite ---
+conn = sqlite3.connect("database.db")
+curs = conn.cursor()
+
+# --- Создание таблицы, если её нет ---
+curs.execute("""
+CREATE TABLE IF NOT EXISTS creature (
+    name TEXT PRIMARY KEY,
+    description TEXT,
+    country TEXT,
+    area TEXT,
+    aka TEXT
 )
+""")
+conn.commit()
 
 
-def row_to_model(row: tuple) -> Creature:       # Функция преобразования строки из БД в объект модели Creature
-    (name, description, country, area, aka) = row
-    return Creature(name, description, country, area, aka)
+# --- Модель Pydantic v2 ---
+class Creature(BaseModel):
+    name: str
+    description: str
+    country: str
+    area: str
+    aka: str
 
 
-def model_to_dict(creature: Creature) -> dict:      # Функция преобразования объекта Creature в словарь
-    return creature.dict()
+# --- Вспомогательные функции ---
+def model_to_dict(creature: Creature) -> dict:
+    """Конвертация Pydantic-модели в словарь для SQLite."""
+    return creature.model_dump()  # Pydantic v2: вместо dict() используем model_dump
+
+
+def row_to_model(row: tuple) -> Creature:
+    """Конвертация строки из БД в объект Creature."""
+    if row is None:
+        raise Missing("Creature not found")
+    name, description, country, area, aka = row
+    return Creature.model_construct(
+        name=name,
+        description=description,
+        country=country,
+        area=area,
+        aka=aka
+    )
+
+
+# --- CRUD функции ---
+def create(creature: Creature) -> Creature:
+    """Создать новое существо."""
+    try:
+        curs.execute(
+            "INSERT INTO creature (name, description, country, area, aka) VALUES (:name, :description, :country, :area, :aka)",
+            model_to_dict(creature)
+        )
+        conn.commit()
+    except sqlite3.IntegrityError:
+        raise Duplicate(f"Creature '{creature.name}' already exists")
+    return get_one(creature.name)
 
 
 def get_one(name: str) -> Creature:
-    qry = "select * from creature where name=:name"
-    params = {"name": name}     # Параметры для запроса (словарь с именем)
-    curs.execute(qry, params)
-    return row_to_model(curs.fetchone())    # Преобразование результата в объект Creature и возврат
-
-
-def get_all() -> list[Creature]:
-    qry = "select * from creature"
-    curs.execute(qry)
-    return [row_to_model(row) for row in curs.fetchall()]       # Преобразование всех строк в список объектов Creature
-
-
-def create(creature: Creature) -> Creature:
-    qry = (
-        "insert into creature values "
-        "(:name, :description, :country, :area, :aka)"
-    )
-    params = model_to_dict(creature)        # Преобразование объекта Creature в словарь параметров
-    curs.execute(qry, params)       # Выполнение запроса на вставку
-    return get_one(creature.name)       # Возврат созданного существа (читаем из БД для проверки)
+    """Получить одно существо по имени."""
+    curs.execute("SELECT name, description, country, area, aka FROM creature WHERE name = ?", (name,))
+    row = curs.fetchone()
+    return row_to_model(row)
 
 
 def modify(creature: Creature) -> Creature:
-    qry = """
-    update creature
-    set country=:country,
-        name=:name,
-        description=:description,
-        area=:area,
-        aka=:aka
-    where name=:name_orig
-    """
-    params = model_to_dict(creature)        # Преобразование объекта в словарь параметров
-    params["name_orig"] = creature.name     # Добавляем оригинальное имя для условия WHERE
-    curs.execute(qry, params)          # Выполнение запроса на обновление
-    return get_one(creature.name)       # Возврат обновленного существа
+    """Обновить существующее существо."""
+    curs.execute(
+        "UPDATE creature SET description=:description, country=:country, area=:area, aka=:aka WHERE name=:name",
+        model_to_dict(creature)
+    )
+    conn.commit()
+    if curs.rowcount == 0:
+        raise Missing(f"Creature '{creature.name}' not found")
+    return get_one(creature.name)
 
 
-def delete(creature: Creature) -> bool:
-    qry = "delete from creature where name = :name"
-    params = {"name": creature.name}        # Параметры запроса (только имя)
-    res = curs.execute(qry, params)     # Выполнение запроса и получение результата
-    return bool(res)        # Возвращаем True если удаление прошло успешно, иначе False
+def delete(name: str) -> bool:
+    """Удалить существо по имени."""
+    curs.execute("DELETE FROM creature WHERE name=?", (name,))
+    conn.commit()
+    if curs.rowcount == 0:
+        raise Missing(f"Creature '{name}' not found")
+    return True
