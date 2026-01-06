@@ -56,27 +56,24 @@ def create(explorer: Explorer) -> Explorer:
     return get_one(explorer.name)       # Возврат созданного исследователя (читаем из БД для проверки)
 
 
-def modify(name: str, explorer: Explorer) -> Explorer:
-    if not (name and explorer): return None
-    qry = """
-    update explorer
-    set country=:country,
-        name=:name,
-        description=:description
-    where name=:name_orig
-    """
-    params = model_to_dict(explorer)
-    params["name_orig"] = explorer.name     # Добавляем оригинальное имя для условия WHERE
+def modify(name: str, explorer: dict) -> Explorer:
+    if not (name and explorer): 
+        return None
+    # Формируем список SET только для переданных полей
+    fields = []
+    params = {}
+    for key, value in explorer.items():
+        fields.append(f"{key} = :{key}")
+        params[key] = value
+    params["name_orig"] = name
+    qry = f"UPDATE explorer SET {', '.join(fields)} WHERE name = :name_orig"
     curs.execute(qry, params)
     if curs.rowcount == 1:
         conn.commit()
-        return get_one(explorer.name)
+        # Если имя было изменено, берем новое имя, иначе старое
+        return get_one(params.get("name", name))
     else:
-        raise Missing(msg=f"Eplorer {name} not found")
-
-
-def replace(name: str, explorer: Explorer) -> Explorer:
-    return modify(name, explorer)
+        raise Missing(msg=f"Explorer {name} not found")
 
 
 def delete(name: str) -> bool:
