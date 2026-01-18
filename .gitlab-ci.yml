@@ -1,18 +1,14 @@
-# 1. Определение этапов pipeline (выполняются последовательно)
 stages:
-  - test    # Этап 1: Тестирование
-  - build   # Этап 2: Сборка Docker образа
+  - test
+  - build
 
-# 2. Job: Запуск тестов
-run-tests:               # Имя задачи (может быть любым)
-  stage: test           # К какому этапу относится (тестирование)
-  image: python:3.11    # Docker-образ для запуска (чистый Python 3.11)
+run-tests:
+  stage: test
+  image: python:3.11
   
-  # Команды выполняемые ПЕРЕД script
   before_script:
-    - pip install -r requirements.txt  # Установка зависимостей из файла
+    - pip install -r requirements.txt
   
-  # Основные команды задачи
   script:
     - echo "=== Специфичные тесты creature service ==="
     - python -m pytest test/unit/service/test_creature.py -v
@@ -20,28 +16,23 @@ run-tests:               # Имя задачи (может быть любым)
     - echo "=== Тесты data layer creature ==="
     - python -m pytest test/unit/data/creature.py -v
   
-  # Правила запуска задачи
   only:
-    - merge_requests  # Запускать при создании/обновлении MR
-    - master          # И при пуше в ветку master
+    - merge_requests
+    - master
 
-# 3. Job: Сборка Docker образа
-build-docker-image:      # Имя задачи
-  stage: build          # Этап сборки
-  image: docker:latest  # Образ с Docker CLI
-  services:             # Дополнительные сервисы для задачи
-    - docker:dind       # Docker-in-Docker (запускает Docker демон)
+build-docker-image:
+  stage: build
+  image: docker:latest
+  services:
+    - docker:dind
   
-  # Переменные окружения
   variables:
-    DOCKER_TLS_CERTDIR: ""  # Отключаем TLS для упрощения
+    DOCKER_TLS_CERTDIR: ""
   
-  # Основные команды
   script:
-    - echo "Сборка Docker образа..."                     # Логирование
-    - docker build -t fastapi-app:$CI_COMMIT_SHORT_SHA .  # Сборка образа
-    - echo "✅ Образ собран: fastapi-app:$CI_COMMIT_SHORT_SHA"  # Успех
+    - echo "Сборка Docker образа..."
+    - docker build -t fastapi-app:$CI_COMMIT_SHORT_SHA .
+    - echo "✅ Образ собран: fastapi-app:$CI_COMMIT_SHORT_SHA"
   
-  # Правила запуска
   only:
-    - master  # Только для master ветки
+    - master
