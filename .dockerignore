@@ -22,7 +22,6 @@ venv.bak/
 
 # Тестовые файлы
 .pytest_cache/
-test/
 coverage.xml
 htmlcov/
 
