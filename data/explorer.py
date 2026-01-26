@@ -1,77 +1,56 @@
-from .init import curs, conn, IntegrityError        # Импорт соединения и курсора из модуля init (относительный импорт)
-from model.explorer import Explorer     # Импорт модели Explorer из модуля explorer в пакете model
+# data/explorer.py
+"""
+Data layer для работы с исследователями.
+Взаимодействует с PostgreSQL через SQLAlchemy ORM.
+"""
+
+from typing import List
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+
+# Импортируем наши модели
+from model.explorer import Explorer as PydanticExplorer
+from db.models import Explorer as SQLExplorer
 from errors import Missing, Duplicate
 
-curs.execute(       # Создание таблицы explorer, если она не существует
+
+def row_to_model(row: SQLExplorer) -> PydanticExplorer:
     """
-    create table if not exists explorer(
-        name text primary key,
-        country text,
-        description text
-    )
+    Преобразует SQLAlchemy объект в Pydantic модель.
     """
-)
-
-
-def row_to_model(row: tuple) -> Explorer:       # Функция преобразования строки из БД в объект модели Explorer
-    return Explorer(        # Создаем объект Explorer, распаковывая кортеж row по индексам
-        name=row[0],        # Первый элемент - имя
-        country=row[1],     # Второй элемент - страна
-        description=row[2],     # Третий элемент - описание
-    )
-
-
-def model_to_dict(explorer: Explorer) -> dict:      # Функция преобразования объекта Explorer в словарь
-    return explorer.dict() if explorer else None        # Если explorer не None, вызываем метод dict(), иначе возвращаем None
-
-
-def get_one(name: str) -> Explorer:
-    qry = "select * from explorer where name=:name"     # SQL-запрос с именованным параметром :name
-    params = {"name": name}     # Параметры для запроса (словарь с именем)
-    curs.execute(qry, params)       # Выполнение запроса с параметрами
-    row = curs.fetchone()
-    if row:
-        return row_to_model(row)
-    else:
-        raise Missing(msg=f"Explorer {name} not found")
-
-
-def get_all() -> list[Explorer]:
-    qry = "select * from explorer"
-    curs.execute(qry)
-    return [row_to_model(row) for row in curs.fetchall()]       # Преобразование всех строк в список объектов Explorer
-
-
-def create(explorer: Explorer) -> Explorer:
-    if not explorer: return None
-    qry = """
-    insert into explorer (name, country, description)
-    values (:name, :country, :description)
-    """
-    params = model_to_dict(explorer)        # Преобразование объекта Explorer в словарь параметров
-    try:
-        curs.execute(qry, params)       # Выполнение запроса на вставку
-    except IntegrityError:
-        raise Duplicate(msg=f"Eplorer {explorer.name} already exists")
-    return get_one(explorer.name)       # Возврат созданного исследователя (читаем из БД для проверки)
-
-
-def modify(name: str, explorer) -> Explorer:
-    if not (name and explorer):
+    if not row:
         return None
-    if hasattr(explorer, "dict"):        # ← ВОТ КЛЮЧЕВОЕ МЕСТО
-        explorer = explorer.dict()
-    fields = []
-    params = {}
-    for key, value in explorer.items():
-        fields.append(f"{key} = :{key}")
-        params[key] = value
-    params["name_orig"] = name
-    qry = f"UPDATE explorer SET {', '.join(fields)} WHERE name = :name_orig"
-    curs.execute(qry, params)
-    if curs.rowcount == 1:
-        conn.commit()
-        return get_one(params.get("name", name))
+    
+    return PydanticExplorer(
+        name=row.name,
+        country=row.country,
+        description=row.description or ""  # гарантируем строку, даже если None
+    )
+
+
+def model_to_dict(explorer: PydanticExplorer) -> dict:
+    """Преобразует Pydantic модель в словарь."""
+    return explorer.dict() if explorer else None
+
+
+def get_one(db: Session, name: str) -> PydanticExplorer:
+    """
+    Получает одного исследователя по имени.
+    
+    Args:
+        db: Сессия SQLAlchemy
+        name: Имя исследователя
+    
+    Returns:
+        PydanticExplorer объект
+    
+    Raises:
+        Missing: если исследователь не найден
+    """
+    db_explorer = db.query(SQLExplorer).filter(SQLExplorer.name == name).first()
+    
+    if db_explorer:
+        return row_to_model(db_explorer)
     else:
         raise Missing(msg=f"Explorer {name} not found")
     
@@ -80,11 +59,153 @@ def replace(name: str, explorer) -> Explorer:
     return modify(name, explorer)
 
 
-def delete(name: str) -> bool:
-    if not name: return False
-    qry = "delete from explorer where name = :name"
-    params = {"name": name}     # Параметры запроса (только имя)
-    curs.execute(qry, params)
-    conn.commit()       # Явное подтверждение изменений в БД (commit)
-    if curs.rowcount != 1:
+def get_all(db: Session) -> List[PydanticExplorer]:
+    """
+    Получает всех исследователей.
+    
+    Args:
+        db: Сессия SQLAlchemy
+    
+    Returns:
+        Список PydanticExplorer объектов
+    """
+    db_explorers = db.query(SQLExplorer).all()
+    return [row_to_model(exp) for exp in db_explorers]
+
+
+def create(db: Session, explorer: PydanticExplorer) -> PydanticExplorer:
+    """
+    Создает нового исследователя.
+    
+    Args:
+        db: Сессия SQLAlchemy
+        explorer: Pydantic модель исследователя
+    
+    Returns:
+        Созданный PydanticExplorer
+    
+    Raises:
+        Duplicate: если исследователь с таким именем уже существует
+    """
+    if not explorer:
+        return None
+    
+    # Проверяем, нет ли уже такого имени
+    existing = db.query(SQLExplorer).filter(SQLExplorer.name == explorer.name).first()
+    if existing:
+        raise Duplicate(msg=f"Explorer {explorer.name} already exists")
+    
+    # Создаем SQLAlchemy объект
+    db_explorer = SQLExplorer(
+        name=explorer.name,
+        country=explorer.country,
+        description=explorer.description
+    )
+    
+    try:
+        # Добавляем в сессию и коммитим
+        db.add(db_explorer)
+        db.commit()
+        db.refresh(db_explorer)
+        
+        # Возвращаем Pydantic модель
+        return PydanticExplorer(
+            name=db_explorer.name,
+            country=db_explorer.country,
+            description=db_explorer.description or ""
+        )
+    except IntegrityError as e:
+        db.rollback()
+        raise Duplicate(msg=f"Explorer {explorer.name} already exists") from e
+
+
+def modify(db: Session, name: str, explorer_data) -> PydanticExplorer:
+    """
+    Обновляет данные исследователя.
+    
+    Args:
+        db: Сессия SQLAlchemy
+        name: Текущее имя исследователя (для поиска)
+        explorer_data: Новые данные (Pydantic модель или dict)
+    
+    Returns:
+        Обновленный PydanticExplorer
+    
+    Raises:
+        Missing: если исследователь не найден
+        Duplicate: если новое имя уже занято
+    """
+    if not (name and explorer_data):
+        return None
+    
+    # Преобразуем входные данные в словарь
+    if hasattr(explorer_data, "dict"):
+        update_data = explorer_data.dict(exclude_unset=True)  # только переданные поля
+    else:
+        update_data = explorer_data
+    
+    # Ищем существующего исследователя
+    db_explorer = db.query(SQLExplorer).filter(SQLExplorer.name == name).first()
+    if not db_explorer:
+        raise Missing(msg=f"Explorer {name} not found")
+    
+    # Если меняется имя, проверяем уникальность нового имени
+    new_name = update_data.get("name")
+    if new_name and new_name != name:
+        existing = db.query(SQLExplorer).filter(SQLExplorer.name == new_name).first()
+        if existing:
+            raise Duplicate(msg=f"Explorer {new_name} already exists")
+    
+    # Обновляем поля
+    for key, value in update_data.items():
+        if hasattr(db_explorer, key):
+            setattr(db_explorer, key, value)
+    
+    try:
+        db.commit()
+        db.refresh(db_explorer)
+        return row_to_model(db_explorer)
+    except IntegrityError as e:
+        db.rollback()
+        raise Duplicate(msg=f"Update failed for explorer {name}") from e
+
+
+def replace(db: Session, name: str, explorer: PydanticExplorer) -> PydanticExplorer:
+    """
+    Полностью заменяет исследователя.
+    Если исследователя нет - создает нового.
+    """
+    try:
+        # Пробуем обновить
+        return modify(db, name, explorer)
+    except Missing:
+        # Если не нашли - создаем нового (но с проверкой имени)
+        if explorer.name != name:
+            raise Missing(msg=f"Cannot replace: name mismatch ({name} != {explorer.name})")
+        return create(db, explorer)
+
+
+def delete(db: Session, name: str) -> bool:
+    """
+    Удаляет исследователя по имени.
+    
+    Args:
+        db: Сессия SQLAlchemy
+        name: Имя исследователя для удаления
+    
+    Returns:
+        True если удалено успешно
+    
+    Raises:
+        Missing: если исследователь не найден
+    """
+    if not name:
+        return False
+    
+    result = db.query(SQLExplorer).filter(SQLExplorer.name == name).delete()
+    db.commit()
+    
+    if result == 1:
+        return True
+    else:
         raise Missing(msg=f"Explorer {name} not found")

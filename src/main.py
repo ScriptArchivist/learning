@@ -1,9 +1,11 @@
+# src/main.py
 from fastapi import FastAPI
-from web import explorer
+from web.explorer import router
+
 
 app = FastAPI()
+app.include_router(router)
 
-app.include_router(explorer.router)
 
 @app.get("/health")
 async def health_check():

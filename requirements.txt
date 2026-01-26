@@ -1,10 +1,25 @@
+# Основные для FastAPI
 fastapi==0.104.0
 uvicorn[standard]==0.24.0
-httpx==0.25.0
-pytest==7.4.0
+python-multipart==0.0.6
+
+# Для работы с PostgreSQL
+sqlalchemy==2.0.23
+psycopg[binary]==3.1.14  # бинарная версия - не требует системных зависимостей
+alembic==1.13.1
+
+# Аутентификация и безопасность
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
-python-multipart==0.0.6
-mypy==1.7.0
+
+# HTTP клиенты и инструменты
+httpx==0.25.0
 requests==2.31.0
 httpie==3.2.2
+
+# Тестирование и типизация
+pytest==7.4.0
+mypy==1.7.0
+
+# Утилиты (опционально)
+python-dotenv==1.0.0  # для работы с .env файлами
