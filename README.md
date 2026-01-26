@@ -108,5 +108,6 @@ RabbitMQ
 docker-compose up --build
 
 ## или локально:
+
 pip install -r requirements.txt
 fastapi dev src/main.py

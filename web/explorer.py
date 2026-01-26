@@ -12,6 +12,7 @@ import service.explorer as service
 from errors import Duplicate, Missing
 
 
+
 @router.get("")
 @router.get("/")
 def get_all(db: Session = Depends(get_session)) -> list[Explorer]:
@@ -30,7 +31,9 @@ def get_one(name: str, db: Session = Depends(get_session)) -> Explorer:
 @router.post("/", status_code=201)
 def create(explorer: Explorer, db: Session = Depends(get_session)) -> Explorer:
     try:
+
         return service.create(db, explorer)
+    
     except Duplicate as exc:
         raise HTTPException(status_code=409, detail=exc.msg)
 
@@ -46,6 +49,7 @@ def modify(name: str, explorer: dict, db: Session = Depends(get_session)) -> Exp
 
 
 @router.put("/{name}")
+
 def replace(name: str, explorer: Explorer, db: Session = Depends(get_session)) -> Explorer:
     try:
         return service.replace(db, name, explorer)
@@ -53,6 +57,7 @@ def replace(name: str, explorer: Explorer, db: Session = Depends(get_session)) -
         raise HTTPException(status_code=404, detail=exc.msg)
     except Duplicate as exc:
         raise HTTPException(status_code=409, detail=exc.msg)
+    
 
 
 @router.delete("/{name}")

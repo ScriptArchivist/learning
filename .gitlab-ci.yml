@@ -2,9 +2,8 @@ stages:
   - test
   - build
 
-
 variables:
-  DOCKER_TLS_CERTDIR: ""
+  DOCKER_TLS_CERTDIR: ""  # отключаем TLS для docker-in-docker
 
 # ======================
 # TEST STAGE
@@ -16,19 +15,20 @@ run-tests:
     - docker:dind
   before_script:
     - docker info
-    - docker-compose version
+    - docker-compose -f docker-compose.ci.yml version
   script:
-    - echo "Поднимаем инфраструктуру для тестов"
-    - docker-compose up -d db
-    - docker-compose run --rm migrate
-    - echo "Запускаем интеграционные тесты"
-    - docker-compose run --rm web pytest test/integration/database/test_postgresql_integration.py -v
+    - echo "Поднимаем базу..."
+    - docker-compose -f docker-compose.ci.yml up -d db
+    - echo "Применяем миграции..."
+    - docker-compose -f docker-compose.ci.yml run --rm migrate
+    - echo "Запускаем интеграционные тесты..."
+    - docker-compose -f docker-compose.ci.yml run --rm web pytest test/integration/database/test_postgresql_integration.py -v
   after_script:
-    - docker-compose down -v
+    - echo "Останавливаем и удаляем контейнеры..."
+    - docker-compose -f docker-compose.ci.yml down -v
   only:
     - merge_requests
     - master
-
 
 # ======================
 # BUILD STAGE
@@ -38,6 +38,8 @@ build-docker-image:
   image: docker:latest
   services:
     - docker:dind
+  variables:
+    DOCKER_TLS_CERTDIR: ""
   script:
     - echo "Сборка Docker образа"
     - docker build -t fastapi-app:$CI_COMMIT_SHORT_SHA .

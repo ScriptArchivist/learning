@@ -18,6 +18,7 @@ def row_to_model(row: SQLExplorer) -> PydanticExplorer:
     """
     Преобразует SQLAlchemy объект в Pydantic модель.
     """
+    
     if not row:
         return None
     
