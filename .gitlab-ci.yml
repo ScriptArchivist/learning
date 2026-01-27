@@ -44,5 +44,5 @@ build-docker-image:
     - echo "Сборка Docker образа"
     - docker build -t fastapi-app:$CI_COMMIT_SHORT_SHA .
     - echo "Образ собран"
-  only:
-    - master
+  rules:
+    - if: '$CI_COMMIT_BRANCH' 
