@@ -2,29 +2,33 @@ stages:
   - test
   - build
 
+
 variables:
-  DOCKER_TLS_CERTDIR: ""  # отключаем TLS для docker-in-docker
+  DOCKER_TLS_CERTDIR: ""
 
 # ======================
 # TEST STAGE
 # ======================
 run-tests:
   stage: test
-  # ... остальное как было
+  image: docker:latest
+  services:
+    - docker:dind
+  before_script:
+    - docker info
+    - docker-compose version
   script:
-    - echo "Поднимаем базу..."
-    - docker-compose -f docker-compose.ci.yml up -d db
-    - echo "Применяем миграции..."
-    - docker-compose -f docker-compose.ci.yml run --rm migrate  # ← Только миграции!
-    - echo "Запускаем интеграционные тесты..."
-    # Запускаем тесты в отдельном контейнере
-    - docker-compose -f docker-compose.ci.yml run --rm web pytest test/integration/database/test_postgresql_integration.py -v
+    - echo "Поднимаем инфраструктуру для тестов"
+    - docker-compose up -d db
+    - docker-compose run --rm migrate
+    - echo "Запускаем интеграционные тесты"
+    - docker-compose run --rm web pytest test/integration/database/test_postgresql_integration.py -v
   after_script:
-    - echo "Останавливаем и удаляем контейнеры..."
-    - docker-compose -f docker-compose.ci.yml down -v
+    - docker-compose down -v
   only:
     - merge_requests
     - master
+
 
 # ======================
 # BUILD STAGE
@@ -34,11 +38,9 @@ build-docker-image:
   image: docker:latest
   services:
     - docker:dind
-  variables:
-    DOCKER_TLS_CERTDIR: ""
   script:
     - echo "Сборка Docker образа"
     - docker build -t fastapi-app:$CI_COMMIT_SHORT_SHA .
     - echo "Образ собран"
-  rules:
-    - if: '$CI_COMMIT_BRANCH' 
+  only:
+    - master
