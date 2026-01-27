@@ -25,9 +25,8 @@ run-tests:
     - docker-compose run --rm web pytest test/integration/database/test_postgresql_integration.py -v
   after_script:
     - docker-compose down -v
-  only:
-    - merge_requests
-    - master
+  rules:
+    - if: '$CI_COMMIT_BRANCH' 
 
 
 # ======================
