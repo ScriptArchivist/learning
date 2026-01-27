@@ -16,13 +16,35 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+      start_period: 10s  # Даем время на запуск
 
   migrate:
     build: .
     command: >
       sh -c "
         echo 'Waiting for database...' &&
-        until pg_isready -h db -p 5432 -U postgres; do sleep 1; done &&
+        # Используем Python для надежной проверки
+        python -c '
+          import time, sys, os
+          from psycopg2 import connect
+          from psycopg2.errors import OperationalError
+          
+          url = os.environ.get(\"DATABASE_URL\")
+          for i in range(30):
+            try:
+              conn = connect(url)
+              conn.close()
+              print(\"✓ Database is ready!\")
+              sys.exit(0)
+            except OperationalError:
+              if i < 29:
+                print(f\"Attempt {i+1}/30: Waiting for database...\")
+                time.sleep(1)
+              else:
+                print(\"✗ Database not available after 30 seconds\")
+                sys.exit(1)
+        ' &&
+        echo 'Running migrations...' &&
         alembic upgrade head
       "
     depends_on:
@@ -33,14 +55,21 @@ services:
 
   web:
     build: .
-    command: uvicorn src.main:app --host 0.0.0.0 --port 8000
+    command: >
+      sh -c "
+        echo 'Starting web server...' &&
+        uvicorn src.main:app --host 0.0.0.0 --port 8000
+      "
     depends_on:
       migrate:
-        condition: service_completed_successfully
-    environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+        condition: service_completed_successfully  # Ключевое изменение
     ports:
       - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+    # Только для разработки:
+    # volumes:
+    #   - ./src:/app/src
 
 volumes:
   postgres_data:

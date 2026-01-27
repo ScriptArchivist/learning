@@ -56,10 +56,6 @@ def get_one(db: Session, name: str) -> PydanticExplorer:
         raise Missing(msg=f"Explorer {name} not found")
     
 
-def replace(name: str, explorer) -> Explorer:
-    return modify(name, explorer)
-
-
 def get_all(db: Session) -> List[PydanticExplorer]:
     """
     Получает всех исследователей.
