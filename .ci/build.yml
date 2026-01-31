@@ -1,3 +1,4 @@
+# .ci/build.yml
 build-docker-image:
   stage: build
   image: docker:latest
@@ -8,16 +9,83 @@ build-docker-image:
     DOCKER_TLS_CERTDIR: ""  # отключаем TLS для dind
 
   before_script:
-    - echo "Логинимся в GitLab Container Registry"
-    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
+    - |
+      # === ПРОВЕРКА ПЕРЕМЕННЫХ REGISTRY ===
+      echo "=== GitLab Registry Configuration ==="
+      echo "CI_REGISTRY: ${CI_REGISTRY:-NOT SET}"
+      echo "CI_REGISTRY_IMAGE: ${CI_REGISTRY_IMAGE:-NOT SET}"
+      echo "CI_REGISTRY_USER: ${CI_REGISTRY_USER:-NOT SET}"
+      echo "CI_REGISTRY_PASSWORD: ${CI_REGISTRY_PASSWORD:+(SET, length: ${#CI_REGISTRY_PASSWORD} chars)}"
+      
+      # Проверяем обязательные переменные
+      if [ -z "$CI_REGISTRY" ]; then
+        echo "ERROR: CI_REGISTRY is not set"
+        exit 1
+      fi
+      
+      if [ -z "$CI_REGISTRY_IMAGE" ]; then
+        echo "ERROR: CI_REGISTRY_IMAGE is not set"
+        exit 1
+      fi
+      
+      echo ""
+      echo "Логинимся в GitLab Container Registry"
+      if ! docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"; then
+        echo "ERROR: Docker login failed"
+        echo "Checking registry accessibility..."
+        curl -v "https://$CI_REGISTRY/v2/" || true
+        exit 1
+      fi
+      
+      echo "✅ Успешно вошли в $CI_REGISTRY"
+      echo ""
 
   script:
-    - echo "Собираем Docker образы"
-    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
-    - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest
-    - echo "Пушим образы в registry"
-    - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-    - docker push $CI_REGISTRY_IMAGE:latest
+    - |
+      echo "=== Сборка Docker образа ==="
+      echo "Тег образа: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      echo ""
+      
+      echo "1. Собираем Docker образ..."
+      docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+      
+      echo ""
+      echo "2. Добавляем тег latest..."
+      docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE:latest"
+      
+      echo ""
+      echo "3. Пушим образы в registry..."
+      
+      # Пуш с проверкой
+      if docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"; then
+        echo "✅ $CI_COMMIT_SHORT_SHA успешно запушен"
+      else
+        echo "❌ Ошибка при пуше $CI_COMMIT_SHORT_SHA"
+        exit 1
+      fi
+      
+      if docker push "$CI_REGISTRY_IMAGE:latest"; then
+        echo "✅ latest успешно запушен"
+      else
+        echo "❌ Ошибка при пуше latest"
+        exit 1
+      fi
+      
+      echo ""
+      echo "=== Сборка завершена успешно ==="
+      echo "Образ доступен по тегам:"
+      echo "- $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      echo "- $CI_REGISTRY_IMAGE:latest"
+
+  after_script:
+    - |
+      # === ЛОГИ ДЛЯ ДЕБАГА ===
+      echo ""
+      echo "=== Debug Information ==="
+      echo "Registry used: $CI_REGISTRY"
+      echo "Image path: $CI_REGISTRY_IMAGE"
+      echo "Docker images in cache:"
+      docker images | grep "${CI_REGISTRY_IMAGE%%:*}" || true
 
   only:
     - master
