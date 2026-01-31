@@ -1,3 +1,4 @@
+# .ci/build.yml
 build-docker-image:
   stage: build
   image: docker:latest
@@ -5,19 +6,16 @@ build-docker-image:
     - docker:dind
 
   variables:
-    DOCKER_TLS_CERTDIR: ""
+    DOCKER_TLS_CERTDIR: ""  # отключаем TLS для dind
 
   before_script:
     - echo "Логинимся в GitLab Container Registry"
     - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" $CI_REGISTRY
 
   script:
-    - echo "Собираем Docker образ"
+    - echo "Собираем Docker образы"
     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA .
-
-    - echo "Тегаем как latest"
     - docker tag $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest
-
     - echo "Пушим образы в registry"
     - docker push $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
     - docker push $CI_REGISTRY_IMAGE:latest
