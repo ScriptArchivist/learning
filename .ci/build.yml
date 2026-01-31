@@ -1,141 +1,86 @@
 # .ci/build.yml
 build-docker-image:
   stage: build
-  image: docker:latest  # Используем базовый образ
+  image: docker:latest
   services:
     - docker:dind
-
   variables:
-    DOCKER_TLS_CERTDIR: ""  # отключаем TLS для dind
+    DOCKER_TLS_CERTDIR: ""
+    # Явно указываем переменные для Registry
+    REGISTRY_URL: "registry.gitlab.com"
+    REGISTRY_USER: "$GITLAB_REGISTRY_USER"  # Ваш username
+    REGISTRY_TOKEN: "$GITLAB_REGISTRY_TOKEN"  # Personal access token
+    REGISTRY_IMAGE: "$REGISTRY_URL/$CI_PROJECT_PATH"
 
   before_script:
     - |
-      echo "=== Детальная проверка доступа ==="
+      echo "=== Настройка аутентификации ==="
       echo ""
       
-      # 1. Устанавливаем curl (если нужно) и проверяем базовые утилиты
-      echo "1. Проверка системных утилит..."
-      which docker || echo "docker not found"
-      which echo || echo "echo not found"
-      
-      # 2. Проверяем переменные окружения (без curl)
-      echo ""
-      echo "2. Переменные окружения:"
-      echo "   CI_PROJECT_ID: $CI_PROJECT_ID"
-      echo "   CI_PROJECT_PATH: $CI_PROJECT_PATH"
-      echo "   CI_REGISTRY: $CI_REGISTRY"
-      echo "   CI_REGISTRY_IMAGE: $CI_REGISTRY_IMAGE"
-      echo "   CI_REGISTRY_USER: $CI_REGISTRY_USER"
-      echo "   CI_JOB_TOKEN: ${CI_JOB_TOKEN:+(установлен, ${#CI_JOB_TOKEN} символов)}"
-      
-      # 3. Проверяем права через Docker (без curl)
-      echo ""
-      echo "3. Проверка Docker аутентификации..."
-      if echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY" 2>&1 | grep -q "Login Succeeded"; then
-        echo "   ✅ Docker login успешен"
-        
-        # Сохраняем информацию об аутентификации
-        echo "   Проверка сохраненных credentials..."
-        if [ -f /root/.docker/config.json ]; then
-          echo "   ✅ Docker конфиг создан"
-          AUTH_KEY=$(jq -r '.auths | keys[0]' /root/.docker/config.json 2>/dev/null || echo "$CI_REGISTRY")
-          echo "   Аутентифицирован в: $AUTH_KEY"
-        fi
-      else
-        echo "   ❌ Docker login не удался"
-        echo "   Попытка логина с выводом:"
-        echo "$CI_JOB_TOKEN" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+      # Проверяем наличие токена
+      if [ -z "$REGISTRY_TOKEN" ]; then
+        echo "❌ ERROR: REGISTRY_TOKEN не установлен"
+        echo "Создайте Personal Access Token с scopes: api, write_registry, read_registry"
+        echo "Добавьте его в Settings → CI/CD → Variables как GITLAB_REGISTRY_TOKEN"
         exit 1
       fi
       
-      # 4. Проверяем доступность Registry через ping
-      echo ""
-      echo "4. Проверка доступности Registry..."
-      REGISTRY_HOST=$(echo "$CI_REGISTRY" | sed 's|^https\?://||')
-      if ping -c 2 "$REGISTRY_HOST" 2>&1 | grep -q "bytes from"; then
-        echo "   ✅ Registry хосту доступен: $REGISTRY_HOST"
+      # Логинимся с Personal Access Token
+      echo "Логинимся в GitLab Container Registry..."
+      echo "$REGISTRY_TOKEN" | docker login -u "$REGISTRY_USER" --password-stdin "$REGISTRY_URL"
+      
+      # Проверяем успешность
+      if [ $? -eq 0 ]; then
+        echo "✅ Успешный вход в $REGISTRY_URL"
+        echo "   Пользователь: $REGISTRY_USER"
       else
-        echo "   ⚠️  Не удалось пропинговать $REGISTRY_HOST"
-        echo "   Проверяем через nslookup..."
-        nslookup "$REGISTRY_HOST" 2>&1 | head -5 || true
+        echo "❌ Ошибка входа"
+        echo "   Проверьте:"
+        echo "   1. Токен не истек"
+        echo "   2. Токен имеет scope write_registry"
+        echo "   3. Правильный username"
+        exit 1
       fi
 
   script:
     - |
       echo ""
-      echo "=== Сборка и тестирование Registry доступа ==="
+      echo "=== Сборка Docker образа ==="
       
-      # 1. Сначала тестируем доступность Registry с минимальным образом
-      echo "1. Тестовый пуш маленького образа..."
+      # 1. Тестовый образ (для проверки)
+      echo "1. Тестовый образ..."
+      docker pull alpine:latest
+      docker tag alpine:latest "$REGISTRY_IMAGE:test-access"
       
-      # Создаем минимальный Dockerfile
-      cat > Dockerfile.test << 'EOF'
-      FROM alpine:latest AS builder
-      RUN echo "Test image built at $(date)" > /built.txt
-      
-      FROM alpine:latest
-      COPY --from=builder /built.txt /built.txt
-      CMD cat /built.txt
-      EOF
-      
-      # Собираем тестовый образ
-      docker build -f Dockerfile.test -t "$CI_REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID" .
-      
-      echo "   Тег: $CI_REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID"
-      
-      # Пробуем запушить с подробным выводом
-      echo "   Пытаемся запушить..."
-      if docker push "$CI_REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID" 2>&1 | tee /tmp/push.log; then
-        echo "   ✅ Тестовый пуш успешен!"
-        echo "   Удаляем тестовый образ..."
-        docker rmi "$CI_REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID"
+      echo "   Пробуем тестовый пуш..."
+      if docker push "$REGISTRY_IMAGE:test-access" 2>&1 | grep -q "digest:"; then
+        echo "   ✅ Тестовый пуш успешен"
+        docker rmi "$REGISTRY_IMAGE:test-access"
       else
-        echo ""
         echo "   ❌ Тестовый пуш не удался"
-        echo ""
-        echo "   === Анализ ошибки ==="
-        tail -20 /tmp/push.log
-        echo ""
-        echo "   Возможные причины:"
-        echo "   1. Нет прав на запись в Registry"
-        echo "   2. Неправильный namespace/project path"
-        echo "   3. Registry требует дополнительной аутентификации"
         exit 1
       fi
       
-      # 2. Сборка основного образа (только если тестовый пуш прошел)
+      # 2. Сборка основного образа
       echo ""
       echo "2. Собираем основной образ..."
-      docker build -t "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
+      docker build -t "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
       
       echo ""
       echo "3. Добавляем тег latest..."
-      docker tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE:latest"
+      docker tag "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$REGISTRY_IMAGE:latest"
       
       # 3. Пуш основного образа
       echo ""
       echo "4. Пушим основной образ..."
-      echo "   Тег: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-      
-      docker push "$CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
+      docker push "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
       
       echo ""
       echo "5. Пушим тег latest..."
-      docker push "$CI_REGISTRY_IMAGE:latest"
+      docker push "$REGISTRY_IMAGE:latest"
       
       echo ""
       echo "✅ Все образы успешно запушены!"
-
-  after_script:
-    - |
-      echo ""
-      echo "=== Итоговая информация ==="
-      echo "Собранные образы:"
-      docker images | grep "$CI_REGISTRY_IMAGE" || echo "Нет образов в кэше"
-      
-      echo ""
-      echo "Использованный registry: $CI_REGISTRY"
-      echo "Проект: $CI_PROJECT_PATH"
 
   only:
     - master
