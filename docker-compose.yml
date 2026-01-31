@@ -18,7 +18,7 @@ services:
       retries: 5
 
   migrate:
-    build: .
+    image: registry.gitlab.com/<group>/<project>:<commit_sha>  # готовый образ из CI
     command: >
       sh -c "
         echo 'Waiting for database...' &&
@@ -32,7 +32,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
 
   web:
-    build: .
+    image: registry.gitlab.com/<group>/<project>:<commit_sha>  # готовый образ из CI
     command: >
       sh -c "
         echo 'Waiting for migrations...' &&
@@ -46,8 +46,6 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
-    volumes:
-      - ./src:/app/src  # для hot-reload в разработке
 
 volumes:
   postgres_data:
