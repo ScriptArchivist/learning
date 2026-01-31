@@ -206,3 +206,5 @@ def delete(db: Session, name: str) -> bool:
         return True
     else:
         raise Missing(msg=f"Explorer {name} not found")
+    
+    #test
