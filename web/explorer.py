@@ -68,5 +68,3 @@ def delete(name: str, db: Session = Depends(get_session)):
             return {"status": "success", "message": f"Explorer {name} deleted"}
     except Missing as exc:
         raise HTTPException(status_code=404, detail=exc.msg)
-    
-# фэйковые изменения
