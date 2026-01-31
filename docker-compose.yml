@@ -18,7 +18,7 @@ services:
       retries: 5
 
   migrate:
-    image: registry.gitlab.com/<group>/<project>:<commit_sha>  # готовый образ из CI
+    image: registry.gitlab.com/hardair6/fastapi-project:latest  # готовый образ из CI
     command: >
       sh -c "
         echo 'Waiting for database...' &&
@@ -32,7 +32,7 @@ services:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
 
   web:
-    image: registry.gitlab.com/<group>/<project>:<commit_sha>  # готовый образ из CI
+    image: registry.gitlab.com/hardair6/fastapi-project:latest  # готовый образ из CI
     command: >
       sh -c "
         echo 'Waiting for migrations...' &&
