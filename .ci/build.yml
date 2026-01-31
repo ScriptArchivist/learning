@@ -6,10 +6,10 @@ build-docker-image:
     - docker:dind
   variables:
     DOCKER_TLS_CERTDIR: ""
-    # Явно указываем переменные для Registry
+    # Используем Deploy Token переменные
     REGISTRY_URL: "registry.gitlab.com"
-    REGISTRY_USER: "$GITLAB_REGISTRY_USER"  # Ваш username
-    REGISTRY_TOKEN: "$GITLAB_REGISTRY_TOKEN"  # Personal access token
+    REGISTRY_USER: "$GITLAB_DEPLOY_TOKEN_USER"
+    REGISTRY_TOKEN: "$GITLAB_DEPLOY_TOKEN"
     REGISTRY_IMAGE: "$REGISTRY_URL/$CI_PROJECT_PATH"
 
   before_script:
@@ -17,51 +17,60 @@ build-docker-image:
       echo "=== Настройка аутентификации ==="
       echo ""
       
-      # Проверяем наличие токена
-      if [ -z "$REGISTRY_TOKEN" ]; then
-        echo "❌ ERROR: REGISTRY_TOKEN не установлен"
-        echo "Создайте Personal Access Token с scopes: api, write_registry, read_registry"
-        echo "Добавьте его в Settings → CI/CD → Variables как GITLAB_REGISTRY_TOKEN"
+      # Проверяем наличие переменных
+      echo "Проверка переменных:"
+      echo "1. REGISTRY_USER: ${REGISTRY_USER:-НЕ УСТАНОВЛЕН}"
+      echo "2. REGISTRY_TOKEN: ${REGISTRY_TOKEN:+(установлен)}"
+      
+      if [ -z "$REGISTRY_USER" ] || [ -z "$REGISTRY_TOKEN" ]; then
+        echo ""
+        echo "❌ ОШИБКА: Не установлены переменные!"
+        echo ""
+        echo "ДЕЙСТВИЯ:"
+        echo "1. Settings → Repository → Deploy tokens"
+        echo "2. Создайте токен с scopes: read_registry, write_registry"
+        echo "3. Settings → CI/CD → Variables"
+        echo "   Добавьте переменные:"
+        echo "   - GITLAB_DEPLOY_TOKEN_USER = [username из токена]"
+        echo "   - GITLAB_DEPLOY_TOKEN = [token]"
         exit 1
       fi
       
-      # Логинимся с Personal Access Token
+      # Логинимся
+      echo ""
       echo "Логинимся в GitLab Container Registry..."
       echo "$REGISTRY_TOKEN" | docker login -u "$REGISTRY_USER" --password-stdin "$REGISTRY_URL"
       
-      # Проверяем успешность
       if [ $? -eq 0 ]; then
         echo "✅ Успешный вход в $REGISTRY_URL"
-        echo "   Пользователь: $REGISTRY_USER"
       else
         echo "❌ Ошибка входа"
         echo "   Проверьте:"
-        echo "   1. Токен не истек"
-        echo "   2. Токен имеет scope write_registry"
-        echo "   3. Правильный username"
+        echo "   - Токен не истек"
+        echo "   - Правильный username"
         exit 1
       fi
 
   script:
     - |
       echo ""
-      echo "=== Сборка Docker образа ==="
+      echo "=== Тестируем доступ к Registry ==="
       
-      # 1. Тестовый образ (для проверки)
+      # 1. Тестовый образ
       echo "1. Тестовый образ..."
       docker pull alpine:latest
-      docker tag alpine:latest "$REGISTRY_IMAGE:test-access"
+      docker tag alpine:latest "$REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID"
       
-      echo "   Пробуем тестовый пуш..."
-      if docker push "$REGISTRY_IMAGE:test-access" 2>&1 | grep -q "digest:"; then
+      echo "   Пробуем пуш..."
+      if docker push "$REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID" 2>&1 | tail -5; then
         echo "   ✅ Тестовый пуш успешен"
-        docker rmi "$REGISTRY_IMAGE:test-access"
+        docker rmi "$REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID"
       else
         echo "   ❌ Тестовый пуш не удался"
         exit 1
       fi
       
-      # 2. Сборка основного образа
+      # 2. Основной образ
       echo ""
       echo "2. Собираем основной образ..."
       docker build -t "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
@@ -81,6 +90,13 @@ build-docker-image:
       
       echo ""
       echo "✅ Все образы успешно запушены!"
+
+  after_script:
+    - |
+      echo ""
+      echo "=== Завершение ==="
+      echo "Registry: $REGISTRY_URL"
+      echo "Project: $CI_PROJECT_PATH"
 
   only:
     - master
