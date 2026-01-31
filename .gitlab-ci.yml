@@ -2,44 +2,6 @@ stages:
   - test
   - build
 
-
-variables:
-  DOCKER_TLS_CERTDIR: ""
-
-# ======================
-# TEST STAGE
-# ======================
-run-tests:
-  stage: test
-  image: docker:latest
-  services:
-    - docker:dind
-  before_script:
-    - docker info
-    - docker-compose version
-  script:
-    - echo "Поднимаем инфраструктуру для тестов"
-    - docker-compose up -d db
-    - docker-compose run --rm migrate
-    - echo "Запускаем интеграционные тесты"
-    - docker-compose run --rm web pytest test/integration/database/test_postgresql_integration.py -v
-  after_script:
-    - docker-compose down -v
-  rules:
-    - if: '$CI_COMMIT_BRANCH' 
-
-
-# ======================
-# BUILD STAGE
-# ======================
-build-docker-image:
-  stage: build
-  image: docker:latest
-  services:
-    - docker:dind
-  script:
-    - echo "Сборка Docker образа"
-    - docker build -t fastapi-app:$CI_COMMIT_SHORT_SHA .
-    - echo "Образ собран"
-  only:
-    - master
+include:
+  - local: .ci/test.yml
+  - local: .ci/build.yml

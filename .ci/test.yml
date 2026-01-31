@@ -1,0 +1,25 @@
+run-tests:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+
+  variables:
+    DOCKER_TLS_CERTDIR: ""
+
+  before_script:
+    - docker info
+    - docker-compose version
+
+  script:
+    - echo "Поднимаем инфраструктуру для тестов"
+    - docker-compose -f docker-compose.ci.yml up -d db
+    - docker-compose -f docker-compose.ci.yml run --rm migrate
+    - echo "Запускаем интеграционные тесты"
+    - docker-compose -f docker-compose.ci.yml run --rm web pytest test/integration/database/test_postgresql_integration.py -v
+
+  after_script:
+    - docker-compose -f docker-compose.ci.yml down -v
+
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
