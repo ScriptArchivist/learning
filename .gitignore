@@ -58,6 +58,7 @@ MANIFEST
 .env
 .env.local
 .secrets/
+uploads/
 
 # Базы данных (если есть)
 *.db

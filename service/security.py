@@ -1,11 +1,21 @@
-from passlib.context import CryptContext
+# service/security.py
+"""
+Заглушка для аутентификации. Позже заменим на вызов Auth Service.
+"""
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+from typing import Optional, Dict, Any
 
+def get_current_user() -> Dict[str, Any]:
+    """Заглушка - возвращает тестового пользователя."""
+    return {
+        "id": 1,
+        "username": "test_user", 
+        "email": "test@example.com",
+        "is_active": True,
+        "storage_limit": 10737418240,  # 10GB
+        "used_storage": 0
+    }
 
-def hash_password(plain: str) -> str:
-    return pwd_context.hash(plain)
-
-
-def verify_password(plain: str, hashed: str) -> bool:
-    return pwd_context.verify(plain, hashed)
+def verify_storage_limit(user: Dict[str, Any], file_size: int) -> bool:
+    """Заглушка - всегда разрешает."""
+    return True

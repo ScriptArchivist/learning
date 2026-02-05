@@ -1,0 +1,49 @@
+docker-compose -f docker-compose.ci.yml down -v
+docker-compose -f docker-compose.ci.yml build --no-cache
+docker-compose -f docker-compose.ci.yml up -d
+
+
+Подключаемся к контейнеру БД:
+docker exec -it learning_app-db-1 psql -U postgres -d app
+
+
+Добавляем пользователя:
+INSERT INTO users (id, username, email, hashed_password, is_active, storage_limit, used_storage)
+VALUES (1, 'vadim', 'vadim@example.com', 'password_hash', true, 10737418240, 0);
+
+
+Проверяем что он есть:
+SELECT * FROM users;
+
+
+Добавляем видео:
+curl -i -X POST http://localhost:8000/api/v1/videos/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Моё первое видео",
+    "description": "Тестовое описание",
+    "visibility": "private"
+  }' | jq
+
+
+Получаем список видео:
+curl http://localhost:8000/api/v1/videos/ | jq
+
+
+Получаем видео по ID:
+curl http://localhost:8000/api/v1/videos/1 | jq
+
+
+Обновляем видео:
+curl -X PUT http://localhost:8000/api/v1/videos/1 \
+  -H "Content-Type: application/json" \
+  -d '{
+    "title": "Новое название",
+    "description": "Обновлённое описание",
+    "visibility": "public",
+    "is_blocked": false
+  }' | jq
+
+
+Удаляем видео:
+curl -X DELETE http://localhost:8000/api/v1/videos/1 | jq

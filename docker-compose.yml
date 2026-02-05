@@ -21,10 +21,6 @@ services:
       sh -c "
         echo 'Waiting for database...' &&
         sleep 10 &&
-<<<<<<< HEAD
-=======
-        mkdir -p /app/alembic/versions &&
->>>>>>> ac210b5 (01.02.2026 13:37 New docker-config)
         alembic upgrade head
       "
     depends_on:
