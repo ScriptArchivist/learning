@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 from typing import Optional
 import logging
 import mimetypes
+from service.broker import publish_video_process
+from service.video_service import set_video_status 
 
 from db.database import get_db
 from service.video_service import (
@@ -259,6 +261,10 @@ def upload_complete_endpoint(
             user_id=current_user["id"],
             storage_backend=backend,
         )
+
+        set_video_status(video_id, "QUEUED", None)
+        publish_video_process(video_id=video_id, path=video.original_path)
+
         return video
 
     except NotFoundError as e:

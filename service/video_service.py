@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, desc, asc, func, not_
+from db.database import SessionLocal
+from db.models import Video
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
 from model.video import (
@@ -455,6 +457,18 @@ def get_video_stream_info(
         subtitles=[]  # TODO: добавить субтитры
     )
 
+# ========== пбликуем задачу и ставим статус QUEUED ==========
+
+def set_video_status(video_id: int, status: str, error_message: str | None = None):
+    db = SessionLocal()
+    try:
+        v = db.query(Video).filter(Video.id == video_id).one()
+        v.status = status
+        v.error_message = error_message
+        db.commit()
+    finally:
+        db.close()
+        
 # Экспортируемые функции
 __all__ = [
     # CRUD

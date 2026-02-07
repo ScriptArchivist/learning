@@ -49,5 +49,23 @@ services:
     volumes:
       - ./src:/app/src  # для hot-reload в разработке
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  worker:
+    build: .
+    command: python -m src.worker
+    depends_on:
+      - rabbitmq
+      - db
+    environment:
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+
 volumes:
   postgres_data:

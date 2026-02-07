@@ -18,14 +18,26 @@ DELETE FROM users WHERE id = 1;
 SELECT * FROM users;
 
 
-Добавляем видео:
-curl -s -X POST "http://localhost:8000/api/v1/videos/" \
+Шаг 1 — /upload/prepare. Что это: подготовка загрузки:
+FILE="/home/vadim/Downloads/video5204062485010747752.mp4"
+FILENAME=$(basename "$FILE")
+FILESIZE=$(stat -c%s "$FILE")
+
+curl -s -X POST "http://localhost:8000/api/v1/videos/upload/prepare" \
   -H "Content-Type: application/json" \
-  -d '{
-    "title": "Моё первое видео",
-    "description": "Тестовое описание",
-    "visibility": "private"
-  }' | jq
+  -d "{\"title\":\"test video\",\"filename\":\"$FILENAME\",\"file_size\":$FILESIZE}" | jq
+
+
+Шаг 2 — /upload/{id}/upload/direct. Что это: фактическая загрузка файла?
+curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/direct" \
+  -F "file=@$FILE" | jq .
+
+
+Шаг 3 — /upload/{id}/upload/complete. Что это: подтверждение завершения:
+curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/complete" \
+  -H "Content-Type: application/json" \
+  -d '{}' | jq .
+
 
 
 Получаем список видео:

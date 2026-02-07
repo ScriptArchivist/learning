@@ -1,4 +1,5 @@
 # src/config.py
+import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
@@ -13,3 +14,7 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+
+
+RABBIT_URL = os.getenv("RABBIT_URL", "amqp://guest:guest@localhost:5672/")
+RABBIT_QUEUE = os.getenv("RABBIT_QUEUE", "video.process")

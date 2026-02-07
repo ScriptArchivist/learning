@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional, List, Any
 from enum import Enum
+from sqlalchemy import Column, String
 
 # ========== ENUMS ==========
 class VideoStatus(str, Enum):
@@ -201,3 +202,7 @@ class VideoStreamInfo(BaseModel):
     formats: List[VideoFormatResponse]
     master_playlist_url: Optional[str] = None
     subtitles: List[dict] = []
+
+# ========== VIDEO STATES IN DATABASE ==========
+status = Column(String, nullable=False, default="UPLOADED")
+error_message = Column(String, nullable=True)
