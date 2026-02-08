@@ -2,6 +2,8 @@ docker-compose -f docker-compose.ci.yml down -v
 docker-compose -f docker-compose.ci.yml build --no-cache
 docker-compose -f docker-compose.ci.yml up -d
 
+docker logs -n 200 learning_app-web-1
+
 
 Подключаемся к контейнеру БД:
 docker exec -it learning_app-db-1 psql -U postgres -d app
@@ -34,9 +36,13 @@ curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/direct" 
 
 
 Шаг 3 — /upload/{id}/upload/complete. Что это: подтверждение завершения:
+VIDEO_ID=1
+UPLOAD_ID="fd04d9f9-a4b6-419a-b117-754e4b495e5e"
+
 curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/complete" \
   -H "Content-Type: application/json" \
-  -d '{}' | jq .
+  -d "{\"upload_id\":\"$UPLOAD_ID\"}" | jq .
+
 
 
 

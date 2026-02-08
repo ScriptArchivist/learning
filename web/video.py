@@ -262,7 +262,6 @@ def upload_complete_endpoint(
             storage_backend=backend,
         )
 
-        set_video_status(video_id, "QUEUED", None)
         publish_video_process(video_id=video_id, path=video.original_path)
 
         return video

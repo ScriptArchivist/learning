@@ -469,6 +469,18 @@ def set_video_status(video_id: int, status: str, error_message: str | None = Non
     finally:
         db.close()
         
+# ========== Сервисная функция для записи результата ==========
+
+def set_video_processed_info(video_id: int, processed_at, file_size: int):
+    db = SessionLocal()
+    try:
+        v = db.query(Video).filter(Video.id == video_id).one()
+        v.processed_at = processed_at
+        v.file_size = file_size
+        db.commit()
+    finally:
+        db.close()
+
 # Экспортируемые функции
 __all__ = [
     # CRUD
