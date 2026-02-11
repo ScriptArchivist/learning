@@ -70,84 +70,108 @@ def create_video(
     
     return video
 
-def get_video(db: Session, video_id: int, user_id: Optional[int] = None) -> Video:
+
+def get_video(db: Session, video_id: int, user_id: Optional[int] = None, share_token: Optional[str] = None) -> Video:
     """Получить видео по ID с проверкой прав доступа."""
-    query = db.query(Video).options(
-        joinedload(Video.owner),
-        joinedload(Video.formats),
-        joinedload(Video.processing_tasks)
-    ).filter(Video.id == video_id)
-    
-    video = query.first()
+    video = (
+        db.query(Video)
+        .options(
+            joinedload(Video.owner),
+            joinedload(Video.formats),
+            joinedload(Video.processing_tasks),
+        )
+        .filter(Video.id == video_id)
+        .first()
+    )
     if not video:
         raise NotFoundError(f"Video {video_id} not found")
-    
-    # Проверка видимости
-    if video.visibility == Visibility.PRIVATE and video.owner_id != user_id:
-        raise ForbiddenError("You don't have access to this video")
-    
+
+    # Блокировки (простейшее)
+    if video.is_blocked:
+        raise ForbiddenError("Video is blocked")
+
+    # PRIVATE: только владелец
+    if video.visibility == Visibility.PRIVATE:
+        if user_id is None or video.owner_id != user_id:
+            raise ForbiddenError("You don't have access to this video")
+
+    # UNLISTED: владелец ИЛИ по share_token
+    if video.visibility == Visibility.UNLISTED:
+        if user_id is None or video.owner_id != user_id:
+            if not share_token or not video.share_token or share_token != video.share_token:
+                raise ForbiddenError("You don't have access to this video")
+
+    # PUBLIC: всем можно
     return video
+
 
 def get_videos(
     db: Session,
     filter_data: VideoFilter,
     pagination: VideoPagination,
-    user_id: Optional[int] = None
+    user_id: Optional[int] = None,
 ) -> Tuple[List[Video], int]:
-    """Получить список видео с фильтрацией и пагинацией."""
+    """
+    Лента:
+    - показываем PUBLIC видео всем
+    - плюс показываем "мои" (любые visibility) если user_id задан
+    - UNLISTED не показываем в общей ленте (только владельцу)
+    """
     query = db.query(Video).options(
         joinedload(Video.owner),
-        joinedload(Video.formats)
+        joinedload(Video.formats),
     )
-    
-    # Применяем фильтры
+
+    # Базовый доступ:
+    # PUBLIC всем, + свои (если залогинен)
+    access_conditions = [Video.visibility == Visibility.PUBLIC]
+    if user_id:
+        access_conditions.append(Video.owner_id == user_id)
+    query = query.filter(or_(*access_conditions))
+
+    # UNLISTED скрываем из общей ленты (кроме владельца)
+    if user_id:
+        query = query.filter(or_(Video.visibility != Visibility.UNLISTED, Video.owner_id == user_id))
+    else:
+        query = query.filter(Video.visibility != Visibility.UNLISTED)
+
+    # Фильтр по owner_id (если явно указали)
     if filter_data.owner_id:
         query = query.filter(Video.owner_id == filter_data.owner_id)
-    elif user_id:
-        # Если не указан owner_id, показываем только свои видео
-        query = query.filter(Video.owner_id == user_id)
-    
+
+    # Фильтр по статусу
     if filter_data.status:
         query = query.filter(Video.status == filter_data.status)
-    
+
+    # Фильтр по visibility (если явно указан)
     if filter_data.visibility:
         query = query.filter(Video.visibility == filter_data.visibility)
-    else:
-        # По умолчанию показываем только PUBLIC и свои
-        if not filter_data.owner_id or filter_data.owner_id != user_id:
-            query = query.filter(Video.visibility == Visibility.PUBLIC)
-    
+
+    # Длительность/поиск/даты
     if filter_data.min_duration:
         query = query.filter(Video.duration >= filter_data.min_duration)
-    
+
     if filter_data.max_duration:
         query = query.filter(Video.duration <= filter_data.max_duration)
-    
+
     if filter_data.search_text:
         search = f"%{filter_data.search_text}%"
-        query = query.filter(
-            or_(
-                Video.title.ilike(search),
-                Video.description.ilike(search)
-            )
-        )
-    
+        query = query.filter(or_(Video.title.ilike(search), Video.description.ilike(search)))
+
     if filter_data.created_after:
         query = query.filter(Video.uploaded_at >= filter_data.created_after)
-    
+
     if filter_data.created_before:
         query = query.filter(Video.uploaded_at <= filter_data.created_before)
-    
-    # Считаем общее количество
+
     total = query.count()
-    
-    # Пагинация и сортировка
+
+    # Новые сверху
     query = query.order_by(desc(Video.uploaded_at))
-    query = query.offset((pagination.page - 1) * pagination.per_page)
-    query = query.limit(pagination.per_page)
-    
-    videos = query.all()
-    return videos, total
+    query = query.offset((pagination.page - 1) * pagination.per_page).limit(pagination.per_page)
+
+    return query.all(), total
+
 
 def update_video(
     db: Session, 
@@ -459,27 +483,108 @@ def get_video_stream_info(
 
 # ========== пбликуем задачу и ставим статус QUEUED ==========
 
-def set_video_status(video_id: int, status: str, error_message: str | None = None):
+def set_video_status(video_id: int, status: VideoStatus, error_message: str | None = None):
+    """
+    Вызывается worker'ом.
+    status должен быть enum VideoStatus, а не строка.
+    """
     db = SessionLocal()
     try:
         v = db.query(Video).filter(Video.id == video_id).one()
         v.status = status
         v.error_message = error_message
-        db.commit()
-    finally:
-        db.close()
-        
-# ========== Сервисная функция для записи результата ==========
 
-def set_video_processed_info(video_id: int, processed_at, file_size: int):
-    db = SessionLocal()
-    try:
-        v = db.query(Video).filter(Video.id == video_id).one()
-        v.processed_at = processed_at
-        v.file_size = file_size
+        # Когда READY — ставим processed_at
+        if status == VideoStatus.READY and v.processed_at is None:
+            v.processed_at = datetime.utcnow()
+
         db.commit()
     finally:
         db.close()
+
+
+def set_video_processed_info(
+    video_id: int,
+    processed_at,
+    file_size: int,
+    duration: float | None = None,
+    width: int | None = None,
+    height: int | None = None,
+    thumbnail_path: str | None = None,
+    mime_type: str | None = None,
+):
+    db: Session = SessionLocal()
+    try:
+        video = db.query(Video).filter(Video.id == video_id).first()
+        if not video:
+            return
+
+        video.processed_at = processed_at
+        video.size_bytes = file_size  # или video.file_size / как у тебя в модели
+
+        if duration is not None:
+            video.duration = duration
+        if width is not None:
+            video.width = width
+        if height is not None:
+            video.height = height
+        if thumbnail_path is not None:
+            video.thumbnail_path = thumbnail_path
+        if mime_type is not None:
+            video.mime_type = mime_type
+
+        db.commit()
+    finally:
+        db.close()
+
+
+def create_share_link(db: Session, video_id: int, user_id: int) -> str:
+    """Создать/обновить share_token и сделать видео UNLISTED."""
+    video = get_video(db, video_id, user_id=user_id)
+
+    if video.owner_id != user_id:
+        raise ForbiddenError("You can only share your own videos")
+
+    token = uuid.uuid4().hex  # короткий токен
+    video.share_token = token
+    video.visibility = Visibility.UNLISTED
+    db.commit()
+    db.refresh(video)
+    return token
+
+
+def revoke_share_link(db: Session, video_id: int, user_id: int) -> None:
+    """Отключить доступ по ссылке."""
+    video = get_video(db, video_id, user_id=user_id)
+
+    if video.owner_id != user_id:
+        raise ForbiddenError("You can only revoke share links for your own videos")
+
+    video.share_token = None
+    # visibility можно оставить UNLISTED или вернуть PRIVATE — зависит от логики продукта
+    video.visibility = Visibility.PRIVATE
+    db.commit()
+
+
+def get_video_by_share_token(db: Session, token: str) -> Video:
+    """Получить видео по токену (для просмотра без логина)."""
+    video = (
+        db.query(Video)
+        .options(joinedload(Video.owner), joinedload(Video.formats), joinedload(Video.processing_tasks))
+        .filter(Video.share_token == token)
+        .first()
+    )
+    if not video:
+        raise NotFoundError("Share link not found")
+
+    if video.is_blocked:
+        raise ForbiddenError("Video is blocked")
+
+    if video.visibility != Visibility.UNLISTED:
+        raise ForbiddenError("Share link is not active")
+
+    return video
+
 
 # Экспортируемые функции
 __all__ = [

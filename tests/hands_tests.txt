@@ -13,11 +13,11 @@ docker exec -it learning_app-db-1 psql -U postgres -d app
 INSERT INTO users (username, email, hashed_password, is_active, storage_limit, used_storage) 
 VALUES ('vadim', 'vadim@example.com', 'password_hash', true, 10737418240, 0);
 
-Удаляем пользователя:
-DELETE FROM users WHERE id = 1;
-
 Проверяем что он есть:
 SELECT * FROM users;
+
+Удаляем пользователя:
+DELETE FROM users WHERE id = 1;
 
 
 Шаг 1 — /upload/prepare. Что это: подготовка загрузки:

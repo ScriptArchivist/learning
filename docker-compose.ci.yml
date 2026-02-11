@@ -39,13 +39,20 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+    volumes:
+      - ./src:/app/src
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
 
   web:
     build: .
     command: >
       sh -c "
-        echo 'Waiting for migrations...' &&
-        sleep 2 &&
+        echo 'Applying migrations...' &&
+        alembic upgrade head &&
+        echo 'Starting API...' &&
         uvicorn src.main:app --host 0.0.0.0 --port 8000
       "
     depends_on:
@@ -66,8 +73,6 @@ services:
       - ./model:/app/model
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
-
-      # общий диск для загруженных файлов (ВАЖНО: именно /app/uploads)
       - uploads_data:/app/uploads
 
   worker:
@@ -86,8 +91,6 @@ services:
       - ./service:/app/service
       - ./db:/app/db
       - ./model:/app/model
-
-      # тот же общий диск, чтобы worker видел файлы, которые сохранил web
       - uploads_data:/app/uploads
 
 volumes:

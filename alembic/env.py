@@ -23,7 +23,6 @@ if config.config_file_name is not None:
 # --- ИМПОРТИРУЕМ НАШИ МОДЕЛИ ---
 try:
     from db.base import Base
-    from db.models import Explorer  # импортируем все модели
     
     # Устанавливаем метаданные для autogenerate
     target_metadata = Base.metadata

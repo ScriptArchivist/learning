@@ -1,11 +1,10 @@
-# model/video.py
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
-from typing import Optional, List, Any
+from typing import Optional, List
 from enum import Enum
-from sqlalchemy import Column, String
+from typing import Optional, List, Any
 
-# ========== ENUMS ==========
+
 class VideoStatus(str, Enum):
     UPLOADING = "uploading"
     UPLOADED = "uploaded"
@@ -13,15 +12,18 @@ class VideoStatus(str, Enum):
     READY = "ready"
     FAILED = "failed"
 
+
 class Visibility(str, Enum):
     PUBLIC = "public"
     PRIVATE = "private"
     UNLISTED = "unlisted"
 
+
 class ProcessingTaskType(str, Enum):
     TRANSCODE = "transcode"
     THUMBNAIL = "thumbnail"
     METADATA = "metadata"
+
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
@@ -29,32 +31,30 @@ class TaskStatus(str, Enum):
     SUCCESS = "success"
     FAILED = "failed"
 
-# ========== BASE SCHEMAS ==========
+
 class VideoBase(BaseModel):
-    """Базовая схема видео."""
-    title: str = Field(..., min_length=1, max_length=200, examples=["Мое первое видео"])
-    description: Optional[str] = Field(None, max_length=5000, examples=["Описание видео"])
-    visibility: Visibility = Field(default=Visibility.PRIVATE, examples=["public"])
+    title: str = Field(..., min_length=1, max_length=200)
+    description: Optional[str] = Field(None, max_length=5000)
+    visibility: Visibility = Field(default=Visibility.PRIVATE)
+
 
 class VideoFormatBase(BaseModel):
-    """Базовая схема формата видео."""
-    resolution: str = Field(..., examples=["1080p"])
-    width: int = Field(..., gt=0, examples=[1920])
-    height: int = Field(..., gt=0, examples=[1080])
-    codec: str = Field(..., examples=["h264"])
-    bitrate_kbps: int = Field(..., gt=0, examples=[5000])
-    file_size_bytes: int = Field(..., gt=0, examples=[10485760])
+    resolution: str
+    width: int
+    height: int
+    codec: str
+    bitrate_kbps: int
+    file_size_bytes: int
+
 
 class ProcessingTaskBase(BaseModel):
-    """Базовая схема задачи обработки."""
-    task_type: ProcessingTaskType = Field(..., examples=["transcode"])
-    priority: int = Field(default=0, ge=0, le=10, examples=[5])
+    task_type: ProcessingTaskType
+    priority: int = Field(default=0, ge=0, le=10)
 
-# ========== RESPONSE SCHEMAS ==========
+
 class UserResponse(BaseModel):
-    """Схема ответа для пользователя."""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     username: str
     email: str
@@ -63,20 +63,20 @@ class UserResponse(BaseModel):
     storage_limit: int
     used_storage: int
 
+
 class VideoFormatResponse(VideoFormatBase):
-    """Схема ответа для формата видео."""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     video_id: int
     storage_path: str
     is_ready: bool
     created_at: datetime
 
+
 class ProcessingTaskResponse(ProcessingTaskBase):
-    """Схема ответа для задачи обработки."""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     video_id: int
     status: TaskStatus
@@ -87,10 +87,10 @@ class ProcessingTaskResponse(ProcessingTaskBase):
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
 
+
 class VideoResponse(VideoBase):
-    """Полная схема ответа для видео."""
     model_config = ConfigDict(from_attributes=True)
-    
+
     id: int
     owner_id: int
     original_filename: Optional[str] = None
@@ -103,51 +103,61 @@ class VideoResponse(VideoBase):
     is_blocked: bool
     original_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
+    hls_url: Optional[str] = None
+    hls_ready: bool = False
     uploaded_at: datetime
     processed_at: Optional[datetime] = None
-    
-    # Опциональные связи (загружаются при необходимости)
+
+    # ✅ показываем текст ошибки (полезно для UI)
+    error_message: Optional[str] = None
+
     owner: Optional[UserResponse] = None
     formats: List[VideoFormatResponse] = []
     processing_tasks: List[ProcessingTaskResponse] = []
 
-# ========== CREATE SCHEMAS ==========
+
 class VideoCreate(VideoBase):
-    """Схема для создания видео."""
     pass
 
+
 class VideoUploadCreate(BaseModel):
-    """Схема для начала загрузки видео."""
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
     visibility: Visibility = Visibility.PRIVATE
-    filename: str = Field(..., examples=["my_video.mp4"])
-    file_size: int = Field(..., gt=0, examples=[10485760])
+    filename: str
+    file_size: int = Field(..., gt=0)
 
-class ProcessingTaskCreate(ProcessingTaskBase):
-    """Схема для создания задачи обработки."""
-    video_id: int
 
-# ========== UPDATE SCHEMAS ==========
 class VideoUpdate(BaseModel):
-    """Схема для обновления видео."""
     title: Optional[str] = Field(None, min_length=1, max_length=200)
     description: Optional[str] = Field(None, max_length=5000)
     visibility: Optional[Visibility] = None
     is_blocked: Optional[bool] = None
 
-class VideoStatusUpdate(BaseModel):
-    """Схема для обновления статуса видео."""
-    status: VideoStatus
 
-class ProcessingTaskUpdate(BaseModel):
-    """Схема для обновления задачи обработки."""
-    status: Optional[TaskStatus] = None
-    progress: Optional[int] = Field(None, ge=0, le=100)
-    error_message: Optional[str] = None
-    celery_task_id: Optional[str] = None
+class VideoUploadURL(BaseModel):
+    upload_id: str
+    upload_url: str
+    video_id: int
+    expires_at: datetime
 
-# ========== QUERY/FILTER SCHEMAS ==========
+
+class VideoUploadComplete(BaseModel):
+    upload_id: str
+    parts: Optional[List[dict]] = None
+
+
+# ✅ Share link schemas (новое)
+class ShareLinkResponse(BaseModel):
+    video_id: int
+    share_url: str
+
+
+class RevokeShareResponse(BaseModel):
+    video_id: int
+    revoked: bool = True
+
+
 class VideoFilter(BaseModel):
     """Схема для фильтрации видео."""
     status: Optional[VideoStatus] = None
@@ -159,12 +169,14 @@ class VideoFilter(BaseModel):
     created_after: Optional[datetime] = None
     created_before: Optional[datetime] = None
 
+
 class VideoPagination(BaseModel):
     """Схема для пагинации видео."""
     page: int = Field(1, ge=1)
     per_page: int = Field(20, ge=1, le=100)
 
-# ========== STATISTICS SCHEMAS ==========
+#============== STATISTICS SCHEMAS =================
+
 class VideoStats(BaseModel):
     """Статистика по видео."""
     total_videos: int
@@ -173,6 +185,7 @@ class VideoStats(BaseModel):
     processing_videos: int
     failed_videos: int
 
+
 class UserStorageInfo(BaseModel):
     """Информация о хранилище пользователя."""
     used_storage: int
@@ -180,29 +193,12 @@ class UserStorageInfo(BaseModel):
     used_percentage: float
     available_bytes: int
 
-# ========== UPLOAD SCHEMAS ==========
-class VideoUploadURL(BaseModel):
-    """Схема с URL для загрузки видео."""
-    upload_id: str
-    upload_url: str
-    video_id: int
-    expires_at: datetime
 
-class VideoUploadComplete(BaseModel):
-    """Схема для завершения загрузки."""
-    upload_id: str
-    parts: Optional[List[dict]] = None  # Для multipart upload
-
-# ========== STREAMING SCHEMAS ==========
 class VideoStreamInfo(BaseModel):
     """Информация для стриминга видео."""
     video_id: int
     title: str
     duration: float
-    formats: List[VideoFormatResponse]
+    formats: list[Any]
     master_playlist_url: Optional[str] = None
-    subtitles: List[dict] = []
-
-# ========== VIDEO STATES IN DATABASE ==========
-status = Column(String, nullable=False, default="UPLOADED")
-error_message = Column(String, nullable=True)
+    subtitles: list[dict] = []
