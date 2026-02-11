@@ -35,6 +35,9 @@ class StorageProvider:
 
     def generate_upload_url(self, path: str, expires_minutes: int = 60) -> str:
         raise NotImplementedError
+    def delete_dir(self, path: str) -> bool:
+        raise NotImplementedError
+
 
 
 class LocalStorage(StorageProvider):
@@ -92,6 +95,15 @@ class LocalStorage(StorageProvider):
 
     def generate_upload_url(self, path: str, expires_minutes: int = 60) -> str:
         return f"/api/v1/upload/direct/{path}"
+    def delete_dir(self, path: str) -> bool:
+        full_path = self._get_full_path(path)
+        if not full_path.exists():
+            return False
+        if not full_path.is_dir():
+            raise ValueError("Not a directory")
+        shutil.rmtree(full_path, ignore_errors=True)
+        return True
+
 
 
 def get_storage_provider() -> StorageProvider:

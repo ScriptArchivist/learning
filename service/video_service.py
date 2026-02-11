@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import and_, or_, desc, asc, func, not_
 from db.database import SessionLocal
 from db.models import Video
+from service.storage_service import get_storage_provider
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
 from model.video import (
@@ -195,23 +196,50 @@ def update_video(
     db.refresh(video)
     return video
 
+
 def delete_video(db: Session, video_id: int, user_id: int) -> bool:
-    """Удалить видео."""
+    """Удалить видео и все связанные артефакты (original, thumbnails, hls)."""
     video = get_video(db, video_id, user_id)
-    
+
     # Проверяем права
     if video.owner_id != user_id:
         raise ForbiddenError("You can only delete your own videos")
-    
+
     # Возвращаем использованное хранилище
     if video.size_bytes:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
             user.used_storage = max(0, user.used_storage - video.size_bytes)
-    
+
+    storage = get_storage_provider()
+
+    # --- Удаляем файлы/директории (не роняем удаление видео если что-то не так с FS) ---
+
+    # original файл
+    try:
+        if video.original_path:
+            storage.delete_file(video.original_path)
+    except Exception:
+        pass
+
+    # thumbnails/<id>/
+    try:
+        storage.delete_dir(f"thumbnails/{video.id}")
+    except Exception:
+        pass
+
+    # hls/<id>/
+    try:
+        storage.delete_dir(f"hls/{video.id}")
+    except Exception:
+        pass
+
+    # --- Удаляем запись из БД ---
     db.delete(video)
     db.commit()
+
     return True
+
 
 def update_video_status(
     db: Session, 
