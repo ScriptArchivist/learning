@@ -49,16 +49,20 @@ def make_hls(full_path: str, out_dir: str) -> str:
 
     # 1) Пробуем без перекодирования (минимальная нагрузка)
     cmd_copy = [
-        "ffmpeg", "-y",
-        "-hide_banner", "-loglevel", "info",
+        "ffmpeg",
+        "-y",
+        "-hide_banner",
+        "-loglevel", "info",
         "-i", full_path,
         "-an",
         "-c:v", "copy",
         "-f", "hls",
         "-hls_time", "2",
-        "-hls_list_size", "6",
-        "-hls_flags", "delete_segments+append_list+independent_segments+temp_file",
+        "-hls_list_size", "0",
+        "-hls_playlist_type", "vod",
+        "-hls_flags", "independent_segments+temp_file",
         "-hls_segment_type", "mpegts",
+        "-start_number", "0",
         "-hls_segment_filename", str(segments),
         str(playlist),
     ]
@@ -69,8 +73,10 @@ def make_hls(full_path: str, out_dir: str) -> str:
 
     # 2) Fallback: перекодируем в H.264 (если copy не подошёл)
     cmd_x264 = [
-        "ffmpeg", "-y",
-        "-hide_banner", "-loglevel", "info",
+        "ffmpeg",
+        "-y",
+        "-hide_banner",
+        "-loglevel", "info",
         "-i", full_path,
         "-an",
         "-c:v", "libx264",
@@ -82,9 +88,11 @@ def make_hls(full_path: str, out_dir: str) -> str:
         "-sc_threshold", "0",
         "-f", "hls",
         "-hls_time", "2",
-        "-hls_list_size", "6",
-        "-hls_flags", "delete_segments+append_list+independent_segments+temp_file",
+        "-hls_list_size", "0",
+        "-hls_playlist_type", "vod",
+        "-hls_flags", "independent_segments+temp_file",
         "-hls_segment_type", "mpegts",
+        "-start_number", "0",
         "-hls_segment_filename", str(segments),
         str(playlist),
     ]
