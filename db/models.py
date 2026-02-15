@@ -90,6 +90,11 @@ class Video(Base):
     uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    # ✅ PR#2: lease/lock для идемпотентности обработки
+    processing_lock_token: Mapped[str | None] = mapped_column(String(36), index=True)
+    processing_lock_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     # ✅ Добавили: текст ошибки обработки (чтобы worker мог сохранять причину FAILED)
     error_message: Mapped[str | None] = mapped_column(Text)
 

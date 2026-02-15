@@ -1,29 +1,20 @@
 # src/worker.py
 import os
 from datetime import datetime
-import uuid
-import redis
 
 from db.models import VideoStatus
 from service.broker import consume_forever
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail
-from service.video_service import set_video_status, set_video_processed_info
+from service.video_service import (
+    claim_video_processing,
+    set_video_status_with_lock,
+    set_video_processed_info,
+)
 from service.storage_service import get_storage_provider
 from service import storage_keys
-from src.config import REDIS_URL, VIDEO_LOCK_TTL_SECONDS
+from src.config import VIDEO_LOCK_TTL_SECONDS
 
 storage = get_storage_provider()  # ✅ единый storage
-
-# Redis client (sync) for distributed locks
-redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
-
-UNLOCK_LUA = """
-if redis.call('get', KEYS[1]) == ARGV[1] then
-  return redis.call('del', KEYS[1])
-else
-  return 0
-end
-"""
 
 
 def handle(payload: dict):
@@ -40,18 +31,14 @@ def handle(payload: dict):
       hls/v{video_id}/{variant}/seg_00001.ts
     """
     video_id = int(payload["video_id"])
-
-    # storage key оригинала (НЕ локальный путь!)
-    orig_key = payload["path"]
+    orig_key = payload["path"]  # storage key оригинала (НЕ локальный путь!)
 
     print(f"[worker] start video_id={video_id} key={orig_key}")
 
-    # ---- distributed lock on video_id (idempotency across workers) ----
-    lock_key = f"video:lock:{video_id}"
-    lock_val = str(uuid.uuid4())
-    acquired = redis_client.set(lock_key, lock_val, nx=True, ex=VIDEO_LOCK_TTL_SECONDS)
-    if not acquired:
-        print(f"[worker] skip video_id={video_id}: lock is already held")
+    # ✅ PR#2: атомарный захват обработки на уровне БД (без Redis)
+    lock_token = claim_video_processing(video_id, lease_seconds=VIDEO_LOCK_TTL_SECONDS)
+    if not lock_token:
+        print(f"[worker] skip video_id={video_id}: already processing/processed")
         return
 
     # ---- формируем storage keys для артефактов ----
@@ -77,10 +64,8 @@ def handle(payload: dict):
         # 2) Идемпотентность по артефактам: если всё уже сделано — просто ставим READY
         if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
             print(f"[worker] skip video_id={video_id}: artifacts already exist")
-            set_video_status(video_id, VideoStatus.READY, None)
+            set_video_status_with_lock(video_id, VideoStatus.READY, lock_token, None)
             return
-
-        set_video_status(video_id, VideoStatus.PROCESSING, None)
 
         # 3) Метаданные и размер
         size = os.path.getsize(orig_full)
@@ -110,11 +95,12 @@ def handle(payload: dict):
             duration=duration,
             width=width,
             height=height,
-            thumbnail_path=thumb_key,  # <-- ключ, а не "thumbnails/..."
+            thumbnail_path=thumb_key,  # <-- ключ, а не локальный путь
             mime_type="video/mp4",
+            lock_token=lock_token,     # ✅ guard по токену
         )
 
-        set_video_status(video_id, VideoStatus.READY, None)
+        set_video_status_with_lock(video_id, VideoStatus.READY, lock_token, None)
 
         print(
             f"[worker] done video_id={video_id}, size={size}, duration={duration}, "
@@ -122,20 +108,14 @@ def handle(payload: dict):
         )
 
     except Exception as e:
+        # ✅ guarded FAILED: только если мы всё ещё владеем lock_token
         try:
-            set_video_status(video_id, VideoStatus.FAILED, str(e))
+            set_video_status_with_lock(video_id, VideoStatus.FAILED, lock_token, str(e))
         except Exception:
             pass
 
         print(f"[worker] failed video_id={video_id}: {e}")
         raise
-
-    finally:
-        # release lock only if we still own it
-        try:
-            redis_client.eval(UNLOCK_LUA, 1, lock_key, lock_val)
-        except Exception as e:
-            print(f"[worker] unlock failed video_id={video_id}: {e}")
 
 
 if __name__ == "__main__":

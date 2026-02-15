@@ -8,12 +8,14 @@ import uuid
 from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Any, Tuple
 from sqlalchemy.orm import Session, joinedload
-from sqlalchemy import and_, or_, desc, asc, func, not_
+from sqlalchemy import and_, or_, desc, asc, func, not_, update
 from db.database import SessionLocal
 from db.models import Video
 from service.storage_service import get_storage_provider
 from src.config import HLS_PUBLIC_BASE_URL, HLS_PUBLIC_PATH_PREFIX
 from service.storage_keys import original_key
+from sqlalchemy import update
+
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
 from model.video import (
@@ -517,22 +519,114 @@ def get_video_stream_info(
 
 # ========== пбликуем задачу и ставим статус QUEUED ==========
 
-def set_video_status(video_id: int, status: VideoStatus, error_message: str | None = None):
+def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
     """
-    Вызывается worker'ом.
-    status должен быть enum VideoStatus, а не строка.
+    Атомарно "захватывает" обработку видео на уровне БД.
+    Возвращает lock_token если захват успешен, иначе None.
     """
-    db = SessionLocal()
+    db: Session = SessionLocal()
     try:
-        v = db.query(Video).filter(Video.id == video_id).one()
-        v.status = status
-        v.error_message = error_message
+        token = str(uuid.uuid4())
+        now = datetime.utcnow()
+        expires_at = now + timedelta(seconds=lease_seconds)
 
-        # Когда READY — ставим processed_at
-        if status == VideoStatus.READY and v.processed_at is None:
-            v.processed_at = datetime.utcnow()
+        stmt = (
+            update(Video)
+            .where(
+                Video.id == video_id,
+                or_(
+                    Video.status == VideoStatus.UPLOADED,
+                    # если предыдущий воркер умер — разрешаем перезахват по истёкшему lease
+                    (Video.status == VideoStatus.PROCESSING) & (Video.processing_lock_expires_at < now),
+                ),
+            )
+            .values(
+                status=VideoStatus.PROCESSING,
+                processing_lock_token=token,
+                processing_lock_expires_at=expires_at,
+                processing_started_at=now,
+                error_message=None,
+            )
+        )
 
+        res = db.execute(stmt)
         db.commit()
+
+        return token if res.rowcount == 1 else None
+    finally:
+        db.close()
+
+
+def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
+    """
+    Атомарно "захватывает" обработку видео на уровне БД.
+    Возвращает lock_token если захват успешен, иначе None.
+
+    Захват возможен если:
+      - status = UPLOADED
+      - или status = PROCESSING, но lease истёк (воркер умер)
+    """
+    db: Session = SessionLocal()
+    try:
+        token = str(uuid.uuid4())
+        now = datetime.utcnow()
+        expires_at = now + timedelta(seconds=lease_seconds)
+
+        stmt = (
+            update(Video)
+            .where(
+                Video.id == video_id,
+                or_(
+                    Video.status == VideoStatus.UPLOADED,
+                    and_(
+                        Video.status == VideoStatus.PROCESSING,
+                        Video.processing_lock_expires_at.isnot(None),
+                        Video.processing_lock_expires_at < now,
+                    ),
+                ),
+            )
+            .values(
+                status=VideoStatus.PROCESSING,
+                processing_lock_token=token,
+                processing_lock_expires_at=expires_at,
+                processing_started_at=now,
+                error_message=None,
+            )
+        )
+
+        res = db.execute(stmt)
+        db.commit()
+        return token if res.rowcount == 1 else None
+    finally:
+        db.close()
+
+
+def set_video_status_with_lock(
+    video_id: int,
+    status: VideoStatus,
+    lock_token: str,
+    error_message: str | None = None,
+) -> bool:
+    """
+    Worker-guard: обновляет статус только если lock_token актуален.
+    Возвращает True если обновили 1 строку, иначе False.
+    """
+    db: Session = SessionLocal()
+    try:
+        values = {"status": status, "error_message": error_message}
+
+        if status == VideoStatus.READY:
+            values["processed_at"] = datetime.utcnow()
+
+        stmt = (
+            update(Video)
+            .where(Video.id == video_id, Video.processing_lock_token == lock_token)
+            .values(**values)
+        )
+
+        res = db.execute(stmt)
+        db.commit()
+        return res.rowcount == 1
     finally:
         db.close()
 
@@ -541,33 +635,44 @@ def set_video_processed_info(
     video_id: int,
     processed_at,
     file_size: int,
+    lock_token: str,
     duration: float | None = None,
     width: int | None = None,
     height: int | None = None,
     thumbnail_path: str | None = None,
     mime_type: str | None = None,
-):
+) -> bool:
+    """
+    Worker-guard: сохраняет метаданные обработки только если lock_token актуален.
+    Возвращает True если обновили 1 строку, иначе False.
+    """
     db: Session = SessionLocal()
     try:
-        video = db.query(Video).filter(Video.id == video_id).first()
-        if not video:
-            return
-
-        video.processed_at = processed_at
-        video.size_bytes = file_size  # или video.file_size / как у тебя в модели
+        values = {
+            "processed_at": processed_at,
+            "size_bytes": file_size,
+        }
 
         if duration is not None:
-            video.duration = duration
+            values["duration"] = duration
         if width is not None:
-            video.width = width
+            values["width"] = width
         if height is not None:
-            video.height = height
+            values["height"] = height
         if thumbnail_path is not None:
-            video.thumbnail_path = thumbnail_path
+            values["thumbnail_path"] = thumbnail_path
         if mime_type is not None:
-            video.mime_type = mime_type
+            values["mime_type"] = mime_type
 
+        stmt = (
+            update(Video)
+            .where(Video.id == video_id, Video.processing_lock_token == lock_token)
+            .values(**values)
+        )
+
+        res = db.execute(stmt)
         db.commit()
+        return res.rowcount == 1
     finally:
         db.close()
 
