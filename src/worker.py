@@ -2,6 +2,8 @@
 import os
 from datetime import datetime
 
+import logging.config
+logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 from db.models import VideoStatus
 from service.broker import consume_forever
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail

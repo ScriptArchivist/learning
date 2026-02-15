@@ -15,6 +15,7 @@ from service.storage_service import get_storage_provider
 from src.config import HLS_PUBLIC_BASE_URL, HLS_PUBLIC_PATH_PREFIX
 from service.storage_keys import original_key
 from sqlalchemy import update
+from service.outbox import add_event, EVENT_VIDEO_PROCESS_REQUESTED
 
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
@@ -346,7 +347,15 @@ def complete_video_upload(
         priority=5
     )
     db.add(processing_task)
-    
+
+    add_event(
+        db,
+        event_type=EVENT_VIDEO_PROCESS_REQUESTED,
+        payload={"video_id": int(video.id), "path": video.original_path},
+        aggregate_type="video",
+        aggregate_id=str(video.id),
+    )
+ 
     db.commit()
     
     # TODO: Отправить задачу в очередь обработки

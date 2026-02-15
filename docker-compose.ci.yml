@@ -58,7 +58,7 @@ services:
         echo 'Applying migrations...' &&
         alembic upgrade head &&
         echo 'Starting API...' &&
-        uvicorn src.main:app --host 0.0.0.0 --port 8000
+        uvicorn src.main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log
       "
     depends_on:
       - db
@@ -92,6 +92,7 @@ services:
       - ./alembic.ini:/app/alembic.ini
       - uploads_data:/app/uploads
 
+
   worker:
     build: .
     command: python -m src.worker
@@ -103,17 +104,37 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
-      # RABBIT_QUEUE: video.process
-
-      # Redis locks
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
     volumes:
+      - ./logging.ini:/app/logging.ini
       - ./src:/app/src
       - ./service:/app/service
       - ./db:/app/db
       - ./model:/app/model
       - uploads_data:/app/uploads
+
+
+  # ✅ NEW: Outbox publisher (PR #3)
+  outbox:
+    build: .
+    command: python -m src.outbox_publisher
+    depends_on:
+      - db
+      - rabbitmq
+      - migrate
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      # RABBIT_QUEUE: video.process
+
+      OUTBOX_BATCH_SIZE: "50"
+      OUTBOX_POLL_INTERVAL: "0.5"
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
 
 volumes:
   postgres_data:

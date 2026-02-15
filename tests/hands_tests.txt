@@ -52,7 +52,7 @@ curl -s -X POST http://localhost:8000/api/v1/videos/1/share | jq .
 curl -i http://localhost:8000/api/v1/videos/1/hls/master.m3u8
 
 Проверить API: variant playlist
-curl -i "http://localhost:8000/api/v1/videos/42/hls/720p/index.m3u8?token=PASTE"
+curl -i "http://localhost:8000/api/v1/videos/1/hls/720p/index.m3u8?token=PASTE"
 
 Проверить share (если используешь)
 curl -i "http://localhost:8000/api/v1/videos/shared/SHARETOKEN/hls/master.m3u8"
@@ -78,4 +78,4 @@ curl -X PUT http://localhost:8000/api/v1/videos/1 \
 
 
 Удаляем видео:
-curl -X DELETE http://localhost:8000/api/v1/videos/1 | jq
+curl -X DELETE "http://localhost:8000/api/v1/videos/1"

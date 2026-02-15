@@ -654,8 +654,6 @@ def upload_complete_endpoint(
             storage_backend=backend,
         )
 
-        publish_video_process(video_id=video_id, path=video.original_path)
-
         return VideoResponse.from_orm(video)
 
     except NotFoundError as e:

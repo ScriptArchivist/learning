@@ -2,14 +2,15 @@
 Модели базы данных (SQLAlchemy) для видеоплатформы.
 """
 
+from datetime import datetime
+import enum
+
 from sqlalchemy import (
     String, Text, Integer, DateTime, ForeignKey,
-    Boolean, Enum, BigInteger, Float, Index
+    Boolean, Enum, BigInteger, Float, Index, JSON
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-import enum
-from datetime import datetime
 
 from .base import Base
 
@@ -95,15 +96,19 @@ class Video(Base):
     processing_lock_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
     processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # ✅ Добавили: текст ошибки обработки (чтобы worker мог сохранять причину FAILED)
+    # ✅ текст ошибки обработки
     error_message: Mapped[str | None] = mapped_column(Text)
 
-    # ✅ Добавили: токен для “доступа по ссылке” (для UNLISTED)
+    # ✅ токен для UNLISTED
     share_token: Mapped[str | None] = mapped_column(String(64), unique=True, index=True)
 
     owner: Mapped["User"] = relationship("User", back_populates="videos")
-    formats: Mapped[list["VideoFormat"]] = relationship("VideoFormat", back_populates="video", cascade="all, delete-orphan")
-    processing_tasks: Mapped[list["ProcessingTask"]] = relationship("ProcessingTask", back_populates="video", cascade="all, delete-orphan")
+    formats: Mapped[list["VideoFormat"]] = relationship(
+        "VideoFormat", back_populates="video", cascade="all, delete-orphan"
+    )
+    processing_tasks: Mapped[list["ProcessingTask"]] = relationship(
+        "ProcessingTask", back_populates="video", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         Index("ix_videos_owner_status", "owner_id", "status"),
@@ -151,4 +156,47 @@ class ProcessingTask(Base):
 
     __table_args__ = (
         Index("ix_processing_tasks_video_status", "video_id", "status"),
+    )
+
+
+# ========== OUTBOX ==========
+class OutboxStatus(str, enum.Enum):
+    PENDING = "pending"
+    PUBLISHED = "published"
+
+
+class OutboxEvent(Base):
+    __tablename__ = "outbox_events"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    event_type: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+
+    aggregate_type: Mapped[str | None] = mapped_column(String(50), index=True)
+    aggregate_id: Mapped[str | None] = mapped_column(String(100), index=True)
+
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    # статус строкой (совпадает с миграцией)
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default=OutboxStatus.PENDING.value,
+        index=True,
+        nullable=False,
+    )
+
+    attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[str | None] = mapped_column(Text)
+
+    available_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        index=True,
+        nullable=False,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+
+    __table_args__ = (
+        Index("ix_outbox_pending_available", "status", "available_at"),
     )
