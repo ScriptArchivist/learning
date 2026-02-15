@@ -1,8 +1,9 @@
 # db/database.py
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+from sqlalchemy.orm import sessionmaker
 
-Base = declarative_base()
+from db.base import Base  # ✅ один Base на весь проект
+
 
 try:
     from src.config import settings

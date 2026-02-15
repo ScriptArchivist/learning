@@ -1,103 +1,108 @@
-import json
+# src/worker.py
 import os
-import subprocess
 from datetime import datetime
+import uuid
+import redis
 
-from service.ffmpeg_utils import make_hls
 from db.models import VideoStatus
-
 from service.broker import consume_forever
+from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail
 from service.video_service import set_video_status, set_video_processed_info
+from service.storage_service import get_storage_provider
+from service import storage_keys
+from src.config import REDIS_URL, VIDEO_LOCK_TTL_SECONDS
 
-# Корень хранилища внутри контейнеров (web и worker должны видеть один и тот же /app/uploads)
-STORAGE_ROOT = "/app/uploads"
+storage = get_storage_provider()  # ✅ единый storage
 
+# Redis client (sync) for distributed locks
+redis_client = redis.Redis.from_url(REDIS_URL, decode_responses=True)
 
-def ffprobe_metadata(full_path: str) -> dict:
-    cmd = [
-        "ffprobe",
-        "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=width,height",
-        "-show_entries", "format=duration",
-        "-of", "json",
-        full_path,
-    ]
-    out = subprocess.check_output(cmd)
-    data = json.loads(out.decode("utf-8"))
-
-    duration_raw = (data.get("format") or {}).get("duration")
-    duration = float(duration_raw) if duration_raw else None
-
-    streams = data.get("streams") or []
-    stream0 = streams[0] if streams else {}
-    width = stream0.get("width")
-    height = stream0.get("height")
-
-    return {"duration": duration, "width": width, "height": height}
-
-
-def make_thumbnail(full_path: str, out_path: str, at_seconds: float = 1.0) -> None:
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-ss", str(at_seconds),
-        "-i", full_path,
-        "-frames:v", "1",
-        "-update", "1",          # ✅ чтобы писать один файл без warning
-        "-q:v", "3",
-        out_path,
-    ]
-    subprocess.check_call(cmd)
+UNLOCK_LUA = """
+if redis.call('get', KEYS[1]) == ARGV[1] then
+  return redis.call('del', KEYS[1])
+else
+  return 0
+end
+"""
 
 
 def handle(payload: dict):
-    video_id = int(payload["video_id"])
-    rel_path = payload["path"]
-    full_path = os.path.join(STORAGE_ROOT, rel_path)
+    """
+    payload ожидаем в формате:
+      {
+        "video_id": 123,
+        "path": "original/u1/v123/<uuid>.mp4"   # <-- это storage key оригинала
+      }
 
-    print(f"[worker] start video_id={video_id} path={rel_path}")
+    Вариант C для HLS:
+      hls/v{video_id}/master.m3u8
+      hls/v{video_id}/{variant}/index.m3u8
+      hls/v{video_id}/{variant}/seg_00001.ts
+    """
+    video_id = int(payload["video_id"])
+
+    # storage key оригинала (НЕ локальный путь!)
+    orig_key = payload["path"]
+
+    print(f"[worker] start video_id={video_id} key={orig_key}")
+
+    # ---- distributed lock on video_id (idempotency across workers) ----
+    lock_key = f"video:lock:{video_id}"
+    lock_val = str(uuid.uuid4())
+    acquired = redis_client.set(lock_key, lock_val, nx=True, ex=VIDEO_LOCK_TTL_SECONDS)
+    if not acquired:
+        print(f"[worker] skip video_id={video_id}: lock is already held")
+        return
+
+    # ---- формируем storage keys для артефактов ----
+    thumb_key = storage_keys.thumbnail_key(video_id)
+    hls_dir_key = storage_keys.hls_dir(video_id)
+    hls_master_key = storage_keys.hls_master_key(video_id)  # hls/v{video_id}/master.m3u8
+
+    # ---- получаем локальные пути (только для LocalStorage) ----
+    orig_full = storage.resolve_local_path(orig_key)
+    thumb_full = storage.resolve_local_path(thumb_key)
+    hls_dir_full = storage.resolve_local_path(hls_dir_key)
+    hls_master_full = storage.resolve_local_path(hls_master_key)
+
+    # Если storage не локальный (S3/MinIO) — здесь позже будет download_to_tmp + upload results.
+    if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
+        raise RuntimeError("Non-local storage is not supported by worker yet")
 
     try:
-        # 0) Файл должен существовать — иначе сразу FAILED (без PROCESSING)
-        if not os.path.exists(full_path):
-            raise FileNotFoundError(f"file not found: {full_path}")
+        # 1) Проверяем, что оригинал реально существует
+        if not os.path.exists(orig_full):
+            raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
 
-        # Теперь уже честно ставим PROCESSING
+        # 2) Идемпотентность по артефактам: если всё уже сделано — просто ставим READY
+        if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
+            print(f"[worker] skip video_id={video_id}: artifacts already exist")
+            set_video_status(video_id, VideoStatus.READY, None)
+            return
+
         set_video_status(video_id, VideoStatus.PROCESSING, None)
 
-        size = os.path.getsize(full_path)
+        # 3) Метаданные и размер
+        size = os.path.getsize(orig_full)
 
-        # 1) Метаданные
-        meta = ffprobe_metadata(full_path)
+        meta = ffprobe_metadata(orig_full)
         duration = meta["duration"]
         width = meta["width"]
         height = meta["height"]
 
-        # 2) Thumbnail
-        thumb_rel = f"thumbnails/{video_id}/thumb.jpg"
-        thumb_full = os.path.join(STORAGE_ROOT, thumb_rel)
-        make_thumbnail(full_path, thumb_full, at_seconds=1.0)
-
-        # 3) HLS
-        hls_rel_dir = f"hls/{video_id}"
-        hls_full_dir = os.path.join(STORAGE_ROOT, hls_rel_dir)
-        make_hls(full_path, hls_full_dir)
-
-        # ✅ Проверяем, что артефакты реально создались (иначе FAILED)
+        # 4) Thumbnail
+        make_thumbnail(orig_full, thumb_full, at_seconds=1.0)
         if not os.path.exists(thumb_full):
-            raise RuntimeError(f"thumbnail was not created: {thumb_full}")
+            raise RuntimeError(f"thumbnail was not created: {thumb_full} (key={thumb_key})")
 
-        hls_playlist_full = os.path.join(hls_full_dir, "index.m3u8")
-        if not os.path.exists(hls_playlist_full):
-            raise RuntimeError(f"hls playlist was not created: {hls_playlist_full}")
-
-        print(f"[worker] hls ready: /hls/{video_id}/index.m3u8")
+        # 5) HLS (вариант C)
+        make_hls(orig_full, hls_dir_full)
+        if not os.path.exists(hls_master_full):
+            raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key})")
 
         processed_at = datetime.utcnow()
 
-        # 4) Пишем инфо в БД
+        # 6) В БД сохраняем именно storage keys (НЕ full paths)
         set_video_processed_info(
             video_id=video_id,
             processed_at=processed_at,
@@ -105,22 +110,34 @@ def handle(payload: dict):
             duration=duration,
             width=width,
             height=height,
-            thumbnail_path=thumb_rel,
+            thumbnail_path=thumb_key,  # <-- ключ, а не "thumbnails/..."
             mime_type="video/mp4",
         )
 
-        # ✅ READY только после успешного создания thumbnail + HLS + записи в БД
         set_video_status(video_id, VideoStatus.READY, None)
 
         print(
-            f"[worker] done video_id={video_id}, size={size}, "
-            f"duration={duration}, w={width}, h={height}, thumb={thumb_rel}"
+            f"[worker] done video_id={video_id}, size={size}, duration={duration}, "
+            f"w={width}, h={height}, thumb_key={thumb_key}, hls_master_key={hls_master_key}"
         )
 
     except Exception as e:
-        set_video_status(video_id, VideoStatus.FAILED, str(e))
+        try:
+            set_video_status(video_id, VideoStatus.FAILED, str(e))
+        except Exception:
+            pass
+
         print(f"[worker] failed video_id={video_id}: {e}")
+        raise
+
+    finally:
+        # release lock only if we still own it
+        try:
+            redis_client.eval(UNLOCK_LUA, 1, lock_key, lock_val)
+        except Exception as e:
+            print(f"[worker] unlock failed video_id={video_id}: {e}")
 
 
 if __name__ == "__main__":
+    print("[worker] boot: starting consumer", flush=True)
     consume_forever(handle)

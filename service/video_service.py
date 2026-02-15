@@ -12,6 +12,8 @@ from sqlalchemy import and_, or_, desc, asc, func, not_
 from db.database import SessionLocal
 from db.models import Video
 from service.storage_service import get_storage_provider
+from src.config import HLS_PUBLIC_BASE_URL, HLS_PUBLIC_PATH_PREFIX
+from service.storage_keys import original_key
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
 from model.video import (
@@ -29,6 +31,10 @@ def get_current_user():
 def verify_storage_limit(user, file_size):
     """Заглушка для разработки."""
     return True
+
+def build_hls_public_url(video_id: int) -> str:
+    """Public HLS URL served by nginx/CDN: https://domain/hls/{video_id}/master.m3u8"""
+    return f"{HLS_PUBLIC_BASE_URL}/{HLS_PUBLIC_PATH_PREFIX}/{video_id}/master.m3u8"
 
 # ========== VIDEO CRUD ==========
 
@@ -284,7 +290,7 @@ def prepare_video_upload(
     
     # Генерируем уникальный путь в хранилище
     file_ext = os.path.splitext(upload_data.filename)[1]
-    storage_path = f"original/{user_id}/{video.id}/{uuid.uuid4()}{file_ext}"
+    storage_path = original_key(user_id=user_id, video_id=video.id, filename=upload_data.filename)
     
     # Получаем URL для загрузки (presigned URL для S3/MinIO)
     upload_id = str(uuid.uuid4())

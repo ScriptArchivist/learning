@@ -44,6 +44,18 @@ curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/complete
   -d "{\"upload_id\":\"$UPLOAD_ID\"}" | jq .
 
 
+Получить токен видео:
+curl -s -X POST http://localhost:8000/api/v1/videos/1/share | jq .
+
+
+Проверить API: master playlist
+curl -i http://localhost:8000/api/v1/videos/1/hls/master.m3u8
+
+Проверить API: variant playlist
+curl -i "http://localhost:8000/api/v1/videos/42/hls/720p/index.m3u8?token=PASTE"
+
+Проверить share (если используешь)
+curl -i "http://localhost:8000/api/v1/videos/shared/SHARETOKEN/hls/master.m3u8"
 
 
 Получаем список видео:

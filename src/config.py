@@ -18,3 +18,11 @@ settings = Settings()
 
 RABBIT_URL = os.getenv("RABBIT_URL", "amqp://guest:guest@localhost:5672/")
 RABBIT_QUEUE = os.getenv("RABBIT_QUEUE", "video.process")
+
+# ===== Redis (locks) =====
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+VIDEO_LOCK_TTL_SECONDS = int(os.getenv("VIDEO_LOCK_TTL_SECONDS", "3600"))
+
+# ===== Public HLS URL (served by nginx/CDN) =====
+HLS_PUBLIC_BASE_URL = os.getenv("HLS_PUBLIC_BASE_URL", "https://domain").rstrip("/")
+HLS_PUBLIC_PATH_PREFIX = os.getenv("HLS_PUBLIC_PATH_PREFIX", "/hls").strip("/")

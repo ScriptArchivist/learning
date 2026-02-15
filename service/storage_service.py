@@ -103,6 +103,10 @@ class LocalStorage(StorageProvider):
             raise ValueError("Not a directory")
         shutil.rmtree(full_path, ignore_errors=True)
         return True
+    
+    def resolve_local_path(self, path: str) -> str:
+        # Важно: используем безопасную _get_full_path (защита от traversal)
+        return str(self._get_full_path(path))
 
 
 
@@ -111,3 +115,10 @@ def get_storage_provider() -> StorageProvider:
     if storage_type == "local":
         return LocalStorage()
     raise ValueError(f"Unknown storage type: {storage_type}")
+
+    def resolve_local_path(self, path: str) -> str | None:
+        """
+        Вернуть полный путь на локальном FS, если backend local.
+        Для S3/MinIO вернёт None (в будущем будем делать download_to_tmp()).
+        """
+        return None

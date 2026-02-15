@@ -10,6 +10,11 @@ import os
 import re
 from pathlib import Path
 from typing import Optional
+import base64
+import hashlib
+import hmac
+import time
+from urllib.parse import quote_plus
 
 # third-party
 from fastapi import (
@@ -76,6 +81,74 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/videos", tags=["videos"])
 
 
+# ===== HLS constants =====
+HLS_CACHE_CONTROL = "private, max-age=60"
+# защита от ../, %2e%2e и прочего
+SEGMENT_RE = re.compile(r"^[A-Za-z0-9_\-\.]+$")
+HLS_PATH_RE = re.compile(
+    r"^(master\.m3u8|[0-9]{3,4}p/(index\.m3u8|seg_\d{5}\.ts))$"
+)
+
+# ⚠️ ВАЖНО: в production ОБЯЗАТЕЛЬНО передавать через ENV
+HLS_TOKEN_SECRET = os.getenv("HLS_TOKEN_SECRET")
+if not HLS_TOKEN_SECRET:
+    raise RuntimeError("HLS_TOKEN_SECRET must be set in environment")
+# TTL сегментного токена (по умолчанию 5 минут)
+HLS_TOKEN_TTL_SECONDS = int(os.getenv("HLS_TOKEN_TTL_SECONDS", "300"))
+# небольшой допуск по времени (на случай расхождения часов)
+HLS_CLOCK_SKEW_SECONDS = 30
+
+
+def _b64url(data: bytes) -> str:
+    return base64.urlsafe_b64encode(data).decode("utf-8").rstrip("=")
+
+def _sign(msg: str) -> str:
+    mac = hmac.new(HLS_TOKEN_SECRET.encode("utf-8"), msg.encode("utf-8"), hashlib.sha256).digest()
+    return _b64url(mac)
+
+def make_hls_token(video_id: int, exp: int, scope: str) -> str:
+    """
+    scope:
+      - "auth"  (обычный просмотр по логину)
+      - "share:<token>" (просмотр по share-token)
+    """
+    msg = f"v={video_id}&exp={exp}&scope={scope}"
+    sig = _sign(msg)
+    return f"{exp}.{sig}.{scope}"
+
+def verify_hls_token(video_id: int, token: str, expected_scope: str) -> bool:
+    try:
+        exp_s, sig, scope = token.split(".", 2)
+        exp = int(exp_s)
+    except Exception:
+        return False
+
+    if scope != expected_scope:
+        return False
+
+    now = int(time.time())
+    if exp < (now - HLS_CLOCK_SKEW_SECONDS):
+        return False
+
+    msg = f"v={video_id}&exp={exp}&scope={scope}"
+    good = _sign(msg)
+
+    return hmac.compare_digest(sig, good)
+
+def _rewrite_playlist_add_token(playlist_text: str, token: str) -> str:
+    """
+    Добавляем ?token=... ко всем строкам-сегментам (которые не начинаются с #).
+    Работает для плейлиста, где сегменты как `seg_00000.ts`.
+    """
+    out_lines = []
+    for line in playlist_text.splitlines():
+        if line and not line.startswith("#"):
+            joiner = "&" if "?" in line else "?"
+            out_lines.append(f"{line}{joiner}token={quote_plus(token)}")
+        else:
+            out_lines.append(line)
+    return "\n".join(out_lines) + ("\n" if playlist_text.endswith("\n") else "")
+
 # ===================== Адаптер для video_service =====================
 class StorageBackendAdapter:
     """
@@ -105,18 +178,17 @@ class StorageBackendAdapter:
 
 def _full_storage_path(rel_path: str) -> str:
     """
-    rel_path вида: original/1/1/xxx.mp4
-    settings.storage_path у тебя должен быть /app/uploads (в docker)
+    rel_path вида: original/1/1/xxx.mp4 или hls/1/index.m3u8
     """
     base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
     return str(Path(base) / rel_path)
 
-def _hls_playlist_path(video_id: int) -> str:
-    base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
-    return str(Path(base) / "hls" / str(video_id) / "index.m3u8")
 
-def _hls_playlist_url(video_id: int) -> str:
-    return f"/hls/{video_id}/index.m3u8"
+# ===== HLS helpers (единый источник правды) =====
+
+def _hls_master_full_path(video_id: int) -> str:
+    # variant C: hls/v{video_id}/master.m3u8
+    return _full_storage_path(f"hls/v{video_id}/master.m3u8")
 
 
 
@@ -243,8 +315,7 @@ def list_videos(
         items = []
         for v in videos:
             r = VideoResponse.from_orm(v)
-            hls_path = _hls_playlist_path(v.id)
-            r.hls_ready = Path(hls_path).exists()
+            r.hls_ready = Path(_hls_master_full_path(v.id)).exists()
             r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
             items.append(r)
 
@@ -270,7 +341,7 @@ def get_video_endpoint(
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
         resp = VideoResponse.from_orm(video)
-        hls_path = _hls_playlist_path(video_id)
+        hls_path = _hls_master_full_path(video_id)
         resp.hls_ready = Path(hls_path).exists()
         resp.hls_url = _hls_playlist_url(video_id) if resp.hls_ready else None
         return resp
@@ -299,7 +370,7 @@ def update_video_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{video_id}", status_code=status.HTTP_200_OK)
 def delete_video_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
@@ -308,7 +379,10 @@ def delete_video_endpoint(
     """Удалить видео (только владелец)."""
     try:
         delete_video(db, video_id, user_id=current_user["id"])
-        return None
+        return {
+            "status": "deleted",
+            "video_id": video_id
+        }
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ForbiddenError as e:
@@ -342,6 +416,54 @@ def get_video_file_endpoint(
 
         content_type = video.mime_type or mimetypes.guess_type(full_path)[0] or "video/mp4"
         return _range_stream_response(full_path, content_type, request)
+
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    
+
+@router.get("/{video_id}/hls/{hls_path:path}")
+def get_video_hls_file(
+    video_id: int,
+    hls_path: str,
+    token: str = Query(None, description="HLS TTL token (required for .ts)"),
+    current_user: UserInDB = Depends(get_current_user_stub),
+    db: Session = Depends(get_db),
+):
+    try:
+        _ = get_video(db, video_id, user_id=current_user["id"])
+
+        if not HLS_PATH_RE.match(hls_path):
+            raise HTTPException(status_code=400, detail="Invalid HLS path")
+
+        # variant C: hls/v{video_id}/...
+        full_path = _full_storage_path(f"hls/v{video_id}/{hls_path}")
+        if not Path(full_path).exists():
+            raise HTTPException(status_code=404, detail="HLS file not ready")
+
+        exp = int(time.time()) + HLS_TOKEN_TTL_SECONDS
+        issued_token = make_hls_token(video_id=video_id, exp=exp, scope="auth")
+
+        # Плейлисты отдаём без требования token, но ВНУТРИ добавляем token на все ссылки
+        if full_path.endswith(".m3u8"):
+            content = Path(full_path).read_text(encoding="utf-8")
+            content = _rewrite_playlist_add_token(content, issued_token)
+            return Response(
+                content=content,
+                media_type="application/vnd.apple.mpegurl",
+                headers={"Cache-Control": HLS_CACHE_CONTROL},
+            )
+
+        # Сегменты (.ts) — только по token
+        if not token or not verify_hls_token(video_id, token, expected_scope="auth"):
+            raise HTTPException(status_code=403, detail="Invalid/expired HLS token")
+
+        return FileResponse(
+            full_path,
+            media_type="video/mp2t",
+            headers={"Cache-Control": HLS_CACHE_CONTROL},
+        )
 
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -393,7 +515,7 @@ def get_shared_video_endpoint(token: str, db: Session = Depends(get_db)):
         video = get_video_by_share_token(db, token)
 
         resp = VideoResponse.from_orm(video)
-        hls_path = _hls_playlist_path(video.id)
+        hls_path = _hls_master_full_path(video.id)
         resp.hls_ready = Path(hls_path).exists()
         resp.hls_url = _hls_playlist_url(video.id) if resp.hls_ready else None
         return resp
@@ -610,8 +732,13 @@ def watch_video_page(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
-    # проверяем, что видео существует и доступно пользователю
-    _ = get_video(db, video_id, user_id=current_user["id"])
+    try:
+        # проверяем доступ
+        _ = get_video(db, video_id, user_id=current_user["id"])
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
     return HTMLResponse(f"""<!doctype html>
 <html lang="ru">
@@ -638,7 +765,6 @@ def watch_video_page(
       <span class="badge" id="mode">MP4 (default)</span>
     </div>
 
-    <!-- MP4 по умолчанию: работает всегда -->
     <video id="player" controls preload="metadata"
       poster="/api/v1/videos/{video_id}/thumbnail"
       src="/api/v1/videos/{video_id}/file">
@@ -647,12 +773,12 @@ def watch_video_page(
     <div class="row">
       <a href="/api/v1/videos/{video_id}">JSON</a>
       <a href="/api/v1/videos/{video_id}/file">MP4</a>
-      <a href="/hls/{video_id}/index.m3u8">HLS</a>
+      <a href="/api/v1/videos/{video_id}/hls/master.m3u8">HLS</a>
       <a href="/api/v1/videos/{video_id}/thumbnail">Thumbnail</a>
     </div>
 
     <div class="muted">
-      Если hls.js доступен и плейлист существует — переключимся на HLS. Иначе останемся на MP4.
+      HLS раздаётся через API с проверкой прав. Если HLS недоступен/не готов — останемся на MP4.
     </div>
   </div>
 
@@ -662,7 +788,7 @@ def watch_video_page(
     const video = document.getElementById("player");
     const mode = document.getElementById("mode");
 
-    const hlsUrl = "/hls/{video_id}/index.m3u8";
+    const hlsUrl = "/api/v1/videos/{video_id}/hls/master.m3u8";
     const mp4Url = "/api/v1/videos/{video_id}/file";
 
     function setMode(t) {{
@@ -671,41 +797,28 @@ def watch_video_page(
     }}
 
     try {{
-      // Проверим, что плейлист реально есть
       const resp = await fetch(hlsUrl, {{ method: "GET" }});
       if (!resp.ok) throw new Error("HLS playlist HTTP " + resp.status);
 
-      // Если hls.js не загрузился — остаёмся на MP4
       if (!window.Hls) {{
         setMode("MP4 (hls.js not loaded)");
         return;
       }}
 
-      // Chrome/Firefox/Edge: через hls.js
       if (Hls.isSupported()) {{
         setMode("HLS (hls.js)");
-
-        // ✅ КЛЮЧЕВОЙ ФИКС:
-        // перед переключением на HLS очищаем mp4 src,
-        // иначе hls.js иногда не может нормально перехватить video element
         try {{
           video.pause();
           video.removeAttribute("src");
           video.load();
-        }} catch (e) {{
-          console.warn("[watch] failed to reset video src", e);
-        }}
+        }} catch (e) {{}}
 
         const hls = new Hls({{ debug: true }});
-
         hls.on(Hls.Events.ERROR, function (event, data) {{
           console.error("[hls.js error]", data);
           if (data && data.fatal) {{
-            // фатально — возвращаем MP4
-            setMode("MP4 (HLS fatal: " + data.type + "/" + data.details + ")");
-            try {{
-              hls.destroy();
-            }} catch (e) {{}}
+            setMode("MP4 (HLS fatal)");
+            try {{ hls.destroy(); }} catch (e) {{}}
             video.src = mp4Url;
             video.load();
           }}
@@ -716,7 +829,6 @@ def watch_video_page(
         return;
       }}
 
-      // Safari: нативный HLS
       if (video.canPlayType("application/vnd.apple.mpegurl")) {{
         setMode("HLS (native)");
         video.src = hlsUrl;
@@ -727,7 +839,7 @@ def watch_video_page(
       setMode("MP4 (no HLS support)");
     }} catch (e) {{
       console.error("[watch init error]", e);
-      setMode("MP4 (HLS not ready: " + (e.message || "error") + ")");
+      setMode("MP4 (HLS not ready)");
     }}
   }})();
   </script>
@@ -737,7 +849,12 @@ def watch_video_page(
 
 @router.get("/shared/{token}/watch", response_class=HTMLResponse)
 def watch_shared_video_page(token: str, db: Session = Depends(get_db)):
-    video = get_video_by_share_token(db, token)
+    try:
+        video = get_video_by_share_token(db, token)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
 
     return HTMLResponse(f"""<!doctype html>
 <html lang="ru">
@@ -771,12 +888,12 @@ def watch_shared_video_page(token: str, db: Session = Depends(get_db)):
     <div class="row">
       <a href="/api/v1/videos/shared/{token}">JSON</a>
       <a href="/api/v1/videos/shared/{token}/file">MP4</a>
-      <a href="/hls/{video.id}/index.m3u8">HLS</a>
+      <a href="/api/v1/videos/shared/{token}/hls/master.m3u8">HLS</a>
       <a href="/api/v1/videos/shared/{token}/thumbnail">Thumbnail</a>
     </div>
 
     <div class="muted">
-      Unlisted-доступ по токену. Если HLS ещё не готов — включится MP4 (Range 206).
+      Unlisted-доступ по токену. HLS раздаётся через API по token; если HLS не готов — включится MP4.
     </div>
   </div>
 
@@ -786,40 +903,104 @@ def watch_shared_video_page(token: str, db: Session = Depends(get_db)):
     const video = document.getElementById("player");
     const mode = document.getElementById("mode");
 
-    const hlsUrl = "/hls/{video.id}/index.m3u8";
+    const hlsUrl = "/api/v1/videos/shared/{token}/hls/master.m3u8";
     const mp4Url = "/api/v1/videos/shared/{token}/file";
 
-    async function useMp4() {{
-      mode.textContent = "MP4";
+    function setMode(t) {{
+      mode.textContent = t;
+      console.log("[watch-shared]", t);
+    }}
+
+    async function useMp4(reason) {{
+      setMode("MP4" + (reason ? (" (" + reason + ")") : ""));
       video.src = mp4Url;
+      video.load();
     }}
 
     try {{
-      // Проверяем, что плейлист реально существует
       const resp = await fetch(hlsUrl, {{ method: "GET" }});
-      if (!resp.ok) throw new Error("HLS not ready");
+      if (!resp.ok) throw new Error("HLS playlist HTTP " + resp.status);
 
-      // Chrome/Firefox/Edge: через hls.js
       if (window.Hls && Hls.isSupported()) {{
-        mode.textContent = "HLS (hls.js)";
-        const hls = new Hls();
+        setMode("HLS (hls.js)");
+        try {{
+          video.pause();
+          video.removeAttribute("src");
+          video.load();
+        }} catch (e) {{}}
+
+        const hls = new Hls({{ debug: true }});
+        hls.on(Hls.Events.ERROR, function (event, data) {{
+          console.error("[hls.js error]", data);
+          if (data && data.fatal) {{
+            try {{ hls.destroy(); }} catch (e) {{}}
+            useMp4("HLS fatal");
+          }}
+        }});
+
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
         return;
       }}
 
-      // Safari: HLS нативно
       if (video.canPlayType("application/vnd.apple.mpegurl")) {{
-        mode.textContent = "HLS (native)";
+        setMode("HLS (native)");
         video.src = hlsUrl;
+        video.load();
         return;
       }}
 
-      await useMp4();
+      await useMp4("no HLS support");
     }} catch (e) {{
-      await useMp4();
+      await useMp4("HLS not ready");
     }}
   }})();
   </script>
 </body>
 </html>""")
+
+
+# ======== File =========
+
+@router.get("/shared/{token}/hls/{hls_path:path}")
+def get_shared_hls_file(
+    token: str,
+    hls_path: str,
+    hls_token: str = Query(None, alias="token", description="HLS TTL token"),
+    db: Session = Depends(get_db),
+):
+    try:
+        video = get_video_by_share_token(db, token)
+
+        if not HLS_PATH_RE.match(hls_path):
+            raise HTTPException(status_code=400, detail="Invalid HLS path")
+
+        full_path = _full_storage_path(f"hls/v{video.id}/{hls_path}")
+        if not Path(full_path).exists():
+            raise HTTPException(status_code=404, detail="HLS file not ready")
+
+        scope = f"share:{token}"
+        exp = int(time.time()) + HLS_TOKEN_TTL_SECONDS
+        issued_token = make_hls_token(video_id=video.id, exp=exp, scope=scope)
+
+        if full_path.endswith(".m3u8"):
+            content = Path(full_path).read_text(encoding="utf-8")
+            content = _rewrite_playlist_add_token(content, issued_token)
+            return Response(
+                content=content,
+                media_type="application/vnd.apple.mpegurl",
+                headers={"Cache-Control": HLS_CACHE_CONTROL},
+            )
+
+        if not hls_token or not verify_hls_token(video.id, hls_token, expected_scope=scope):
+            raise HTTPException(status_code=403, detail="Invalid/expired HLS token")
+
+        return FileResponse(
+            full_path,
+            media_type="video/mp2t",
+            headers={"Cache-Control": HLS_CACHE_CONTROL},
+        )
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))

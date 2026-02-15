@@ -26,6 +26,11 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
 
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
   migrate:
     build: .
     command: >
@@ -59,12 +64,24 @@ services:
       - db
       - migrate
       - rabbitmq
+      - redis
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
       # RABBIT_QUEUE: video.process
+
+      # Redis locks
+      REDIS_URL: redis://redis:6379/0
+      VIDEO_LOCK_TTL_SECONDS: "3600"
+
+      # Public HLS URL (nginx/CDN)
+      HLS_PUBLIC_BASE_URL: "https://domain"
+      HLS_PUBLIC_PATH_PREFIX: "/hls"
+
+      HLS_TOKEN_SECRET: "super-long-random-secret-1234567890"
+      HLS_TOKEN_TTL_SECONDS: "300"
     volumes:
       - ./src:/app/src
       - ./web:/app/web
@@ -82,10 +99,15 @@ services:
       - db
       - rabbitmq
       - migrate
+      - redis
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
       # RABBIT_QUEUE: video.process
+
+      # Redis locks
+      REDIS_URL: redis://redis:6379/0
+      VIDEO_LOCK_TTL_SECONDS: "3600"
     volumes:
       - ./src:/app/src
       - ./service:/app/service

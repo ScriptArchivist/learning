@@ -19,7 +19,7 @@ mimetypes.add_type("video/mp2t", ".ts")
 Path("/app/uploads/hls").mkdir(parents=True, exist_ok=True)
 
 # Раздаём HLS из общего volume uploads_data
-app.mount("/hls", StaticFiles(directory="/app/uploads/hls"), name="hls")
+#app.mount("/hls", StaticFiles(directory="/app/uploads/hls"), name="hls")
 
 # ===================== CORS =====================
 
