@@ -1,8 +1,51 @@
 # service/ffmpeg_utils.py
 import json
+import logging
 import shutil
 import subprocess
 from pathlib import Path
+from typing import List, Optional
+
+log = logging.getLogger("ffmpeg")
+
+
+def _run_logged(cmd: List[str], cwd: Optional[str] = None, tail_lines: int = 200) -> None:
+    """
+    Запускает команду и логирует stdout/stderr построчно через logging.
+    Это важно, чтобы в docker logs у каждой строки был timestamp (через форматтер logging).
+
+    tail_lines: сколько последних строк вывода держать для текста ошибки.
+    """
+    proc = subprocess.Popen(
+        cmd,
+        cwd=cwd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1,
+        universal_newlines=True,
+    )
+
+    assert proc.stdout is not None
+
+    tail: List[str] = []
+    for line in proc.stdout:
+        line = line.rstrip("\n")
+        if not line:
+            continue
+
+        log.info(line)
+
+        tail.append(line)
+        if len(tail) > tail_lines:
+            tail.pop(0)
+
+    rc = proc.wait()
+    if rc != 0:
+        raise RuntimeError(
+            f"Command failed rc={rc}: {' '.join(cmd)}\n"
+            f"--- last {min(len(tail), tail_lines)} lines ---\n" + "\n".join(tail)
+        )
 
 
 def ffprobe_metadata(full_path: str) -> dict:
@@ -30,14 +73,16 @@ def ffprobe_metadata(full_path: str) -> dict:
 def make_thumbnail(full_path: str, out_path: str, at_seconds: float = 1.0) -> None:
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     cmd = [
-        "ffmpeg", "-y",
+        "ffmpeg", "-y", "-hide_banner", "-loglevel", "info",
         "-ss", str(at_seconds),
         "-i", full_path,
         "-frames:v", "1",
         "-q:v", "3",
+        # чтобы ffmpeg не ругался на image2 “not an image sequence”
+        "-update", "1",
         out_path,
     ]
-    subprocess.check_call(cmd)
+    _run_logged(cmd)
 
 
 def make_hls(full_path: str, out_dir: str) -> str:
@@ -121,9 +166,10 @@ def make_hls(full_path: str, out_dir: str) -> str:
         variant_pattern,
     ]
 
-    p = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
-    if p.returncode != 0 or not master.exists():
-        raise RuntimeError("ffmpeg multi-variant hls failed.\n" + p.stdout)
+    _run_logged(cmd)
+
+    if not master.exists():
+        raise RuntimeError("ffmpeg multi-variant hls failed: master.m3u8 not created")
 
     if out.exists():
         shutil.rmtree(out, ignore_errors=True)

@@ -13,8 +13,14 @@ docker exec -it learning_app-db-1 psql -U postgres -d app
 INSERT INTO users (username, email, hashed_password, is_active, storage_limit, used_storage) 
 VALUES ('vadim', 'vadim@example.com', 'password_hash', true, 10737418240, 0);
 
+
+Запуск автотеста - скрипт полного добавления пользователя:
+./tests/add_video.sh
+
+
 Проверяем что он есть:
 SELECT * FROM users;
+
 
 Удаляем пользователя:
 DELETE FROM users WHERE id = 1;
@@ -78,4 +84,4 @@ curl -X PUT http://localhost:8000/api/v1/videos/1 \
 
 
 Удаляем видео:
-curl -X DELETE "http://localhost:8000/api/v1/videos/1"
+curl -X DELETE "http://localhost:8000/api/v1/videos/1" | jq

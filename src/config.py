@@ -26,3 +26,9 @@ VIDEO_LOCK_TTL_SECONDS = int(os.getenv("VIDEO_LOCK_TTL_SECONDS", "3600"))
 # ===== Public HLS URL (served by nginx/CDN) =====
 HLS_PUBLIC_BASE_URL = os.getenv("HLS_PUBLIC_BASE_URL", "https://domain").rstrip("/")
 HLS_PUBLIC_PATH_PREFIX = os.getenv("HLS_PUBLIC_PATH_PREFIX", "/hls").strip("/")
+
+
+# ===== Domain events (completed / failed) =====
+RABBIT_EVENTS_EXCHANGE = os.getenv("RABBIT_EVENTS_EXCHANGE", "video.events.x")
+RABBIT_EVENTS_QUEUE = os.getenv("RABBIT_EVENTS_QUEUE", "video.events")
+RABBIT_EVENTS_ROUTING_KEY = os.getenv("RABBIT_EVENTS_ROUTING_KEY", "video.events")

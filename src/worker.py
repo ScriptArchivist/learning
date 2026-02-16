@@ -4,14 +4,14 @@ from datetime import datetime
 
 import logging.config
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
-from db.models import VideoStatus
 from service.broker import consume_forever
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail
 from service.video_service import (
     claim_video_processing,
-    set_video_status_with_lock,
-    set_video_processed_info,
+    complete_video_processing_with_lock,
+    fail_video_processing_with_lock,
 )
+
 from service.storage_service import get_storage_provider
 from service import storage_keys
 from src.config import VIDEO_LOCK_TTL_SECONDS
@@ -43,30 +43,43 @@ def handle(payload: dict):
         print(f"[worker] skip video_id={video_id}: already processing/processed")
         return
 
-    # ---- формируем storage keys для артефактов ----
-    thumb_key = storage_keys.thumbnail_key(video_id)
-    hls_dir_key = storage_keys.hls_dir(video_id)
-    hls_master_key = storage_keys.hls_master_key(video_id)  # hls/v{video_id}/master.m3u8
-
-    # ---- получаем локальные пути (только для LocalStorage) ----
-    orig_full = storage.resolve_local_path(orig_key)
-    thumb_full = storage.resolve_local_path(thumb_key)
-    hls_dir_full = storage.resolve_local_path(hls_dir_key)
-    hls_master_full = storage.resolve_local_path(hls_master_key)
-
-    # Если storage не локальный (S3/MinIO) — здесь позже будет download_to_tmp + upload results.
-    if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
-        raise RuntimeError("Non-local storage is not supported by worker yet")
-
     try:
+        # ---- формируем storage keys для артефактов ----
+        thumb_key = storage_keys.thumbnail_key(video_id)
+        hls_dir_key = storage_keys.hls_dir(video_id)
+        hls_master_key = storage_keys.hls_master_key(video_id)  # hls/v{video_id}/master.m3u8
+
+        # ---- получаем локальные пути (только для LocalStorage) ----
+        orig_full = storage.resolve_local_path(orig_key)
+        thumb_full = storage.resolve_local_path(thumb_key)
+        hls_dir_full = storage.resolve_local_path(hls_dir_key)
+        hls_master_full = storage.resolve_local_path(hls_master_key)
+
+        # Если storage не локальный (S3/MinIO) — позже будет download_to_tmp + upload results.
+        # ВАЖНО: проверка внутри try, чтобы при падении мы записали FAILED + outbox event.
+        if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
+            raise RuntimeError("Non-local storage is not supported by worker yet")
+
         # 1) Проверяем, что оригинал реально существует
         if not os.path.exists(orig_full):
             raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
 
-        # 2) Идемпотентность по артефактам: если всё уже сделано — просто ставим READY
+        # 2) Идемпотентность по артефактам: если всё уже сделано — считаем успехом (READY + completed event)
         if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
             print(f"[worker] skip video_id={video_id}: artifacts already exist")
-            set_video_status_with_lock(video_id, VideoStatus.READY, lock_token, None)
+
+            complete_video_processing_with_lock(
+                video_id=video_id,
+                lock_token=lock_token,
+                processed_at=datetime.utcnow(),
+                file_size=os.path.getsize(orig_full),
+                duration=None,
+                width=None,
+                height=None,
+                thumbnail_path=thumb_key,
+                mime_type="video/mp4",
+                hls_master_key=hls_master_key,
+            )
             return
 
         # 3) Метаданные и размер
@@ -89,20 +102,19 @@ def handle(payload: dict):
 
         processed_at = datetime.utcnow()
 
-        # 6) В БД сохраняем именно storage keys (НЕ full paths)
-        set_video_processed_info(
+        # ✅ PR#4: атомарно READY + outbox event completed
+        complete_video_processing_with_lock(
             video_id=video_id,
+            lock_token=lock_token,
             processed_at=processed_at,
             file_size=size,
             duration=duration,
             width=width,
             height=height,
-            thumbnail_path=thumb_key,  # <-- ключ, а не локальный путь
+            thumbnail_path=thumb_key,
             mime_type="video/mp4",
-            lock_token=lock_token,     # ✅ guard по токену
+            hls_master_key=hls_master_key,
         )
-
-        set_video_status_with_lock(video_id, VideoStatus.READY, lock_token, None)
 
         print(
             f"[worker] done video_id={video_id}, size={size}, duration={duration}, "
@@ -110,10 +122,15 @@ def handle(payload: dict):
         )
 
     except Exception as e:
-        # ✅ guarded FAILED: только если мы всё ещё владеем lock_token
+        # ✅ PR#4: guarded FAILED + атомарный outbox event failed
         try:
-            set_video_status_with_lock(video_id, VideoStatus.FAILED, lock_token, str(e))
+            fail_video_processing_with_lock(
+                video_id=video_id,
+                lock_token=lock_token,
+                error_message=str(e),
+            )
         except Exception:
+            # Если даже установка FAILED не удалась — не ломаем воркер дополнительно
             pass
 
         print(f"[worker] failed video_id={video_id}: {e}")

@@ -16,6 +16,7 @@ from src.config import HLS_PUBLIC_BASE_URL, HLS_PUBLIC_PATH_PREFIX
 from service.storage_keys import original_key
 from sqlalchemy import update
 from service.outbox import add_event, EVENT_VIDEO_PROCESS_REQUESTED
+from service.outbox import EVENT_VIDEO_PROCESS_COMPLETED, EVENT_VIDEO_PROCESS_FAILED
 
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
@@ -763,3 +764,133 @@ __all__ = [
     # Streaming
     "get_video_stream_info",
 ]
+
+
+def complete_video_processing_with_lock(
+    *,
+    video_id: int,
+    lock_token: str,
+    processed_at: datetime,
+    file_size: int,
+    duration: float | None,
+    width: int | None,
+    height: int | None,
+    thumbnail_path: str | None,
+    mime_type: str | None,
+    hls_master_key: str,
+) -> bool:
+    """
+    Атомарно:
+    - обновляет метаданные
+    - ставит READY
+    - очищает lock
+    - добавляет outbox event video.process.completed
+    """
+    db: Session = SessionLocal()
+    try:
+        video = (
+            db.query(Video)
+            .filter(Video.id == video_id, Video.processing_lock_token == lock_token)
+            .one_or_none()
+        )
+
+        if not video:
+            db.rollback()
+            return False
+
+        video.processed_at = processed_at
+        video.size_bytes = file_size
+
+        if duration is not None:
+            video.duration = duration
+        if width is not None:
+            video.width = width
+        if height is not None:
+            video.height = height
+        if thumbnail_path is not None:
+            video.thumbnail_path = thumbnail_path
+        if mime_type is not None:
+            video.mime_type = mime_type
+
+        video.status = VideoStatus.READY
+        video.error_message = None
+        video.processing_lock_token = None
+        video.processing_lock_expires_at = None
+
+        add_event(
+            db,
+            event_type=EVENT_VIDEO_PROCESS_COMPLETED,
+            payload={
+                "video_id": video_id,
+                "status": VideoStatus.READY.value,
+                "thumbnail_path": thumbnail_path,
+                "hls_master_path": hls_master_key,
+                "processed_at": processed_at.isoformat(),
+                "duration": duration,
+                "width": width,
+                "height": height,
+                "size_bytes": file_size,
+            },
+            aggregate_type="video",
+            aggregate_id=str(video_id),
+        )
+
+        db.commit()
+        return True
+
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()
+
+
+def fail_video_processing_with_lock(
+    *,
+    video_id: int,
+    lock_token: str,
+    error_message: str,
+) -> bool:
+    """
+    Атомарно:
+    - ставит FAILED
+    - очищает lock
+    - добавляет outbox event video.process.failed
+    """
+    db: Session = SessionLocal()
+    try:
+        video = (
+            db.query(Video)
+            .filter(Video.id == video_id, Video.processing_lock_token == lock_token)
+            .one_or_none()
+        )
+
+        if not video:
+            db.rollback()
+            return False
+
+        video.status = VideoStatus.FAILED
+        video.error_message = error_message
+        video.processing_lock_token = None
+        video.processing_lock_expires_at = None
+
+        add_event(
+            db,
+            event_type=EVENT_VIDEO_PROCESS_FAILED,
+            payload={
+                "video_id": video_id,
+                "status": VideoStatus.FAILED.value,
+                "error_message": error_message,
+            },
+            aggregate_type="video",
+            aggregate_id=str(video_id),
+        )
+
+        db.commit()
+        return True
+
+    except Exception:
+        db.rollback()
+        raise
+    finally:
+        db.close()

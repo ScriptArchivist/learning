@@ -9,7 +9,17 @@ from sqlalchemy.orm import Session
 
 from db.models import OutboxEvent, OutboxStatus
 
+from src.config import (
+    RABBIT_URL,
+    RABBIT_QUEUE,
+    RABBIT_EVENTS_EXCHANGE,
+    RABBIT_EVENTS_QUEUE,
+    RABBIT_EVENTS_ROUTING_KEY,
+)
 
+
+EVENT_VIDEO_PROCESS_COMPLETED = "video.process.completed"
+EVENT_VIDEO_PROCESS_FAILED = "video.process.failed"
 EVENT_VIDEO_PROCESS_REQUESTED = "video.process.requested"
 
 
