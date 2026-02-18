@@ -4,19 +4,25 @@ from datetime import datetime
 
 import logging.config
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
+
 from service.broker import consume_forever
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail
-from service.video_service import (
+from service.processing_service import (
     claim_video_processing,
     complete_video_processing_with_lock,
     fail_video_processing_with_lock,
 )
-
 from service.storage_service import get_storage_provider
 from service import storage_keys
 from src.config import VIDEO_LOCK_TTL_SECONDS
 
 storage = get_storage_provider()  # ✅ единый storage
+
+
+def _safe_error_message(e: Exception, limit: int = 500) -> str:
+    msg = f"{type(e).__name__}: {str(e)}"
+    msg = msg.replace("\n", " ").replace("\r", " ").strip()
+    return msg[:limit]
 
 
 def handle(payload: dict):
@@ -123,17 +129,19 @@ def handle(payload: dict):
 
     except Exception as e:
         # ✅ PR#4: guarded FAILED + атомарный outbox event failed
+        safe_msg = _safe_error_message(e)
+
         try:
             fail_video_processing_with_lock(
                 video_id=video_id,
                 lock_token=lock_token,
-                error_message=str(e),
+                error_message=safe_msg,
             )
         except Exception:
             # Если даже установка FAILED не удалась — не ломаем воркер дополнительно
             pass
 
-        print(f"[worker] failed video_id={video_id}: {e}")
+        print(f"[worker] failed video_id={video_id}: {safe_msg}")
         raise
 
 

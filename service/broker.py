@@ -6,7 +6,14 @@ from typing import Callable, Any, Dict
 
 import pika
 
-from src.config import RABBIT_URL, RABBIT_QUEUE
+from src.config import (
+    RABBIT_URL,
+    RABBIT_QUEUE,
+    RABBIT_EVENTS_EXCHANGE,
+    RABBIT_EVENTS_QUEUE,
+    RABBIT_EVENTS_ROUTING_KEY,
+)
+
 
 # ---- retry/dlq settings ----
 MAX_RETRIES = int(os.getenv("VIDEO_MAX_RETRIES", "5"))
@@ -69,6 +76,19 @@ def _declare_topology(ch: pika.adapters.blocking_connection.BlockingChannel) -> 
     ch.basic_qos(prefetch_count=1)
 
 
+def _declare_events_topology(ch: pika.adapters.blocking_connection.BlockingChannel) -> None:
+    """
+    Топология для доменных событий (completed/failed):
+    - topic exchange: RABBIT_EVENTS_EXCHANGE
+    - queue: RABBIT_EVENTS_QUEUE
+    - bind: routing_key = RABBIT_EVENTS_ROUTING_KEY
+    """
+    ch.exchange_declare(exchange=RABBIT_EVENTS_EXCHANGE, exchange_type="topic", durable=True)
+    ch.queue_declare(queue=RABBIT_EVENTS_QUEUE, durable=True)
+    ch.queue_bind(queue=RABBIT_EVENTS_QUEUE, exchange=RABBIT_EVENTS_EXCHANGE, routing_key=RABBIT_EVENTS_ROUTING_KEY)
+
+
+
 def publish_video_process(video_id: int, path: str) -> None:
     """Публикует задачу обработки видео в Rabbit (durable message)."""
     conn = _connect()
@@ -87,6 +107,32 @@ def publish_video_process(video_id: int, path: str) -> None:
                 content_type="application/json",
                 headers={"x-retry-count": 0},
             ),
+        )
+    finally:
+        try:
+            conn.close()
+        except Exception:
+            pass
+
+
+def publish_domain_event(event_type: str, payload: dict) -> None:
+    """Публикует completed/failed в events exchange."""
+    conn = _connect()
+    try:
+        ch = conn.channel()
+
+        _declare_events_topology(ch)
+
+        envelope = {"event_type": event_type, "payload": payload}
+        ch.basic_publish(
+            exchange=RABBIT_EVENTS_EXCHANGE,
+            routing_key=RABBIT_EVENTS_ROUTING_KEY,
+            body=json.dumps(envelope).encode("utf-8"),
+            properties=pika.BasicProperties(
+                delivery_mode=2,
+                content_type="application/json",
+            ),
+            mandatory=True,
         )
     finally:
         try:

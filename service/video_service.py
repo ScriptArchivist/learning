@@ -185,23 +185,30 @@ def get_videos(
 
 
 def update_video(
-    db: Session, 
-    video_id: int, 
-    update_data: VideoUpdate, 
+    db: Session,
+    video_id: int,
+    update_data: VideoUpdate,
     user_id: int
 ) -> Video:
-    """Обновить метаданные видео."""
+    """Обновить метаданные видео (только пользовательские поля)."""
     video = get_video(db, video_id, user_id)
-    
-    # Проверяем права
+
     if video.owner_id != user_id:
         raise ForbiddenError("You can only edit your own videos")
-    
-    # Обновляем поля
+
     update_dict = update_data.dict(exclude_unset=True)
+
+    # ✅ whitelist полей, которые API имеет право менять
+    allowed_fields = {"title", "description", "visibility"}
+
+    # ⛔ если в запросе пришло что-то лишнее — режем
+    forbidden = set(update_dict.keys()) - allowed_fields
+    if forbidden:
+        raise ValidationError(f"Forbidden fields in update: {sorted(forbidden)}")
+
     for field, value in update_dict.items():
         setattr(video, field, value)
-    
+
     db.commit()
     db.refresh(video)
     return video
@@ -252,21 +259,28 @@ def delete_video(db: Session, video_id: int, user_id: int) -> bool:
 
 
 def update_video_status(
-    db: Session, 
-    video_id: int, 
+    db: Session,
+    video_id: int,
     status: VideoStatus,
     user_id: Optional[int] = None
 ) -> Video:
-    """Обновить статус видео."""
+    """API может менять статус только в рамках upload-части."""
     video = get_video(db, video_id, user_id)
-    
+
+    # ✅ разрешаем только upload статусы
+    if status not in (VideoStatus.UPLOADING, VideoStatus.UPLOADED):
+        raise ValidationError("Status change is not allowed from API")
+
+    # простая защита переходов
+    if status == VideoStatus.UPLOADED and video.status != VideoStatus.UPLOADING:
+        raise ConflictError("Only UPLOADING -> UPLOADED is allowed")
+
     video.status = status
-    if status == VideoStatus.READY:
-        video.processed_at = datetime.utcnow()
-    
+
     db.commit()
     db.refresh(video)
     return video
+
 
 # ========== UPLOAD MANAGEMENT ==========
 
@@ -324,31 +338,21 @@ def complete_video_upload(
 ) -> Video:
     """Завершить загрузку видео."""
     video = get_video(db, video_id, user_id)
-    
-    # Проверяем права
+
     if video.owner_id != user_id:
         raise ForbiddenError("Access denied")
-    
-    # Проверяем, что файл действительно загружен
+
     if not storage_backend.object_exists(video.original_path):
         raise ValidationError("Video file not found in storage")
-    
-    # Получаем метаданные файла
-    metadata = storage_backend.get_object_metadata(video.original_path)
-    video.size_bytes = metadata.get('size', 0)
-    video.mime_type = metadata.get('content_type', 'video/mp4')
-    
-    # Обновляем статус
-    video.status = VideoStatus.UPLOADED
-    
-    # Создаем задачу на обработку
-    processing_task = ProcessingTask(
-        video_id=video_id,
-        task_type=ProcessingTaskType.METADATA,
-        priority=5
-    )
-    db.add(processing_task)
 
+    metadata = storage_backend.get_object_metadata(video.original_path)
+    video.size_bytes = metadata.get("size", 0)
+    video.mime_type = metadata.get("content_type", "video/mp4")
+
+    # ✅ API ставит только UPLOADED
+    video.status = VideoStatus.UPLOADED
+
+    # ✅ запуск обработки только через событие
     add_event(
         db,
         event_type=EVENT_VIDEO_PROCESS_REQUESTED,
@@ -356,12 +360,8 @@ def complete_video_upload(
         aggregate_type="video",
         aggregate_id=str(video.id),
     )
- 
+
     db.commit()
-    
-    # TODO: Отправить задачу в очередь обработки
-    # celery_app.send_task('process_video_metadata', args=[video.id])
-    
     return video
 
 # ========== VIDEO FORMATS ==========

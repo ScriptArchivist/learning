@@ -7,7 +7,7 @@ import pika
 from sqlalchemy.orm import Session
 
 from db.database import SessionLocal
-from service.broker import _declare_topology  # ок оставить так
+from service.broker import _declare_topology, _declare_events_topology
 from sqlalchemy import text
 from src.config import (
     RABBIT_URL,
@@ -42,18 +42,6 @@ def wait_for_outbox_table(timeout_seconds: int = 60) -> None:
             time.sleep(2)
         finally:
             db.close()
-
-
-def _declare_events_topology(ch: pika.adapters.blocking_connection.BlockingChannel) -> None:
-    """
-    Топология для доменных событий (completed/failed):
-    - topic exchange: RABBIT_EVENTS_EXCHANGE
-    - queue: RABBIT_EVENTS_QUEUE
-    - bind: routing_key = RABBIT_EVENTS_ROUTING_KEY
-    """
-    ch.exchange_declare(exchange=RABBIT_EVENTS_EXCHANGE, exchange_type="topic", durable=True)
-    ch.queue_declare(queue=RABBIT_EVENTS_QUEUE, durable=True)
-    ch.queue_bind(queue=RABBIT_EVENTS_QUEUE, exchange=RABBIT_EVENTS_EXCHANGE, routing_key=RABBIT_EVENTS_ROUTING_KEY)
 
 
 def publish_one(ch, event_type: str, payload: dict) -> None:

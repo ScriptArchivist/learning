@@ -48,7 +48,6 @@ from model.video import (
     VideoUploadURL,
     Visibility,
 )
-from service.broker import publish_video_process
 from service.security import get_current_user as get_current_user_stub
 from service.storage_service import get_storage_provider
 from service.video_service import (
@@ -315,7 +314,7 @@ def list_videos(
         items = []
         for v in videos:
             r = VideoResponse.from_orm(v)
-            r.hls_ready = Path(_hls_master_full_path(v.id)).exists()
+            r.hls_ready = (v.status == VideoStatus.READY) and Path(_hls_master_full_path(v.id)).exists()
             r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
             items.append(r)
 
@@ -341,9 +340,11 @@ def get_video_endpoint(
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
         resp = VideoResponse.from_orm(video)
+
         hls_path = _hls_master_full_path(video_id)
-        resp.hls_ready = Path(hls_path).exists()
+        resp.hls_ready = (video.status == VideoStatus.READY) and Path(hls_path).exists()
         resp.hls_url = _hls_playlist_url(video_id) if resp.hls_ready else None
+
         return resp
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
@@ -360,7 +361,22 @@ def update_video_endpoint(
 ):
     """Обновить метаданные видео (только владелец)."""
     try:
-        return VideoResponse.from_orm(update_video(db, video_id, update_data, user_id=current_user["id"]))
+        # ✅ быстрый API-guard (и понятная ошибка клиенту)
+        incoming = update_data.dict(exclude_unset=True)
+        allowed_fields = {"title", "description", "visibility"}
+        forbidden = set(incoming.keys()) - allowed_fields
+        if forbidden:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Forbidden fields in update: {sorted(forbidden)}",
+            )
+
+        return VideoResponse.from_orm(
+            update_video(db, video_id, update_data, user_id=current_user["id"])
+        )
+
+    except HTTPException:
+        raise
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ForbiddenError as e:
@@ -395,18 +411,19 @@ def delete_video_endpoint(
 # ===================== FILE/STREAM =====================
 
 @router.api_route("/{video_id}/file", methods=["GET", "HEAD"])
-@router.get("/{video_id}/file")
 def get_video_file_endpoint(
     video_id: int,
     request: Request,
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
-    """
-    Отдаём оригинальный файл видео с поддержкой Range.
-    """
+    """Отдаём оригинальный файл видео с поддержкой Range."""
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
+
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
+
         if not video.original_path:
             raise HTTPException(status_code=404, detail="Video file path is empty")
 
@@ -432,7 +449,11 @@ def get_video_hls_file(
     db: Session = Depends(get_db),
 ):
     try:
-        _ = get_video(db, video_id, user_id=current_user["id"])
+        video = get_video(db, video_id, user_id=current_user["id"])
+
+        # ✅ разрешаем HLS только когда READY
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
 
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
@@ -516,7 +537,7 @@ def get_shared_video_endpoint(token: str, db: Session = Depends(get_db)):
 
         resp = VideoResponse.from_orm(video)
         hls_path = _hls_master_full_path(video.id)
-        resp.hls_ready = Path(hls_path).exists()
+        resp.hls_ready = (video.status == VideoStatus.READY) and Path(hls_path).exists()
         resp.hls_url = _hls_playlist_url(video.id) if resp.hls_ready else None
         return resp
 
@@ -531,6 +552,11 @@ def get_shared_video_file_endpoint(token: str, request: Request, db: Session = D
     """Получить файл UNLISTED видео по ссылке (без логина) с поддержкой Range."""
     try:
         video = get_video_by_share_token(db, token)
+
+        # ✅ разрешаем файл только когда READY
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
+
         if not video.original_path:
             raise HTTPException(status_code=404, detail="Video file path is empty")
 
@@ -639,9 +665,9 @@ def upload_complete_endpoint(
     - проверяем что файл есть
     - пишем size/mime_type
     - переводим status -> UPLOADED
-    - создаём ProcessingTask(METADATA)
-    - публикуем задачу в Rabbit (worker обработает)
+    - пишем outbox event video.process.requested (дальше обработка async)
     """
+
     try:
         storage = get_storage_provider()
         backend = StorageBackendAdapter(storage)
@@ -681,6 +707,11 @@ def get_video_thumbnail_endpoint(
 ):
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
+
+        # ✅ строго: thumbnail только когда READY
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
+
         if not video.thumbnail_path:
             raise HTTPException(status_code=404, detail="Thumbnail not ready")
 
@@ -705,6 +736,11 @@ def get_shared_video_thumbnail_endpoint(token: str, db: Session = Depends(get_db
     """Получить thumbnail UNLISTED видео по ссылке (без логина)."""
     try:
         video = get_video_by_share_token(db, token)
+
+        # ✅ строго: thumbnail только когда READY
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
+
         if not video.thumbnail_path:
             raise HTTPException(status_code=404, detail="Thumbnail not ready")
 
@@ -731,8 +767,9 @@ def watch_video_page(
     db: Session = Depends(get_db),
 ):
     try:
-        # проверяем доступ
-        _ = get_video(db, video_id, user_id=current_user["id"])
+        video = get_video(db, video_id, user_id=current_user["id"])
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:
@@ -849,6 +886,8 @@ def watch_video_page(
 def watch_shared_video_page(token: str, db: Session = Depends(get_db)):
     try:
         video = get_video_by_share_token(db, token)
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:
@@ -969,6 +1008,10 @@ def get_shared_hls_file(
 ):
     try:
         video = get_video_by_share_token(db, token)
+
+        # ✅ разрешаем HLS только когда READY
+        if video.status != VideoStatus.READY:
+            raise HTTPException(status_code=409, detail="Video is not ready")
 
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
