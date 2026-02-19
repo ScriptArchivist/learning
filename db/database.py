@@ -2,43 +2,41 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from db.base import Base  # ✅ один Base на весь проект
+from db.base import Base
 from src.config import settings
 
 
-def _connect_args(url: str) -> dict:
+def _connect_args(url: str, app_name: str | None = None) -> dict:
+    # SQLite
     if url.startswith("sqlite"):
         return {"check_same_thread": False}
-    return {}
+
+    # Postgres (psycopg3 / psycopg2): можно прокинуть application_name
+    args: dict = {}
+    if app_name and (url.startswith("postgresql") or url.startswith("postgres")):
+        args["application_name"] = app_name
+    return args
 
 
-# ✅ master (write)
+# master (write)
 engine_write = create_engine(
     settings.database_write_url,
     pool_pre_ping=True,
-    connect_args=_connect_args(settings.database_write_url),
+    connect_args=_connect_args(settings.database_write_url, "app_writer"),
 )
 
-SessionLocalWrite = sessionmaker(
-    bind=engine_write,
-    autocommit=False,
-    autoflush=False,
-)
+SessionLocalWrite = sessionmaker(bind=engine_write, autocommit=False, autoflush=False)
 
-# ✅ replica (read)
+# replica (read)
 engine_read = create_engine(
     settings.database_read_url,
     pool_pre_ping=True,
-    connect_args=_connect_args(settings.database_read_url),
+    connect_args=_connect_args(settings.database_read_url, "app_reader"),
 )
 
-SessionLocalRead = sessionmaker(
-    bind=engine_read,
-    autocommit=False,
-    autoflush=False,
-)
+SessionLocalRead = sessionmaker(bind=engine_read, autocommit=False, autoflush=False)
 
-# ✅ backward compatibility: старый SessionLocal оставим как WRITE
+# backward compatibility
 SessionLocal = SessionLocalWrite
 engine = engine_write
 
@@ -59,8 +57,8 @@ def get_db_read():
         db.close()
 
 
-# ✅ backward compatibility: старый get_db оставим как WRITE
 def get_db():
+    # старый get_db — это write
     yield from get_db_write()
 
 
