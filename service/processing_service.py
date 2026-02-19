@@ -123,6 +123,7 @@ def complete_video_processing_with_lock(
                 "height": height,
                 "size_bytes": file_size,
             },
+            producer="processing",
             aggregate_type="video",
             aggregate_id=str(video_id),
         )
@@ -174,6 +175,7 @@ def fail_video_processing_with_lock(
                 "status": VideoStatus.FAILED.value,
                 "error_message": error_message,
             },
+            producer="processing",
             aggregate_type="video",
             aggregate_id=str(video_id),
         )

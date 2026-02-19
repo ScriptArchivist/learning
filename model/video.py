@@ -121,11 +121,15 @@ class VideoCreate(VideoBase):
 
 
 class VideoUploadCreate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200)
-    description: Optional[str] = None
+    title: str
+    description: str | None = None
     visibility: Visibility = Visibility.PRIVATE
     filename: str
-    file_size: int = Field(..., gt=0)
+    file_size: int
+
+    # ✅ идемпотентность prepare (uuid строкой от клиента)
+    client_upload_id: str
+
 
 
 class VideoUpdate(BaseModel):
@@ -141,10 +145,22 @@ class VideoUploadURL(BaseModel):
     video_id: int
     expires_at: datetime
 
+    # ✅ ключ объекта в storage (для local = original_path, для S3 = object_key)
+    object_key: str
+
 
 class VideoUploadComplete(BaseModel):
     upload_id: str
-    parts: Optional[List[dict]] = None
+
+    # ✅ подтверждение размера (клиент сообщает, сервер сверяет)
+    size_bytes: int
+
+    # ✅ подтверждение etag (для local можно md5; для S3 это ETag)
+    etag: str | None = None
+
+    # parts можно оставить как есть, если уже используется/планируется multipart
+    parts: list[dict] | None = None
+
 
 
 # ✅ Share link schemas (новое)

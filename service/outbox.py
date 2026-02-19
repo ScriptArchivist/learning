@@ -3,24 +3,51 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any
+import uuid
 
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from db.models import OutboxEvent, OutboxStatus
 
-from src.config import (
-    RABBIT_URL,
-    RABBIT_QUEUE,
-    RABBIT_EVENTS_EXCHANGE,
-    RABBIT_EVENTS_QUEUE,
-    RABBIT_EVENTS_ROUTING_KEY,
-)
-
 
 EVENT_VIDEO_PROCESS_COMPLETED = "video.process.completed"
 EVENT_VIDEO_PROCESS_FAILED = "video.process.failed"
 EVENT_VIDEO_PROCESS_REQUESTED = "video.process.requested"
+
+# schema versions (меняешь payload -> bump version)
+SCHEMA_VERSIONS: dict[str, int] = {
+    EVENT_VIDEO_PROCESS_REQUESTED: 1,
+    EVENT_VIDEO_PROCESS_COMPLETED: 1,
+    EVENT_VIDEO_PROCESS_FAILED: 1,
+}
+
+
+def _utc_iso() -> str:
+    return datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+
+
+def build_envelope(
+    *,
+    event_type: str,
+    payload: dict[str, Any],
+    producer: str,
+    correlation_id: str | None = None,
+    trace_id: str | None = None,
+    schema_version: int | None = None,
+    occurred_at: str | None = None,
+    event_id: str | None = None,
+) -> dict[str, Any]:
+    return {
+        "event_id": event_id or str(uuid.uuid4()),
+        "event_type": event_type,
+        "schema_version": schema_version or SCHEMA_VERSIONS.get(event_type, 1),
+        "occurred_at": occurred_at or _utc_iso(),
+        "producer": producer,
+        "correlation_id": correlation_id,
+        "trace_id": trace_id,
+        "payload": payload,
+    }
 
 
 def add_event(
@@ -28,13 +55,26 @@ def add_event(
     *,
     event_type: str,
     payload: dict[str, Any],
+    producer: str,
+    correlation_id: str | None = None,
+    trace_id: str | None = None,
+    schema_version: int | None = None,
     aggregate_type: str | None = None,
     aggregate_id: str | None = None,
     available_at: datetime | None = None,
 ) -> OutboxEvent:
-    evt = OutboxEvent(
+    envelope = build_envelope(
         event_type=event_type,
         payload=payload,
+        producer=producer,
+        correlation_id=correlation_id,
+        trace_id=trace_id,
+        schema_version=schema_version,
+    )
+
+    evt = OutboxEvent(
+        event_type=event_type,          # остаётся как отдельная колонка
+        payload=envelope,               # ✅ теперь payload = ENVELOPE
         aggregate_type=aggregate_type,
         aggregate_id=aggregate_id,
         available_at=available_at or datetime.utcnow(),
@@ -46,9 +86,6 @@ def add_event(
 
 
 def fetch_pending_batch(db: Session, *, limit: int) -> list[OutboxEvent]:
-    """
-    Postgres: FOR UPDATE SKIP LOCKED позволяет безопасно запускать несколько publisher'ов.
-    """
     stmt = (
         select(OutboxEvent)
         .where(
@@ -71,7 +108,6 @@ def mark_published(db: Session, event_id: int) -> None:
 
 
 def mark_failed_retry(db: Session, event_id: int, err: str, attempts: int) -> None:
-    # простой backoff: 2^attempts секунд, но не более 5 минут
     delay = min(300, 2 ** min(attempts, 8))
     db.execute(
         update(OutboxEvent)

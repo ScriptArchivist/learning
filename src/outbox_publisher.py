@@ -46,11 +46,9 @@ def wait_for_outbox_table(timeout_seconds: int = 60) -> None:
 
 def publish_one(ch, event_type: str, payload: dict) -> None:
     """
-    Публикация одного события в Rabbit с publisher confirms.
-    Успех = отсутствие исключения.
+    payload теперь = ENVELOPE (event_id, event_type, schema_version, ... payload)
     """
-
-    # 1) Команда воркеру (как раньше): в очередь video.process
+    # 1) Команда воркеру: в очередь video.process
     if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
         ch.basic_publish(
             exchange="",
@@ -67,11 +65,10 @@ def publish_one(ch, event_type: str, payload: dict) -> None:
 
     # 2) Доменные события: в events exchange (completed/failed)
     if event_type in (EVENT_VIDEO_PROCESS_COMPLETED, EVENT_VIDEO_PROCESS_FAILED):
-        envelope = {"event_type": event_type, "payload": payload}
         ch.basic_publish(
             exchange=RABBIT_EVENTS_EXCHANGE,
             routing_key=RABBIT_EVENTS_ROUTING_KEY,
-            body=json.dumps(envelope).encode("utf-8"),
+            body=json.dumps(payload).encode("utf-8"),
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",

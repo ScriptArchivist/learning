@@ -27,14 +27,6 @@ from model.video import (
 )
 from errors import NotFoundError, ValidationError, ForbiddenError, ConflictError
 
-# ЗАГЛУШКИ ВМЕСТО ИМПОРТА ИЗ security.py
-def get_current_user():
-    """Заглушка для разработки."""
-    return type('User', (), {'id': 1})()
-
-def verify_storage_limit(user, file_size):
-    """Заглушка для разработки."""
-    return True
 
 def build_hls_public_url(video_id: int) -> str:
     """Public HLS URL served by nginx/CDN: https://domain/hls/{video_id}/master.m3u8"""
@@ -288,46 +280,96 @@ def prepare_video_upload(
     db: Session,
     upload_data: VideoUploadCreate,
     user_id: int,
-    storage_backend: Any  # MinIO/S3 клиент
+    storage_backend: Any,  # MinIO/S3 клиент или адаптер LocalStorage
 ) -> VideoUploadURL:
-    """Подготовить загрузку видео: создать запись и получить URL для загрузки."""
-    # Создаем видео
+    """
+    Идемпотентный prepare:
+    - client_upload_id приходит от клиента
+    - повторный prepare возвращает тот же video/upload_id/object_key
+    """
+    if not upload_data.client_upload_id:
+        raise ValidationError("client_upload_id is required")
+
+    # 1) пытаемся найти уже подготовленное видео по (owner_id, client_upload_id)
+    existing = (
+        db.query(Video)
+        .filter(
+            Video.owner_id == user_id,
+            Video.client_upload_id == upload_data.client_upload_id,
+        )
+        .one_or_none()
+    )
+
+    if existing:
+        # если вдруг original_path ещё не проставлен (на всякий)
+        if not existing.original_path:
+            existing.original_path = original_key(
+                user_id=user_id,
+                video_id=existing.id,
+                filename=upload_data.filename,
+            )
+            db.commit()
+
+        # upload_id должен быть стабильным
+        if not existing.upload_id:
+            existing.upload_id = str(uuid.uuid4())
+            db.commit()
+
+        upload_url = storage_backend.generate_presigned_upload_url(
+            object_name=existing.original_path,
+            file_size=upload_data.file_size,
+            expires_minutes=60,
+        )
+
+        return VideoUploadURL(
+            upload_id=existing.upload_id,
+            upload_url=upload_url,
+            video_id=existing.id,
+            expires_at=datetime.utcnow() + timedelta(minutes=55),
+            object_key=existing.original_path,
+        )
+
+    # 2) создаём новое видео (как было раньше)
     video_create = VideoCreate(
         title=upload_data.title,
         description=upload_data.description,
-        visibility=upload_data.visibility
+        visibility=upload_data.visibility,
     )
-    
+
     video = create_video(
         db=db,
         video_data=video_create,
         user_id=user_id,
         original_filename=upload_data.filename,
-        file_size=upload_data.file_size
+        file_size=upload_data.file_size,
     )
-    
-    # Генерируем уникальный путь в хранилище
-    file_ext = os.path.splitext(upload_data.filename)[1]
-    storage_path = original_key(user_id=user_id, video_id=video.id, filename=upload_data.filename)
-    
-    # Получаем URL для загрузки (presigned URL для S3/MinIO)
+
+    storage_path = original_key(
+        user_id=user_id,
+        video_id=video.id,
+        filename=upload_data.filename,
+    )
+
     upload_id = str(uuid.uuid4())
     upload_url = storage_backend.generate_presigned_upload_url(
         object_name=storage_path,
         file_size=upload_data.file_size,
-        expires_minutes=60
+        expires_minutes=60,
     )
-    
-    # Сохраняем путь к видео
+
     video.original_path = storage_path
+    video.client_upload_id = upload_data.client_upload_id
+    video.upload_id = upload_id
     db.commit()
-    
+
     return VideoUploadURL(
         upload_id=upload_id,
         upload_url=upload_url,
         video_id=video.id,
-        expires_at=datetime.utcnow() + timedelta(minutes=55)
+        expires_at=datetime.utcnow() + timedelta(minutes=55),
+        object_key=storage_path,
     )
+
 
 def complete_video_upload(
     db: Session,
@@ -336,33 +378,47 @@ def complete_video_upload(
     user_id: int,
     storage_backend: Any
 ) -> Video:
-    """Завершить загрузку видео."""
+    """Завершить загрузку видео (идемпотентно)."""
     video = get_video(db, video_id, user_id)
 
     if video.owner_id != user_id:
         raise ForbiddenError("Access denied")
 
+    # ✅ upload_id обязателен для идемпотентности complete
+    if not video.upload_id or video.upload_id != complete_data.upload_id:
+        raise ValidationError("Invalid upload_id")
+
+    # ✅ Идемпотентность: если уже завершали complete ранее — НЕ создаём новое событие
+    # (Outbox/event должен появиться только один раз на переход в UPLOADED)
+    if video.status in (VideoStatus.UPLOADED, VideoStatus.PROCESSING, VideoStatus.READY, VideoStatus.FAILED):
+        return video
+
+    # На первом complete — проверяем, что файл реально загружен
     if not storage_backend.object_exists(video.original_path):
         raise ValidationError("Video file not found in storage")
 
     metadata = storage_backend.get_object_metadata(video.original_path)
+
+    # Если хочешь — можешь валидировать size/etag, но это опционально
     video.size_bytes = metadata.get("size", 0)
     video.mime_type = metadata.get("content_type", "video/mp4")
 
     # ✅ API ставит только UPLOADED
     video.status = VideoStatus.UPLOADED
 
-    # ✅ запуск обработки только через событие
+    # ✅ запуск обработки только через событие (ОДИН РАЗ)
     add_event(
         db,
         event_type=EVENT_VIDEO_PROCESS_REQUESTED,
         payload={"video_id": int(video.id), "path": video.original_path},
+        producer="api",
         aggregate_type="video",
         aggregate_id=str(video.id),
     )
 
     db.commit()
     return video
+
 
 # ========== VIDEO FORMATS ==========
 

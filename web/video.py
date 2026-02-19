@@ -172,7 +172,19 @@ class StorageBackendAdapter:
     def get_object_metadata(self, path: str) -> dict:
         size = self.storage.get_file_size(path)
         content_type, _ = mimetypes.guess_type(path)
-        return {"size": size, "content_type": content_type or "video/mp4"}
+
+        # ✅ local etag = md5 файла (достаточно для контракта; позже заменится на S3 ETag)
+        etag = None
+        try:
+            with self.storage.get_file(path) as f:
+                h = hashlib.md5()
+                for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                    h.update(chunk)
+                etag = h.hexdigest()
+        except Exception:
+            etag = None
+
+        return {"size": size, "content_type": content_type or "video/mp4", "etag": etag}
 
 
 def _full_storage_path(rel_path: str) -> str:
@@ -182,6 +194,9 @@ def _full_storage_path(rel_path: str) -> str:
     base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
     return str(Path(base) / rel_path)
 
+def _delivery_url(object_key: str) -> str:
+    base = getattr(settings, "DELIVERY_BASE_URL", "http://localhost:8080").rstrip("/")
+    return f"{base}/{object_key.lstrip('/')}"
 
 # ===== HLS helpers (единый источник правды) =====
 
@@ -190,10 +205,7 @@ def _hls_master_full_path(video_id: int) -> str:
     return _full_storage_path(f"hls/v{video_id}/master.m3u8")
 
 
-
 # ===================== RANGE STREAMING HELPERS =====================
-
-RANGE_RE = re.compile(r"bytes=(\d*)-(\d*)")
 
 
 def _range_stream_response(file_path: str, content_type: str, request: Request):
@@ -292,12 +304,6 @@ def list_videos(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
-    """
-    Получить список видео:
-    - PUBLIC видят все
-    - свои видео видит владелец (включая PRIVATE/UNLISTED)
-    - сортировка по uploaded_at DESC уже в service.get_videos
-    """
     try:
         filter_data = VideoFilter(
             status=status,
@@ -311,11 +317,19 @@ def list_videos(
 
         videos, total = get_videos(db, filter_data, pagination, user_id=current_user["id"])
 
+        url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
+
         items = []
         for v in videos:
             r = VideoResponse.from_orm(v)
-            r.hls_ready = (v.status == VideoStatus.READY) and Path(_hls_master_full_path(v.id)).exists()
-            r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
+
+            r.hls_ready = (v.status == VideoStatus.READY)
+            if url_mode and r.hls_ready:
+                r.hls_url = _delivery_url(f"hls/v{v.id}/master.m3u8")
+            else:
+                r.hls_ready = r.hls_ready and Path(_hls_master_full_path(v.id)).exists()
+                r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
+
             items.append(r)
 
         return {
@@ -328,7 +342,7 @@ def list_videos(
     except Exception as e:
         logger.exception("Error listing videos")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
-
+    
 
 @router.get("/{video_id}", response_model=VideoResponse)
 def get_video_endpoint(
@@ -336,16 +350,34 @@ def get_video_endpoint(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
-    """Получить информацию о видео (с проверкой доступа)."""
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
         resp = VideoResponse.from_orm(video)
 
+        # READY по статусу
+        resp.hls_ready = (video.status == VideoStatus.READY)
+
+        url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
+
+        if not resp.hls_ready:
+            resp.hls_url = None
+            return resp
+
+        if url_mode:
+            resp.hls_url = _delivery_url(f"hls/v{video_id}/master.m3u8")
+            return resp
+
+        # local mode: проверяем, что master.m3u8 реально существует
         hls_path = _hls_master_full_path(video_id)
-        resp.hls_ready = (video.status == VideoStatus.READY) and Path(hls_path).exists()
-        resp.hls_url = _hls_playlist_url(video_id) if resp.hls_ready else None
+        if Path(hls_path).exists():
+            # ✅ больше не вызываем _hls_playlist_url, чтобы не ловить NameError
+            resp.hls_url = f"/api/v1/videos/{video_id}/hls/master.m3u8"
+        else:
+            resp.hls_ready = False
+            resp.hls_url = None
 
         return resp
+
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ForbiddenError as e:
@@ -417,6 +449,9 @@ def get_video_file_endpoint(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
+    if getattr(settings, "DELIVERY_MODE", "local") == "url":
+        raise HTTPException(status_code=501, detail="Delivery is handled by origin")
+
     """Отдаём оригинальный файл видео с поддержкой Range."""
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
@@ -448,17 +483,18 @@ def get_video_hls_file(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
+    if getattr(settings, "DELIVERY_MODE", "local") == "url":
+        raise HTTPException(status_code=501, detail="Delivery is handled by origin")
+
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
 
-        # ✅ разрешаем HLS только когда READY
         if video.status != VideoStatus.READY:
             raise HTTPException(status_code=409, detail="Video is not ready")
 
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
 
-        # variant C: hls/v{video_id}/...
         full_path = _full_storage_path(f"hls/v{video_id}/{hls_path}")
         if not Path(full_path).exists():
             raise HTTPException(status_code=404, detail="HLS file not ready")
@@ -466,7 +502,6 @@ def get_video_hls_file(
         exp = int(time.time()) + HLS_TOKEN_TTL_SECONDS
         issued_token = make_hls_token(video_id=video_id, exp=exp, scope="auth")
 
-        # Плейлисты отдаём без требования token, но ВНУТРИ добавляем token на все ссылки
         if full_path.endswith(".m3u8"):
             content = Path(full_path).read_text(encoding="utf-8")
             content = _rewrite_playlist_add_token(content, issued_token)
@@ -476,7 +511,6 @@ def get_video_hls_file(
                 headers={"Cache-Control": HLS_CACHE_CONTROL},
             )
 
-        # Сегменты (.ts) — только по token
         if not token or not verify_hls_token(video_id, token, expected_scope="auth"):
             raise HTTPException(status_code=403, detail="Invalid/expired HLS token")
 
@@ -531,16 +565,21 @@ def revoke_share_link_endpoint(
 
 @router.get("/shared/{token}", response_model=VideoResponse)
 def get_shared_video_endpoint(token: str, db: Session = Depends(get_db)):
-    """Получить метаданные UNLISTED видео по ссылке (без логина)."""
     try:
         video = get_video_by_share_token(db, token)
-
         resp = VideoResponse.from_orm(video)
-        hls_path = _hls_master_full_path(video.id)
-        resp.hls_ready = (video.status == VideoStatus.READY) and Path(hls_path).exists()
-        resp.hls_url = _hls_playlist_url(video.id) if resp.hls_ready else None
-        return resp
 
+        url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
+
+        resp.hls_ready = (video.status == VideoStatus.READY)
+        if url_mode and resp.hls_ready:
+            resp.hls_url = _delivery_url(f"hls/v{video.id}/master.m3u8")
+        else:
+            hls_path = _hls_master_full_path(video.id)
+            resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
+            resp.hls_url = _hls_playlist_url(video.id) if resp.hls_ready else None
+
+        return resp
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:
@@ -550,6 +589,8 @@ def get_shared_video_endpoint(token: str, db: Session = Depends(get_db)):
 @router.get("/shared/{token}/file")
 def get_shared_video_file_endpoint(token: str, request: Request, db: Session = Depends(get_db)):
     """Получить файл UNLISTED видео по ссылке (без логина) с поддержкой Range."""
+    if getattr(settings, "DELIVERY_MODE", "local") == "url":
+        raise HTTPException(status_code=501, detail="Delivery is handled by origin")
     try:
         video = get_video_by_share_token(db, token)
 
@@ -624,6 +665,9 @@ def upload_direct_endpoint(
     """
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
+
+        if video.status != VideoStatus.UPLOADING:
+            raise HTTPException(status_code=409, detail="Upload is not allowed in this status")
 
         if video.owner_id != current_user["id"]:
             raise ForbiddenError("Access denied")
@@ -705,10 +749,12 @@ def get_video_thumbnail_endpoint(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db),
 ):
+    if getattr(settings, "DELIVERY_MODE", "local") == "url":
+        raise HTTPException(status_code=501, detail="Delivery is handled by origin")
+
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
 
-        # ✅ строго: thumbnail только когда READY
         if video.status != VideoStatus.READY:
             raise HTTPException(status_code=409, detail="Video is not ready")
 
@@ -734,6 +780,8 @@ def get_video_thumbnail_endpoint(
 @router.api_route("/shared/{token}/thumbnail", methods=["GET", "HEAD"])
 def get_shared_video_thumbnail_endpoint(token: str, db: Session = Depends(get_db)):
     """Получить thumbnail UNLISTED видео по ссылке (без логина)."""
+    if getattr(settings, "DELIVERY_MODE", "local") == "url":
+        raise HTTPException(status_code=501, detail="Delivery is handled by origin")
     try:
         video = get_video_by_share_token(db, token)
 
@@ -1006,10 +1054,12 @@ def get_shared_hls_file(
     hls_token: str = Query(None, alias="token", description="HLS TTL token"),
     db: Session = Depends(get_db),
 ):
+    if getattr(settings, "DELIVERY_MODE", "local") == "url":
+        raise HTTPException(status_code=501, detail="Delivery is handled by origin")
+
     try:
         video = get_video_by_share_token(db, token)
 
-        # ✅ разрешаем HLS только когда READY
         if video.status != VideoStatus.READY:
             raise HTTPException(status_code=409, detail="Video is not ready")
 
@@ -1041,6 +1091,7 @@ def get_shared_hls_file(
             media_type="video/mp2t",
             headers={"Cache-Control": HLS_CACHE_CONTROL},
         )
+
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:

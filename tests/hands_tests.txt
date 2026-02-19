@@ -26,26 +26,35 @@ SELECT * FROM users;
 DELETE FROM users WHERE id = 1;
 
 
-Шаг 1 — /upload/prepare. Что это: подготовка загрузки:
+1.Получить токен
+TOKEN="$(docker-compose -f docker-compose.ci.yml exec -T web \
+  python3 -c "from service.security import create_access_token; print(create_access_token(user_id=1, expires_minutes=120))")"
+AUTH_HEADER="Authorization: Bearer $TOKEN"
+
+
+2.Prepare
 FILE="/home/vadim/Downloads/video5204062485010747752.mp4"
-FILENAME=$(basename "$FILE")
-FILESIZE=$(stat -c%s "$FILE")
+FILENAME="$(basename "$FILE")"
+FILESIZE="$(stat -c%s "$FILE")"
 
-curl -s -X POST "http://localhost:8000/api/v1/videos/upload/prepare" \
+curl -sS -X POST "http://localhost:8000/api/v1/videos/upload/prepare" \
+  -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
-  -d "{\"title\":\"test video\",\"filename\":\"$FILENAME\",\"file_size\":$FILESIZE}" | jq
+  -d "{\"title\":\"test video\",\"filename\":\"$FILENAME\",\"file_size\":$FILESIZE}" | jq .
 
 
-Шаг 2 — /upload/{id}/upload/direct. Что это: фактическая загрузка файла?
-curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/direct" \
+3.Upload direct
+VIDEO_ID=1
+curl -sS -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/direct" \
+  -H "$AUTH_HEADER" \
   -F "file=@$FILE" | jq .
 
 
-Шаг 3 — /upload/{id}/upload/complete. Что это: подтверждение завершения:
-VIDEO_ID=1
-UPLOAD_ID="fd04d9f9-a4b6-419a-b117-754e4b495e5e"
+4.Complete
+UPLOAD_ID="<<<из prepare>>>"
 
-curl -s -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/complete" \
+curl -sS -X POST "http://localhost:8000/api/v1/videos/${VIDEO_ID}/upload/complete" \
+  -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
   -d "{\"upload_id\":\"$UPLOAD_ID\"}" | jq .
 
@@ -62,6 +71,21 @@ curl -i "http://localhost:8000/api/v1/videos/1/hls/720p/index.m3u8?token=PASTE"
 
 Проверить share (если используешь)
 curl -i "http://localhost:8000/api/v1/videos/shared/SHARETOKEN/hls/master.m3u8"
+
+
+Проверь, что `published_at` заполнился:
+docker-compose -f docker-compose.ci.yml exec -T db \
+  psql -U postgres -d app \
+  -c "SELECT id,status,attempts,last_error,published_at FROM outbox_events ORDER BY id;"
+
+
+Посмотреть, копятся ли сообщения в очереди:
+docker-compose -f docker-compose.ci.yml exec -T rabbitmq \
+ rabbitmqctl list_queues name messages consumers
+
+Проверяем, что файлы реально появились:
+docker-compose -f docker-compose.ci.yml exec worker sh -lc 'ls -la uploads/thumbnails || true; ls -la uploads/hls || true'
+docker-compose -f docker-compose.ci.yml exec worker sh -lc 'find uploads/hls -maxdepth 3 -type f | head'
 
 
 Получаем список видео:

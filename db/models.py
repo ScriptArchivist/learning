@@ -71,6 +71,15 @@ class Video(Base):
     description: Mapped[str | None] = mapped_column(Text, default=None)
     original_filename: Mapped[str | None] = mapped_column(String(500))
 
+    # ✅ Idempotency ключ от клиента (на prepare)
+    client_upload_id: Mapped[str | None] = mapped_column(String(64), index=True)
+
+    # ✅ upload_id, который возвращаем в prepare (и проверяем в complete)
+    upload_id: Mapped[str | None] = mapped_column(String(36), index=True)
+
+    # ✅ etag (пока для local можно хранить md5; для S3 это будет S3 ETag)
+    upload_etag: Mapped[str | None] = mapped_column(String(64))
+
     duration: Mapped[float | None] = mapped_column(Float)
     width: Mapped[int | None] = mapped_column(Integer)
     height: Mapped[int | None] = mapped_column(Integer)
@@ -79,21 +88,39 @@ class Video(Base):
     size_bytes: Mapped[int | None] = mapped_column(BigInteger)
     mime_type: Mapped[str | None] = mapped_column(String(100))
 
-    status: Mapped[VideoStatus] = mapped_column(Enum(VideoStatus), default=VideoStatus.UPLOADING, index=True)
-    visibility: Mapped[Visibility] = mapped_column(Enum(Visibility), default=Visibility.PRIVATE, index=True)
+    status: Mapped[VideoStatus] = mapped_column(
+        Enum(VideoStatus),
+        default=VideoStatus.UPLOADING,
+        index=True,
+    )
+    visibility: Mapped[Visibility] = mapped_column(
+        Enum(Visibility),
+        default=Visibility.PRIVATE,
+        index=True,
+    )
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
 
     original_path: Mapped[str | None] = mapped_column(String(1000))
     thumbnail_path: Mapped[str | None] = mapped_column(String(1000))
 
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+    )
 
-    uploaded_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    uploaded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        index=True,
+    )
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
-    # ✅ PR#2: lease/lock для идемпотентности обработки
+    # ✅ lease/lock для идемпотентности обработки
     processing_lock_token: Mapped[str | None] = mapped_column(String(36), index=True)
-    processing_lock_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    processing_lock_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
     processing_started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     # ✅ текст ошибки обработки
@@ -104,14 +131,27 @@ class Video(Base):
 
     owner: Mapped["User"] = relationship("User", back_populates="videos")
     formats: Mapped[list["VideoFormat"]] = relationship(
-        "VideoFormat", back_populates="video", cascade="all, delete-orphan"
+        "VideoFormat",
+        back_populates="video",
+        cascade="all, delete-orphan",
     )
     processing_tasks: Mapped[list["ProcessingTask"]] = relationship(
-        "ProcessingTask", back_populates="video", cascade="all, delete-orphan"
+        "ProcessingTask",
+        back_populates="video",
+        cascade="all, delete-orphan",
     )
 
     __table_args__ = (
+        # существующий индекс
         Index("ix_videos_owner_status", "owner_id", "status"),
+
+        # ✅ НОВЫЙ уникальный индекс для идемпотентности prepare
+        Index(
+            "ix_videos_owner_client_upload_id",
+            "owner_id",
+            "client_upload_id",
+            unique=True,
+        ),
     )
 
 
