@@ -210,6 +210,11 @@ def _hls_master_full_path(video_id: int) -> str:
     # variant C: hls/v{video_id}/master.m3u8
     return _full_storage_path(f"hls/v{video_id}/master.m3u8")
 
+def _hls_playlist_url(video_id: int) -> str:
+    # URL на эндпоинт, который реально отдаёт HLS
+    return f"/api/v1/videos/{video_id}/hls/master.m3u8"
+
+
 
 # ===================== RANGE STREAMING HELPERS =====================
 
