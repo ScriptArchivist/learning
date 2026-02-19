@@ -15,6 +15,12 @@ import hashlib
 import hmac
 import time
 from urllib.parse import quote_plus
+from db.database import get_db_read, get_db_write
+from fastapi import Depends, HTTPException, status
+from errors import NotFoundError, ForbiddenError
+from service.video_service import get_video
+from model.video import VideoResponse
+from db.models import VideoStatus
 
 # third-party
 from fastapi import (
@@ -281,7 +287,7 @@ def _range_stream_response(file_path: str, content_type: str, request: Request):
 def create_video_endpoint(
     video_data: VideoCreate,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """Создать новое видео (только метаданные)."""
     try:
@@ -302,7 +308,7 @@ def list_videos(
     page: int = Query(1, ge=1, description="Номер страницы"),
     per_page: int = Query(20, ge=1, le=100, description="Количество на странице"),
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     try:
         filter_data = VideoFilter(
@@ -348,33 +354,31 @@ def list_videos(
 def get_video_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+
+    # ✅ читаем из реплики (когда появится)
+    db_read: Session = Depends(get_db_read),
+
+    # ✅ fallback на master
+    db_write: Session = Depends(get_db_write),
 ):
     try:
-        video = get_video(db, video_id, user_id=current_user["id"])
-        resp = VideoResponse.from_orm(video)
+        try:
+            video = get_video(db_read, video_id, user_id=current_user["id"])
+        except NotFoundError:
+            # ✅ read-after-write fallback на master (реплика может лагать)
+            video = get_video(db_write, video_id, user_id=current_user["id"])
 
-        # READY по статусу
-        resp.hls_ready = (video.status == VideoStatus.READY)
+        resp = VideoResponse.from_orm(video)
 
         url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
 
-        if not resp.hls_ready:
-            resp.hls_url = None
-            return resp
-
-        if url_mode:
+        resp.hls_ready = (video.status == VideoStatus.READY)
+        if url_mode and resp.hls_ready:
             resp.hls_url = _delivery_url(f"hls/v{video_id}/master.m3u8")
-            return resp
-
-        # local mode: проверяем, что master.m3u8 реально существует
-        hls_path = _hls_master_full_path(video_id)
-        if Path(hls_path).exists():
-            # ✅ больше не вызываем _hls_playlist_url, чтобы не ловить NameError
-            resp.hls_url = f"/api/v1/videos/{video_id}/hls/master.m3u8"
         else:
-            resp.hls_ready = False
-            resp.hls_url = None
+            hls_path = _hls_master_full_path(video_id)
+            resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
+            resp.hls_url = _hls_playlist_url(video_id) if resp.hls_ready else None
 
         return resp
 
@@ -389,7 +393,7 @@ def update_video_endpoint(
     video_id: int,
     update_data: VideoUpdate,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """Обновить метаданные видео (только владелец)."""
     try:
@@ -422,7 +426,7 @@ def update_video_endpoint(
 def delete_video_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """Удалить видео (только владелец)."""
     try:
@@ -447,7 +451,7 @@ def get_video_file_endpoint(
     video_id: int,
     request: Request,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     if getattr(settings, "DELIVERY_MODE", "local") == "url":
         raise HTTPException(status_code=501, detail="Delivery is handled by origin")
@@ -481,7 +485,7 @@ def get_video_hls_file(
     hls_path: str,
     token: str = Query(None, description="HLS TTL token (required for .ts)"),
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     if getattr(settings, "DELIVERY_MODE", "local") == "url":
         raise HTTPException(status_code=501, detail="Delivery is handled by origin")
@@ -532,7 +536,7 @@ def get_video_hls_file(
 def create_share_link_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """
     Делает видео UNLISTED и создаёт share_token.
@@ -551,7 +555,7 @@ def create_share_link_endpoint(
 def revoke_share_link_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """Отключить доступ по ссылке."""
     try:
@@ -564,7 +568,7 @@ def revoke_share_link_endpoint(
 
 
 @router.get("/shared/{token}", response_model=VideoResponse)
-def get_shared_video_endpoint(token: str, db: Session = Depends(get_db)):
+def get_shared_video_endpoint(token: str, db: Session = Depends(get_db_write)):
     try:
         video = get_video_by_share_token(db, token)
         resp = VideoResponse.from_orm(video)
@@ -587,7 +591,7 @@ def get_shared_video_endpoint(token: str, db: Session = Depends(get_db)):
 
 
 @router.get("/shared/{token}/file")
-def get_shared_video_file_endpoint(token: str, request: Request, db: Session = Depends(get_db)):
+def get_shared_video_file_endpoint(token: str, request: Request, db: Session = Depends(get_db_write)):
     """Получить файл UNLISTED видео по ссылке (без логина) с поддержкой Range."""
     if getattr(settings, "DELIVERY_MODE", "local") == "url":
         raise HTTPException(status_code=501, detail="Delivery is handled by origin")
@@ -620,7 +624,7 @@ def get_shared_video_file_endpoint(token: str, request: Request, db: Session = D
 def upload_prepare_endpoint(
     payload: VideoUploadCreate,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """
     Подготовить загрузку:
@@ -657,7 +661,7 @@ def upload_direct_endpoint(
     video_id: int,
     file: UploadFile = File(...),
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """
     Прямая загрузка файла в локальное хранилище.
@@ -702,7 +706,7 @@ def upload_complete_endpoint(
     video_id: int,
     payload: VideoUploadComplete,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     """
     Завершение загрузки:
@@ -747,7 +751,7 @@ THUMB_CACHE_CONTROL = "private, max-age=86400"
 def get_video_thumbnail_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     if getattr(settings, "DELIVERY_MODE", "local") == "url":
         raise HTTPException(status_code=501, detail="Delivery is handled by origin")
@@ -778,7 +782,7 @@ def get_video_thumbnail_endpoint(
 
 
 @router.api_route("/shared/{token}/thumbnail", methods=["GET", "HEAD"])
-def get_shared_video_thumbnail_endpoint(token: str, db: Session = Depends(get_db)):
+def get_shared_video_thumbnail_endpoint(token: str, db: Session = Depends(get_db_write)):
     """Получить thumbnail UNLISTED видео по ссылке (без логина)."""
     if getattr(settings, "DELIVERY_MODE", "local") == "url":
         raise HTTPException(status_code=501, detail="Delivery is handled by origin")
@@ -812,7 +816,7 @@ def get_shared_video_thumbnail_endpoint(token: str, db: Session = Depends(get_db
 def watch_video_page(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
@@ -931,7 +935,7 @@ def watch_video_page(
 
 
 @router.get("/shared/{token}/watch", response_class=HTMLResponse)
-def watch_shared_video_page(token: str, db: Session = Depends(get_db)):
+def watch_shared_video_page(token: str, db: Session = Depends(get_db_write)):
     try:
         video = get_video_by_share_token(db, token)
         if video.status != VideoStatus.READY:
@@ -1052,7 +1056,7 @@ def get_shared_hls_file(
     token: str,
     hls_path: str,
     hls_token: str = Query(None, alias="token", description="HLS TTL token"),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db_read),
 ):
     if getattr(settings, "DELIVERY_MODE", "local") == "url":
         raise HTTPException(status_code=501, detail="Delivery is handled by origin")

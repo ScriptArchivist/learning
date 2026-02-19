@@ -1,35 +1,40 @@
 # src/config.py
 import os
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # ✅ Pydantic v2: настройка чтения env
-    # extra="ignore" — ключевой фикс: любые лишние переменные из .env/docker-compose не будут валить приложение
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    # ✅ Пункт 6: master/replica
+    # master (write)
+    database_write_url: str = "postgresql+psycopg://postgres:postgres@db:5432/app"
+    # replica (read) — по умолчанию = master, чтобы ничего не ломать
+    database_read_url: str | None = None
 
-    database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/app"
+    # ✅ Backward compatibility (если где-то ещё используется database_url)
+    @property
+    def database_url(self) -> str:
+        return self.database_write_url
+
     secret_key: str = "changeme"
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
-    storage_type: str = "local"   # local | s3 (позже)
+    storage_type: str = "local"
     storage_path: str = "uploads"
 
-    # ✅ пункт 4: delivery/origin mode
+    # ✅ delivery/origin mode
     DELIVERY_MODE: str = "local"  # local | url
     DELIVERY_BASE_URL: str = "http://localhost:8080"
 
-    # ✅ S3/MinIO (пока не используем, но переменные уже могут быть в .env / compose)
-    s3_bucket: str | None = None
-    s3_region: str | None = None
-    s3_endpoint_url: str | None = None
-    s3_access_key_id: str | None = None
-    s3_secret_access_key: str | None = None
-    s3_upload_url_expires_seconds: int = 900
+    class Config:
+        env_file = ".env"
 
 
 settings = Settings()
+
+# Если replica не задана — читаем с master
+if not settings.database_read_url:
+    settings.database_read_url = settings.database_write_url
 
 
 RABBIT_URL = os.getenv("RABBIT_URL", "amqp://guest:guest@localhost:5672/")

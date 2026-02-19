@@ -3,36 +3,66 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from db.base import Base  # ✅ один Base на весь проект
+from src.config import settings
 
 
-try:
-    from src.config import settings
-    DATABASE_URL = settings.database_url
-except ImportError:
-    DATABASE_URL = "postgresql+psycopg://postgres:postgres@db:5432/app"
+def _connect_args(url: str) -> dict:
+    if url.startswith("sqlite"):
+        return {"check_same_thread": False}
+    return {}
 
-connect_args = {}
-if DATABASE_URL.startswith("sqlite"):
-    connect_args = {"check_same_thread": False}
 
-engine = create_engine(
-    DATABASE_URL,
+# ✅ master (write)
+engine_write = create_engine(
+    settings.database_write_url,
     pool_pre_ping=True,
-    connect_args=connect_args,
+    connect_args=_connect_args(settings.database_write_url),
 )
 
-SessionLocal = sessionmaker(
-    bind=engine,
+SessionLocalWrite = sessionmaker(
+    bind=engine_write,
     autocommit=False,
     autoflush=False,
 )
 
-def get_db():
-    db = SessionLocal()
+# ✅ replica (read)
+engine_read = create_engine(
+    settings.database_read_url,
+    pool_pre_ping=True,
+    connect_args=_connect_args(settings.database_read_url),
+)
+
+SessionLocalRead = sessionmaker(
+    bind=engine_read,
+    autocommit=False,
+    autoflush=False,
+)
+
+# ✅ backward compatibility: старый SessionLocal оставим как WRITE
+SessionLocal = SessionLocalWrite
+engine = engine_write
+
+
+def get_db_write():
+    db = SessionLocalWrite()
     try:
         yield db
     finally:
         db.close()
+
+
+def get_db_read():
+    db = SessionLocalRead()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# ✅ backward compatibility: старый get_db оставим как WRITE
+def get_db():
+    yield from get_db_write()
+
 
 def get_session():
     return get_db()
