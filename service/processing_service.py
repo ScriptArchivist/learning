@@ -70,6 +70,8 @@ def complete_video_processing_with_lock(
     thumbnail_path: str | None,
     mime_type: str | None,
     hls_master_key: str,
+    correlation_id: str | None = None,
+    trace_id: str | None = None,
 ) -> bool:
     """
     Атомарно:
@@ -114,16 +116,10 @@ def complete_video_processing_with_lock(
             event_type=EVENT_VIDEO_PROCESS_COMPLETED,
             payload={
                 "video_id": video_id,
-                "status": VideoStatus.READY.value,
-                "thumbnail_path": thumbnail_path,
-                "hls_master_path": hls_master_key,
-                "processed_at": processed_at.isoformat(),
-                "duration": duration,
-                "width": width,
-                "height": height,
-                "size_bytes": file_size,
             },
-            producer="processing",
+            producer="worker",
+            correlation_id=correlation_id,
+            trace_id=trace_id,
             aggregate_type="video",
             aggregate_id=str(video_id),
         )
@@ -143,6 +139,8 @@ def fail_video_processing_with_lock(
     video_id: int,
     lock_token: str,
     error_message: str,
+    correlation_id: str | None = None,
+    trace_id: str | None = None,
 ) -> bool:
     """
     Атомарно:
@@ -172,10 +170,11 @@ def fail_video_processing_with_lock(
             event_type=EVENT_VIDEO_PROCESS_FAILED,
             payload={
                 "video_id": video_id,
-                "status": VideoStatus.FAILED.value,
-                "error_message": error_message,
+                "error": error_message,
             },
-            producer="processing",
+            producer="worker",
+            correlation_id=correlation_id,
+            trace_id=trace_id,
             aggregate_type="video",
             aggregate_id=str(video_id),
         )

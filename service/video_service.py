@@ -17,6 +17,7 @@ from service.storage_keys import original_key
 from sqlalchemy import update
 from service.outbox import add_event, EVENT_VIDEO_PROCESS_REQUESTED
 from service.outbox import EVENT_VIDEO_PROCESS_COMPLETED, EVENT_VIDEO_PROCESS_FAILED
+from service.correlation import get_request_id, get_trace_id
 
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
@@ -412,6 +413,8 @@ def complete_video_upload(
         event_type=EVENT_VIDEO_PROCESS_REQUESTED,
         payload={"video_id": int(video.id), "path": video.original_path},
         producer="api",
+        correlation_id=get_request_id(),
+        trace_id=get_trace_id(),
         aggregate_type="video",
         aggregate_id=str(video.id),
     )
@@ -875,20 +878,16 @@ def complete_video_processing_with_lock(
 
         add_event(
             db,
-            event_type=EVENT_VIDEO_PROCESS_COMPLETED,
+            event_type=EVENT_VIDEO_PROCESS_REQUESTED,
             payload={
-                "video_id": video_id,
-                "status": VideoStatus.READY.value,
-                "thumbnail_path": thumbnail_path,
-                "hls_master_path": hls_master_key,
-                "processed_at": processed_at.isoformat(),
-                "duration": duration,
-                "width": width,
-                "height": height,
-                "size_bytes": file_size,
+                "video_id": video.id,
+                "path": video.original_path,
             },
+            producer="api",
+            correlation_id=get_request_id(),
+            trace_id=get_trace_id(),
             aggregate_type="video",
-            aggregate_id=str(video_id),
+            aggregate_id=str(video.id),
         )
 
         db.commit()

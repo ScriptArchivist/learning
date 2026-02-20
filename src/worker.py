@@ -1,8 +1,31 @@
 # src/worker.py
 import os
+import logging
 from datetime import datetime
-
 import logging.config
+
+# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая ffmpeg_utils) ---
+from service.correlation import (
+    get_request_id,
+    get_trace_id,
+    set_request_id,
+    set_trace_id,
+)
+
+_old_factory = logging.getLogRecordFactory()
+
+
+def record_factory(*args, **kwargs):
+    record = _old_factory(*args, **kwargs)
+    record.request_id = get_request_id() or "-"
+    record.trace_id = get_trace_id() or "-"
+    return record
+
+
+logging.setLogRecordFactory(record_factory)
+# ---------------------------------------------------------------------------------------------
+
+# Подхватываем формат логов из ini (у тебя там rid=%(request_id)s ...)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 
 from service.broker import consume_forever
@@ -17,6 +40,7 @@ from service import storage_keys
 from src.config import VIDEO_LOCK_TTL_SECONDS
 
 storage = get_storage_provider()  # ✅ единый storage
+logger = logging.getLogger("worker")
 
 
 def _safe_error_message(e: Exception, limit: int = 500) -> str:
@@ -25,9 +49,31 @@ def _safe_error_message(e: Exception, limit: int = 500) -> str:
     return msg[:limit]
 
 
+def _extract_envelope(message: dict) -> tuple[dict, dict, str | None, str | None]:
+    """
+    Возвращает:
+      envelope_dict, payload_dict, correlation_id, trace_id
+
+    Поддержка 2 форматов:
+      1) envelope (event_type + payload + correlation_id/trace_id)
+      2) legacy payload {"video_id":..,"path":..}
+    """
+    if isinstance(message, dict) and "event_type" in message and "payload" in message:
+        envelope = message
+        payload = envelope.get("payload") or {}
+        corr = envelope.get("correlation_id")
+        trace = envelope.get("trace_id")
+        return envelope, payload, corr, trace
+
+    # legacy
+    envelope = {}
+    payload = message if isinstance(message, dict) else {}
+    return envelope, payload, None, None
+
+
 def handle(message: dict):
     """
-    Теперь воркер принимает ENVELOPE:
+    Воркер принимает ENVELOPE:
 
       {
         "event_id": "...uuid...",
@@ -35,40 +81,41 @@ def handle(message: dict):
         "schema_version": 1,
         "occurred_at": "...",
         "producer": "api",
-        "correlation_id": null,
-        "trace_id": null,
+        "correlation_id": "...",
+        "trace_id": "...",
         "payload": {
           "video_id": 123,
           "path": "original/..."
         }
       }
 
-    (на всякий случай поддерживаем старый формат: {"video_id":..,"path":..})
+    Также поддерживается legacy-формат: {"video_id":..,"path":..}
     """
-    # backwards compatible
-    if "event_type" in message and "payload" in message:
-        event_type = message.get("event_type")
-        payload = message.get("payload") or {}
-    else:
-        event_type = None
-        payload = message
+    envelope, payload, corr_raw, trace_raw = _extract_envelope(message)
 
+    # ===== пункт 8: correlation / trace в contextvars =====
+    # Важно: ставим ДО любых логов внутри обработки, чтобы rid/tid появились в строках.
+    set_request_id(corr_raw)
+    set_trace_id(trace_raw)
+    # ======================================================
+
+    event_type = envelope.get("event_type")
     if event_type and event_type != "video.process.requested":
-        print(f"[worker] skip non-requested event_type={event_type}")
+        logger.info("skip non-requested event_type=%s", event_type)
         return
 
-    video_id = int(payload["video_id"])
-    orig_key = payload["path"]
+    try:
+        video_id = int(payload["video_id"])
+        orig_key = payload["path"]
+    except Exception:
+        logger.error("bad message payload=%r envelope=%r", payload, envelope)
+        return
 
-    # можно потом использовать для логов (пункт 8)
-    correlation_id = (message.get("correlation_id") if isinstance(message, dict) else None) or "-"
-    trace_id = (message.get("trace_id") if isinstance(message, dict) else None) or "-"
-
-    print(f"[worker] start video_id={video_id} key={orig_key} corr={correlation_id} trace={trace_id}")
+    logger.info("start video_id=%s key=%s", video_id, orig_key)
 
     lock_token = claim_video_processing(video_id, lease_seconds=VIDEO_LOCK_TTL_SECONDS)
     if not lock_token:
-        print(f"[worker] skip video_id={video_id}: already processing/processed")
+        logger.info("skip video_id=%s: already processing/processed", video_id)
         return
 
     try:
@@ -87,8 +134,9 @@ def handle(message: dict):
         if not os.path.exists(orig_full):
             raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
 
+        # если артефакты уже есть — просто фиксируем processed
         if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
-            print(f"[worker] skip video_id={video_id}: artifacts already exist")
+            logger.info("artifacts already exist, mark processed video_id=%s", video_id)
 
             complete_video_processing_with_lock(
                 video_id=video_id,
@@ -101,7 +149,11 @@ def handle(message: dict):
                 thumbnail_path=thumb_key,
                 mime_type="video/mp4",
                 hls_master_key=hls_master_key,
+                # ✅ пункт 8: correlation дальше
+                correlation_id=corr_raw,
+                trace_id=trace_raw,
             )
+            logger.info("done video_id=%s (already existed)", video_id)
             return
 
         size = os.path.getsize(orig_full)
@@ -132,24 +184,32 @@ def handle(message: dict):
             thumbnail_path=thumb_key,
             mime_type="video/mp4",
             hls_master_key=hls_master_key,
+            # ✅ пункт 8: correlation дальше
+            correlation_id=corr_raw,
+            trace_id=trace_raw,
         )
 
-        print(f"[worker] done video_id={video_id} corr={correlation_id} trace={trace_id}")
+        logger.info("done video_id=%s", video_id)
 
     except Exception as e:
+        # Пишем failed-событие (idempotent защита уже у тебя есть через lock/DB)
         try:
             fail_video_processing_with_lock(
                 video_id=video_id,
                 lock_token=lock_token,
-                error_message=str(e),
+                error_message=_safe_error_message(e),
+                # ✅ пункт 8: correlation дальше
+                correlation_id=corr_raw,
+                trace_id=trace_raw,
             )
         except Exception:
-            pass
+            # если даже fail не смогли записать — всё равно логируем исходную ошибку
+            logger.exception("fail_video_processing_with_lock error (video_id=%s)", video_id)
 
-        print(f"[worker] failed video_id={video_id} corr={correlation_id} trace={trace_id}: {e}")
+        logger.exception("failed video_id=%s", video_id)
         raise
 
 
 if __name__ == "__main__":
-    print("[worker] boot: starting consumer", flush=True)
+    logger.info("boot: starting consumer")
     consume_forever(handle)

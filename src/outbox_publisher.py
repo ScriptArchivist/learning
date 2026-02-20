@@ -48,6 +48,13 @@ def publish_one(ch, event_type: str, payload: dict) -> None:
     """
     payload теперь = ENVELOPE (event_id, event_type, schema_version, ... payload)
     """
+
+    # ✅ Пункт 8: прокидываем correlation_id в AMQP properties
+    # (payload = envelope, correlation_id лежит на верхнем уровне)
+    rid = None
+    if isinstance(payload, dict):
+        rid = payload.get("correlation_id")
+
     # 1) Команда воркеру: в очередь video.process
     if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
         ch.basic_publish(
@@ -58,6 +65,7 @@ def publish_one(ch, event_type: str, payload: dict) -> None:
                 delivery_mode=2,
                 content_type="application/json",
                 headers={"x-retry-count": 0},
+                correlation_id=rid,
             ),
             mandatory=True,
         )
@@ -72,6 +80,7 @@ def publish_one(ch, event_type: str, payload: dict) -> None:
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",
+                correlation_id=rid,
             ),
             mandatory=True,
         )
