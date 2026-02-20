@@ -56,3 +56,6 @@ RABBIT_EVENTS_ROUTING_KEY = os.getenv("RABBIT_EVENTS_ROUTING_KEY", "video.events
 # ===== параметры delivery =====
 DELIVERY_MODE = os.getenv("DELIVERY_MODE", "local")  # local | url
 DELIVERY_BASE_URL = os.getenv("DELIVERY_BASE_URL", "http://localhost:8080").rstrip("/")
+
+
+ORIGIN_BASE_URL = os.getenv("ORIGIN_BASE_URL", "http://localhost:8080")

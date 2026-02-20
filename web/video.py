@@ -91,7 +91,9 @@ HLS_PATH_RE = re.compile(r"^(master\.m3u8|[0-9]{3,4}p/(index\.m3u8|seg_\d{5}\.ts
 # ⚠️ В production лучше задавать через ENV. Чтобы не падать локально — даём dev-дефолт.
 HLS_TOKEN_SECRET = os.getenv("HLS_TOKEN_SECRET") or "dev-secret-change-me"
 if HLS_TOKEN_SECRET == "dev-secret-change-me":
-    logger.warning("HLS_TOKEN_SECRET is not set; using a weak dev default. Set HLS_TOKEN_SECRET in environment!")
+    logger.warning(
+        "HLS_TOKEN_SECRET is not set; using a weak dev default. Set HLS_TOKEN_SECRET in environment!"
+    )
 
 # TTL сегментного токена (по умолчанию 5 минут)
 HLS_TOKEN_TTL_SECONDS = int(os.getenv("HLS_TOKEN_TTL_SECONDS", "300"))
@@ -156,7 +158,7 @@ def _rewrite_playlist_add_token(playlist_text: str, token: str) -> str:
 
 def _full_storage_path(rel_path: str) -> str:
     """
-    rel_path вида: original/u1/v3/xxx.mp4 или hls/v3/master.m3u8
+    rel_path вида: original/u1/v3/xxx.mp4 или hls/3/master.m3u8
     """
     base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
     return str(Path(base) / rel_path)
@@ -168,9 +170,11 @@ def _delivery_url(object_key: str) -> str:
 
 
 # ===== HLS helpers (единый источник правды) =====
+# ВАЖНО: ЕДИНАЯ схема путей — hls/{video_id}/...  (без "v")
+# Это согласовано с service/video_service.py и с nginx /hls/1/master.m3u8
 
 def _hls_master_full_path(video_id: int) -> str:
-    return _full_storage_path(f"hls/v{video_id}/master.m3u8")
+    return _full_storage_path(f"hls/{video_id}/master.m3u8")
 
 
 def _hls_playlist_url(video_id: int) -> str:
@@ -340,7 +344,7 @@ def list_videos(
 
             r.hls_ready = (v.status == VideoStatus.READY)
             if url_mode and r.hls_ready:
-                r.hls_url = _delivery_url(f"hls/v{v.id}/master.m3u8")
+                r.hls_url = _delivery_url(f"hls/{v.id}/master.m3u8")
             else:
                 r.hls_ready = r.hls_ready and Path(_hls_master_full_path(v.id)).exists()
                 r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
@@ -373,7 +377,7 @@ def get_video_endpoint(
 
         resp.hls_ready = (video.status == VideoStatus.READY)
         if url_mode and resp.hls_ready:
-            resp.hls_url = _delivery_url(f"hls/v{video_id}/master.m3u8")
+            resp.hls_url = _delivery_url(f"hls/{video_id}/master.m3u8")
         else:
             hls_path = _hls_master_full_path(video_id)
             resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
@@ -491,7 +495,7 @@ def get_video_hls_file(
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
 
-        full_path = _full_storage_path(f"hls/v{video_id}/{hls_path}")
+        full_path = _full_storage_path(f"hls/{video_id}/{hls_path}")
         if not Path(full_path).exists():
             raise HTTPException(status_code=404, detail="HLS file not ready")
 
@@ -574,7 +578,7 @@ def get_shared_video_endpoint(
         resp.hls_ready = (video.status == VideoStatus.READY)
 
         if url_mode and resp.hls_ready:
-            resp.hls_url = _delivery_url(f"hls/v{video.id}/master.m3u8")
+            resp.hls_url = _delivery_url(f"hls/{video.id}/master.m3u8")
         else:
             hls_path = _hls_master_full_path(video.id)
             resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
@@ -1074,7 +1078,7 @@ def get_shared_hls_file(
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
 
-        full_path = _full_storage_path(f"hls/v{video.id}/{hls_path}")
+        full_path = _full_storage_path(f"hls/{video.id}/{hls_path}")
         if not Path(full_path).exists():
             raise HTTPException(status_code=404, detail="HLS file not ready")
 
