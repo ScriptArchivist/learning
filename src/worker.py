@@ -1,8 +1,11 @@
 # src/worker.py
 import os
+import json
 import logging
-from datetime import datetime
 import logging.config
+from datetime import datetime
+
+from pydantic import ValidationError
 
 # --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая ffmpeg_utils) ---
 from service.correlation import (
@@ -39,6 +42,12 @@ from service.storage_service import get_storage_provider
 from service import storage_keys
 from src.config import VIDEO_LOCK_TTL_SECONDS
 
+# Event contract (A1)
+from service.events import EventEnvelope, VideoProcessRequestedPayload
+
+# Если у тебя эти константы лежат в service/outbox.py — импортируй оттуда
+from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED
+
 storage = get_storage_provider()  # ✅ единый storage
 logger = logging.getLogger("worker")
 
@@ -49,36 +58,37 @@ def _safe_error_message(e: Exception, limit: int = 500) -> str:
     return msg[:limit]
 
 
-def _extract_envelope(message: dict) -> tuple[dict, dict, str | None, str | None]:
+def _major_version(schema_version) -> int | None:
     """
-    Возвращает:
-      envelope_dict, payload_dict, correlation_id, trace_id
-
-    Поддержка 2 форматов:
-      1) envelope (event_type + payload + correlation_id/trace_id)
-      2) legacy payload {"video_id":..,"path":..}
+    Поддержка на время перехода:
+    - schema_version может быть "1.0" (строка) или 1 (int)
+    Возвращает MAJOR или None если распарсить нельзя.
     """
-    if isinstance(message, dict) and "event_type" in message and "payload" in message:
-        envelope = message
-        payload = envelope.get("payload") or {}
-        corr = envelope.get("correlation_id")
-        trace = envelope.get("trace_id")
-        return envelope, payload, corr, trace
-
-    # legacy
-    envelope = {}
-    payload = message if isinstance(message, dict) else {}
-    return envelope, payload, None, None
+    if schema_version is None:
+        return None
+    if isinstance(schema_version, int):
+        return schema_version
+    if isinstance(schema_version, str):
+        s = schema_version.strip()
+        if not s:
+            return None
+        # "1" или "1.0"
+        try:
+            return int(s.split(".", 1)[0])
+        except Exception:
+            return None
+    return None
 
 
 def handle(message: dict):
     """
-    Воркер принимает ENVELOPE:
+    Worker принимает ТОЛЬКО ENVELOPE (единый контракт A1).
 
+    Пример:
       {
         "event_id": "...uuid...",
         "event_type": "video.process.requested",
-        "schema_version": 1,
+        "schema_version": "1.0",
         "occurred_at": "...",
         "producer": "api",
         "correlation_id": "...",
@@ -88,30 +98,46 @@ def handle(message: dict):
           "path": "original/..."
         }
       }
-
-    Также поддерживается legacy-формат: {"video_id":..,"path":..}
     """
-    envelope, payload, corr_raw, trace_raw = _extract_envelope(message)
 
-    # ===== пункт 8: correlation / trace в contextvars =====
-    # Важно: ставим ДО любых логов внутри обработки, чтобы rid/tid появились в строках.
-    set_request_id(corr_raw)
-    set_trace_id(trace_raw)
-    # ======================================================
-
-    event_type = envelope.get("event_type")
-    if event_type and event_type != "video.process.requested":
-        logger.info("skip non-requested event_type=%s", event_type)
-        return
-
+    # 1) Строго валидируем envelope
     try:
-        video_id = int(payload["video_id"])
-        orig_key = payload["path"]
-    except Exception:
-        logger.error("bad message payload=%r envelope=%r", payload, envelope)
+        envelope = EventEnvelope.model_validate(message)
+    except ValidationError:
+        logger.exception("invalid EventEnvelope: message=%r", message)
+        raise
+
+    # 2) Ставим correlation/trace в contextvars ДО любых логов обработки
+    set_request_id(envelope.correlation_id)
+    set_trace_id(envelope.trace_id)
+
+    # 3) Проверяем версию схемы (MAJOR)
+    major = _major_version(getattr(envelope, "schema_version", None))
+    if major != 1:
+        # Это осознанно: лучше отправить в retry/DLQ, чем “молча” обработать неправильно
+        raise ValueError(f"unsupported schema_version={envelope.schema_version!r}")
+
+    # 4) Обрабатываем только нужный event_type
+    if envelope.event_type != EVENT_VIDEO_PROCESS_REQUESTED:
+        logger.info("skip event_type=%s event_id=%s", envelope.event_type, envelope.event_id)
         return
 
-    logger.info("start video_id=%s key=%s", video_id, orig_key)
+    # 5) Строго валидируем payload по схеме
+    try:
+        payload = VideoProcessRequestedPayload.model_validate(envelope.payload)
+    except ValidationError:
+        logger.exception(
+            "invalid payload for event_type=%s event_id=%s payload=%r",
+            envelope.event_type,
+            envelope.event_id,
+            envelope.payload,
+        )
+        raise
+
+    video_id = int(payload.video_id)
+    orig_key = payload.path
+
+    logger.info("start video_id=%s key=%s event_id=%s", video_id, orig_key, envelope.event_id)
 
     lock_token = claim_video_processing(video_id, lease_seconds=VIDEO_LOCK_TTL_SECONDS)
     if not lock_token:
@@ -149,9 +175,8 @@ def handle(message: dict):
                 thumbnail_path=thumb_key,
                 mime_type="video/mp4",
                 hls_master_key=hls_master_key,
-                # ✅ пункт 8: correlation дальше
-                correlation_id=corr_raw,
-                trace_id=trace_raw,
+                correlation_id=envelope.correlation_id,
+                trace_id=envelope.trace_id,
             )
             logger.info("done video_id=%s (already existed)", video_id)
             return
@@ -184,9 +209,8 @@ def handle(message: dict):
             thumbnail_path=thumb_key,
             mime_type="video/mp4",
             hls_master_key=hls_master_key,
-            # ✅ пункт 8: correlation дальше
-            correlation_id=corr_raw,
-            trace_id=trace_raw,
+            correlation_id=envelope.correlation_id,
+            trace_id=envelope.trace_id,
         )
 
         logger.info("done video_id=%s", video_id)
@@ -198,12 +222,10 @@ def handle(message: dict):
                 video_id=video_id,
                 lock_token=lock_token,
                 error_message=_safe_error_message(e),
-                # ✅ пункт 8: correlation дальше
-                correlation_id=corr_raw,
-                trace_id=trace_raw,
+                correlation_id=envelope.correlation_id,
+                trace_id=envelope.trace_id,
             )
         except Exception:
-            # если даже fail не смогли записать — всё равно логируем исходную ошибку
             logger.exception("fail_video_processing_with_lock error (video_id=%s)", video_id)
 
         logger.exception("failed video_id=%s", video_id)

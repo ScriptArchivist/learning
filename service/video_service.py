@@ -18,6 +18,11 @@ from sqlalchemy import update
 from service.outbox import add_event, EVENT_VIDEO_PROCESS_REQUESTED
 from service.outbox import EVENT_VIDEO_PROCESS_COMPLETED, EVENT_VIDEO_PROCESS_FAILED
 from service.correlation import get_request_id, get_trace_id
+from service.events import VideoProcessRequestedPayload
+from typing import Any
+from db.models import Video, VideoStatus
+from errors import ForbiddenError, ValidationError
+
 
 
 from db.models import Video, VideoFormat, ProcessingTask, User, VideoStatus, Visibility, TaskStatus, ProcessingTaskType
@@ -375,9 +380,9 @@ def prepare_video_upload(
 def complete_video_upload(
     db: Session,
     video_id: int,
-    complete_data: VideoUploadComplete,
+    complete_data: "VideoUploadComplete",
     user_id: int,
-    storage_backend: Any
+    storage_backend: Any,
 ) -> Video:
     """Завершить загрузку видео (идемпотентно)."""
     video = get_video(db, video_id, user_id)
@@ -390,8 +395,13 @@ def complete_video_upload(
         raise ValidationError("Invalid upload_id")
 
     # ✅ Идемпотентность: если уже завершали complete ранее — НЕ создаём новое событие
-    # (Outbox/event должен появиться только один раз на переход в UPLOADED)
-    if video.status in (VideoStatus.UPLOADED, VideoStatus.PROCESSING, VideoStatus.READY, VideoStatus.FAILED):
+    # Outbox/event должен появиться только один раз на переход в UPLOADED
+    if video.status in (
+        VideoStatus.UPLOADED,
+        VideoStatus.PROCESSING,
+        VideoStatus.READY,
+        VideoStatus.FAILED,
+    ):
         return video
 
     # На первом complete — проверяем, что файл реально загружен
@@ -400,18 +410,22 @@ def complete_video_upload(
 
     metadata = storage_backend.get_object_metadata(video.original_path)
 
-    # Если хочешь — можешь валидировать size/etag, но это опционально
-    video.size_bytes = metadata.get("size", 0)
-    video.mime_type = metadata.get("content_type", "video/mp4")
+    video.size_bytes = int(metadata.get("size", 0) or 0)
+    video.mime_type = metadata.get("content_type") or "video/mp4"
 
     # ✅ API ставит только UPLOADED
     video.status = VideoStatus.UPLOADED
 
-    # ✅ запуск обработки только через событие (ОДИН РАЗ)
+    # ✅ запуск обработки только через событие (ОДИН РАЗ) + payload по схеме
+    requested_payload = VideoProcessRequestedPayload(
+        video_id=int(video.id),
+        path=video.original_path,
+    )
+
     add_event(
         db,
         event_type=EVENT_VIDEO_PROCESS_REQUESTED,
-        payload={"video_id": int(video.id), "path": video.original_path},
+        payload=requested_payload.model_dump(),
         producer="api",
         correlation_id=get_request_id(),
         trace_id=get_trace_id(),
@@ -419,7 +433,6 @@ def complete_video_upload(
         aggregate_id=str(video.id),
     )
 
-    db.commit()
     return video
 
 

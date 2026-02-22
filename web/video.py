@@ -706,6 +706,10 @@ def upload_direct_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
+from fastapi import HTTPException, Depends
+from sqlalchemy.orm import Session
+
+
 @router.post("/{video_id}/upload/complete", response_model=VideoResponse)
 def upload_complete_endpoint(
     video_id: int,
@@ -720,10 +724,10 @@ def upload_complete_endpoint(
     - переводим status -> UPLOADED
     - пишем outbox event video.process.requested
     """
-    try:
-        storage = get_storage_provider()
-        backend = StorageBackendAdapter(storage)
+    storage = get_storage_provider()
+    backend = StorageBackendAdapter(storage)
 
+    try:
         video = complete_video_upload(
             db=db,
             video_id=video_id,
@@ -732,18 +736,30 @@ def upload_complete_endpoint(
             storage_backend=backend,
         )
 
+        # ✅ ВАЖНО: фиксируем изменения (и video, и outbox) одной транзакцией
+        db.commit()
+        db.refresh(video)
+
         return VideoResponse.from_orm(video)
 
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except ForbiddenError as e:
-        raise HTTPException(status_code=403, detail=str(e))
-    except ValidationError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except (NotFoundError, ForbiddenError, ValidationError) as e:
+        # ✅ ВАЖНО: на ожидаемых ошибках тоже откатываем транзакцию
+        db.rollback()
+        status_code = 400
+        if isinstance(e, NotFoundError):
+            status_code = 404
+        elif isinstance(e, ForbiddenError):
+            status_code = 403
+        raise HTTPException(status_code=status_code, detail=str(e))
+
+    except HTTPException:
+        db.rollback()
+        raise
+
     except Exception as e:
+        db.rollback()
         logger.exception("upload_complete_endpoint failed")
         raise HTTPException(status_code=400, detail=str(e))
-
 
 # ===================== THUMBNAILS =====================
 

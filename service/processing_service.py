@@ -7,6 +7,8 @@ from sqlalchemy import update, or_, and_
 
 from db.database import SessionLocal
 from db.models import Video, VideoStatus
+from service.outbox import add_event, EVENT_VIDEO_PROCESS_COMPLETED
+from service.events import VideoProcessCompletedPayload
 from service.outbox import (
     add_event,
     EVENT_VIDEO_PROCESS_COMPLETED,
@@ -75,16 +77,20 @@ def complete_video_processing_with_lock(
 ) -> bool:
     """
     Атомарно:
-    - обновляет метаданные
-    - ставит READY
-    - очищает lock
-    - добавляет outbox event video.process.completed
+    - обновляет метаданные видео
+    - переводит в READY
+    - снимает lock
+    - добавляет outbox-событие video.process.completed (в envelope)
     """
+
     db: Session = SessionLocal()
     try:
         video = (
             db.query(Video)
-            .filter(Video.id == video_id, Video.processing_lock_token == lock_token)
+            .filter(
+                Video.id == video_id,
+                Video.processing_lock_token == lock_token,
+            )
             .one_or_none()
         )
 
@@ -92,6 +98,7 @@ def complete_video_processing_with_lock(
             db.rollback()
             return False
 
+        # --- обновление метаданных ---
         video.processed_at = processed_at
         video.size_bytes = file_size
 
@@ -106,17 +113,23 @@ def complete_video_processing_with_lock(
         if mime_type is not None:
             video.mime_type = mime_type
 
+        # --- финальный статус ---
         video.status = VideoStatus.READY
         video.error_message = None
         video.processing_lock_token = None
         video.processing_lock_expires_at = None
 
+        # --- строго типизированный payload ---
+        completed_payload = VideoProcessCompletedPayload(
+            video_id=video_id,
+            # intentionally minimal v1.0
+            # metadata можно будет добавить в v1.1 без breaking change
+        )
+
         add_event(
             db,
             event_type=EVENT_VIDEO_PROCESS_COMPLETED,
-            payload={
-                "video_id": video_id,
-            },
+            payload=completed_payload.model_dump(),
             producer="worker",
             correlation_id=correlation_id,
             trace_id=trace_id,
@@ -134,6 +147,14 @@ def complete_video_processing_with_lock(
         db.close()
 
 
+from sqlalchemy.orm import Session
+
+from db.database import SessionLocal
+from db.models import Video, VideoStatus
+from service.outbox import add_event, EVENT_VIDEO_PROCESS_FAILED
+from service.events import VideoProcessFailedPayload
+
+
 def fail_video_processing_with_lock(
     *,
     video_id: int,
@@ -145,14 +166,18 @@ def fail_video_processing_with_lock(
     """
     Атомарно:
     - ставит FAILED
+    - записывает error_message
     - очищает lock
-    - добавляет outbox event video.process.failed
+    - добавляет outbox-событие video.process.failed (в envelope)
     """
     db: Session = SessionLocal()
     try:
         video = (
             db.query(Video)
-            .filter(Video.id == video_id, Video.processing_lock_token == lock_token)
+            .filter(
+                Video.id == video_id,
+                Video.processing_lock_token == lock_token,
+            )
             .one_or_none()
         )
 
@@ -165,13 +190,15 @@ def fail_video_processing_with_lock(
         video.processing_lock_token = None
         video.processing_lock_expires_at = None
 
+        failed_payload = VideoProcessFailedPayload(
+            video_id=video_id,
+            error=error_message,
+        )
+
         add_event(
             db,
             event_type=EVENT_VIDEO_PROCESS_FAILED,
-            payload={
-                "video_id": video_id,
-                "error": error_message,
-            },
+            payload=failed_payload.model_dump(),
             producer="worker",
             correlation_id=correlation_id,
             trace_id=trace_id,

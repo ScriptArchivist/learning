@@ -9,6 +9,8 @@ from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from db.models import OutboxEvent, OutboxStatus
+from service.events import EventEnvelope
+from service.events import EventEnvelope, SCHEMA_VERSION
 
 
 EVENT_VIDEO_PROCESS_COMPLETED = "video.process.completed"
@@ -58,29 +60,35 @@ def add_event(
     producer: str,
     correlation_id: str | None = None,
     trace_id: str | None = None,
-    schema_version: int | None = None,
+    schema_version: str | None = None,
     aggregate_type: str | None = None,
     aggregate_id: str | None = None,
     available_at: datetime | None = None,
 ) -> OutboxEvent:
-    envelope = build_envelope(
+    """
+    Создаёт outbox-событие.
+    В payload БД всегда хранится полноценный EventEnvelope.
+    """
+
+    envelope = EventEnvelope(
         event_type=event_type,
-        payload=payload,
+        schema_version=schema_version or SCHEMA_VERSION,
         producer=producer,
         correlation_id=correlation_id,
         trace_id=trace_id,
-        schema_version=schema_version,
+        payload=payload,
     )
 
     evt = OutboxEvent(
-        event_type=event_type,          # остаётся как отдельная колонка
-        payload=envelope,               # ✅ теперь payload = ENVELOPE
+        event_type=event_type,  # отдельная колонка для индексов
+        payload=envelope.model_dump(mode="json"),  # 🔒 всегда валидированный envelope
         aggregate_type=aggregate_type,
         aggregate_id=aggregate_id,
         available_at=available_at or datetime.utcnow(),
         status=OutboxStatus.PENDING.value,
         attempts=0,
     )
+
     db.add(evt)
     return evt
 
