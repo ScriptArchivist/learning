@@ -16,6 +16,17 @@ from service.outbox import (
 )
 
 
+import uuid
+from datetime import datetime, timedelta
+
+from sqlalchemy import and_, or_, select
+from sqlalchemy.orm import Session
+
+from db.database import SessionLocal
+from db.models import Video, VideoStatus
+from service.video_status import transition_video_status
+
+
 def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
     """
     Атомарно "захватывает" обработку видео на уровне БД.
@@ -24,6 +35,10 @@ def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
     Захват возможен если:
       - status = UPLOADED
       - или status = PROCESSING, но lease истёк (воркер умер)
+
+    ВАЖНО (TASK A2):
+      - переход в PROCESSING выполняется только через transition_video_status(..., actor="worker")
+      - чтобы не было обхода state machine через прямой SQL update(status=...)
     """
     db: Session = SessionLocal()
     try:
@@ -31,31 +46,49 @@ def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
         now = datetime.utcnow()
         expires_at = now + timedelta(seconds=lease_seconds)
 
-        stmt = (
-            update(Video)
-            .where(
-                Video.id == video_id,
-                or_(
-                    Video.status == VideoStatus.UPLOADED,
-                    and_(
-                        Video.status == VideoStatus.PROCESSING,
-                        Video.processing_lock_expires_at.isnot(None),
-                        Video.processing_lock_expires_at < now,
-                    ),
-                ),
+        # Берём строку под блокировку, чтобы "захват" был атомарным
+        video = (
+            db.execute(
+                select(Video)
+                .where(Video.id == video_id)
+                .with_for_update()
             )
-            .values(
-                status=VideoStatus.PROCESSING,
-                processing_lock_token=token,
-                processing_lock_expires_at=expires_at,
-                processing_started_at=now,
-                error_message=None,
+            .scalar_one_or_none()
+        )
+
+        if video is None:
+            db.rollback()
+            return None
+
+        can_claim = (
+            video.status == VideoStatus.UPLOADED
+            or (
+                video.status == VideoStatus.PROCESSING
+                and video.processing_lock_expires_at is not None
+                and video.processing_lock_expires_at < now
             )
         )
 
-        res = db.execute(stmt)
+        if not can_claim:
+            db.rollback()
+            return None
+
+        # ✅ State machine: только worker может переводить в PROCESSING
+        # (если уже PROCESSING и lease истёк — статус остаётся PROCESSING, просто обновим lock)
+        if video.status == VideoStatus.UPLOADED:
+            transition_video_status(video, VideoStatus.PROCESSING, actor="worker")
+
+        video.processing_lock_token = token
+        video.processing_lock_expires_at = expires_at
+        video.processing_started_at = now
+        video.error_message = None
+
         db.commit()
-        return token if res.rowcount == 1 else None
+        return token
+
+    except Exception:
+        db.rollback()
+        raise
     finally:
         db.close()
 
@@ -114,8 +147,8 @@ def complete_video_processing_with_lock(
             video.mime_type = mime_type
 
         # --- финальный статус ---
-        video.status = VideoStatus.READY
-        video.error_message = None
+        from service.video_status import transition_video_status
+        transition_video_status(video, VideoStatus.READY, actor="worker")
         video.processing_lock_token = None
         video.processing_lock_expires_at = None
 
@@ -185,8 +218,13 @@ def fail_video_processing_with_lock(
             db.rollback()
             return False
 
-        video.status = VideoStatus.FAILED
-        video.error_message = error_message
+
+        transition_video_status(
+            video,
+            VideoStatus.FAILED,
+            actor="worker",
+            error_message=error_message,
+        )
         video.processing_lock_token = None
         video.processing_lock_expires_at = None
 

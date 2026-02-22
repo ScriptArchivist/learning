@@ -15,6 +15,7 @@ import time
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote_plus
+from service.video_status import VideoStatusTransitionError
 
 # third-party
 from fastapi import (
@@ -637,11 +638,16 @@ def upload_prepare_endpoint(
     - создаём Video (status=UPLOADING)
     - генерим storage_path и сохраняем его в video.original_path
     - возвращаем upload_url, куда фронт пошлёт файл
-    """
-    try:
-        storage = get_storage_provider()
-        backend = StorageBackendAdapter(storage)
 
+    Примечание:
+    - prepare_video_upload(...) внутри себя делает commit'ы (идемпотентность и создание записи),
+      поэтому здесь обычно не нужен дополнительный db.commit().
+    - но на ошибках делаем db.rollback(), чтобы сессия не оставалась в failed state.
+    """
+    storage = get_storage_provider()
+    backend = StorageBackendAdapter(storage)
+
+    try:
         result = prepare_video_upload(
             db=db,
             upload_data=payload,
@@ -649,15 +655,30 @@ def upload_prepare_endpoint(
             storage_backend=backend,
         )
 
-        # Для local: реальный URL с video_id
+        # Для local-режима: upload_url указывает на наш direct endpoint
+        # (presigned URL понадобится позже, когда подключите S3)
         result.upload_url = f"/api/v1/videos/{result.video_id}/upload/direct"
+
         return result
 
-    except NotFoundError as e:
-        raise HTTPException(status_code=404, detail=str(e))
     except ValidationError as e:
+        db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
+
+    except NotFoundError as e:
+        db.rollback()
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except ForbiddenError as e:
+        db.rollback()
+        raise HTTPException(status_code=403, detail=str(e))
+
+    except VideoStatusTransitionError as e:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(e))
+
     except Exception as e:
+        db.rollback()
         logger.exception("upload_prepare_endpoint failed")
         raise HTTPException(status_code=400, detail=str(e))
 
