@@ -2,10 +2,18 @@
 import os
 import time
 import json
+import logging
+import logging.config
 
 import pika
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+
+from service.correlation import (
+    get_request_id,
+    get_trace_id,
+    set_correlation,
+)
 
 from db.database import SessionLocal
 from service.broker import _declare_topology, _declare_events_topology
@@ -27,6 +35,24 @@ from service.outbox import (
 BATCH_SIZE = int(os.getenv("OUTBOX_BATCH_SIZE", "50"))
 POLL_INTERVAL = float(os.getenv("OUTBOX_POLL_INTERVAL", "0.5"))
 
+# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая pika) ---
+_old_factory = logging.getLogRecordFactory()
+
+
+def record_factory(*args, **kwargs):
+    record = _old_factory(*args, **kwargs)
+    record.request_id = get_request_id() or "-"
+    record.trace_id = get_trace_id() or "-"
+    return record
+
+
+logging.setLogRecordFactory(record_factory)
+# ----------------------------------------------------------------------------------------
+
+# logging.ini (после factory!)
+logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
+logger = logging.getLogger("outbox")
+
 
 def wait_for_outbox_table(
     timeout_seconds: int = 60,
@@ -35,10 +61,6 @@ def wait_for_outbox_table(
 ) -> None:
     """
     Ждём, пока миграции создадут public.outbox_events.
-
-    Почему так:
-    - to_regclass('public.outbox_events') — устойчивый чек существования таблицы в Postgres
-    - не маскируем вечным "waiting..." любые другие ошибки (дадим понятный timeout)
     """
     deadline = time.time() + timeout_seconds
     last_log = 0.0
@@ -53,27 +75,22 @@ def wait_for_outbox_table(
 
         db: Session = SessionLocal()
         try:
-            # Если таблицы нет — вернёт NULL
-            exists = db.execute(
-                text("select to_regclass('public.outbox_events')")
-            ).scalar()
-
+            exists = db.execute(text("select to_regclass('public.outbox_events')")).scalar()
             if exists:
                 return
 
             now = time.time()
             if now - last_log >= log_every_seconds:
-                print("[outbox] waiting for migrations (outbox_events not ready yet)...")
+                logger.warning("waiting for migrations (outbox_events not ready yet)...")
                 last_log = now
 
             time.sleep(sleep_seconds)
 
         except Exception as e:
-            # Любая ошибка: запоминаем и ждём дальше до timeout
             last_err = e
             now = time.time()
             if now - last_log >= log_every_seconds:
-                print(f"[outbox] waiting for migrations (db not ready): {e!r}")
+                logger.warning("waiting for migrations (db not ready): %r", e)
                 last_log = now
             time.sleep(sleep_seconds)
 
@@ -85,10 +102,24 @@ def publish_one(ch, event_type: str, payload) -> None:
     """
     payload ожидается как ENVELOPE dict (event_id, event_type, schema_version, correlation_id, trace_id, payload, ...)
     """
-    rid = payload.get("correlation_id") if isinstance(payload, dict) else None
+    if not isinstance(payload, dict):
+        raise RuntimeError(f"outbox payload must be dict envelope, got: {type(payload)}")
+
+    rid = payload.get("correlation_id")
+    tid = payload.get("trace_id")
+
+    # Контекст корреляции для логов publisher'а
+    set_correlation(request_id=rid, trace_id=tid)
+
     body = json.dumps(payload).encode("utf-8")
 
-    # 1) Команда воркеру: в очередь video.process
+    headers = {
+        "x-retry-count": 0,
+        "x-request-id": rid,
+        "x-trace-id": tid,
+    }
+
+    # 1) Команда воркеру
     if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
         ch.basic_publish(
             exchange="",
@@ -97,14 +128,16 @@ def publish_one(ch, event_type: str, payload) -> None:
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",
-                headers={"x-retry-count": 0},
+                headers=headers,
                 correlation_id=rid,
+                message_id=str(payload.get("event_id") or ""),
             ),
             mandatory=True,
         )
+        logger.info("published to worker queue event_type=%s event_id=%s", event_type, payload.get("event_id"))
         return
 
-    # 2) Доменные события: в events exchange (completed/failed)
+    # 2) Доменные события
     if event_type in (EVENT_VIDEO_PROCESS_COMPLETED, EVENT_VIDEO_PROCESS_FAILED):
         ch.basic_publish(
             exchange=RABBIT_EVENTS_EXCHANGE,
@@ -113,17 +146,46 @@ def publish_one(ch, event_type: str, payload) -> None:
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",
+                headers=headers,
                 correlation_id=rid,
+                message_id=str(payload.get("event_id") or ""),
             ),
             mandatory=True,
         )
+        logger.info("published to events exchange event_type=%s event_id=%s", event_type, payload.get("event_id"))
         return
 
     raise RuntimeError(f"Unknown outbox event_type: {event_type}")
 
 
+def self_check(params: pika.URLParameters) -> None:
+    # 1) DB ping
+    db: Session = SessionLocal()
+    try:
+        db.execute(text("select 1"))
+    finally:
+        db.close()
+
+    # 2) Rabbit connect ping
+    conn = pika.BlockingConnection(params)
+    try:
+        ch = conn.channel()
+        ch.close()
+    finally:
+        conn.close()
+
+    logger.info("self_check: ok (db + rabbit)")
+
+
 def main() -> None:
     params = pika.URLParameters(RABBIT_URL)
+
+    # Быстрый self-check перед стартом
+    try:
+        self_check(params)
+    except Exception as e:
+        logger.exception("self_check failed: %r", e)
+
     params.heartbeat = int(os.getenv("RABBIT_HEARTBEAT", "60"))
     params.blocked_connection_timeout = int(os.getenv("RABBIT_BLOCKED_TIMEOUT", "120"))
 
@@ -138,21 +200,17 @@ def main() -> None:
         conn = None
         ch = None
         try:
-            # 1) Ждём БД/таблицу ДО старта работы (Rabbit может быть уже поднят, но БД/миграции — нет)
             wait_for_outbox_table(timeout_seconds=90, sleep_seconds=1.0)
 
-            # 2) Подключаемся к Rabbit
             conn = pika.BlockingConnection(params)
             ch = conn.channel()
 
-            # Очереди/ретраи для worker-очереди
             _declare_topology(ch)
-            # Exchange/queue для событий
             _declare_events_topology(ch)
-            # publisher confirms
+
             ch.confirm_delivery()
 
-            print("[outbox] boot: started publisher loop")
+            logger.info("boot: started publisher loop")
 
             while True:
                 db: Session = SessionLocal()
@@ -165,9 +223,7 @@ def main() -> None:
                                 publish_one(ch, e.event_type, e.payload)
                                 mark_published(db, e.id)
                             except Exception as ex:
-                                # фиксируем ошибку + увеличиваем attempts
                                 mark_failed_retry(db, e.id, str(ex), attempts=(e.attempts or 0) + 1)
-
                 finally:
                     db.close()
 
@@ -177,7 +233,7 @@ def main() -> None:
                     raise RuntimeError("Rabbit connection closed")
 
         except Exception as e:
-            print(f"[outbox] crashed: {e!r}")
+            logger.exception("crashed: %r", e)
             time.sleep(2)
 
         finally:

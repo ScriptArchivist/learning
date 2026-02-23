@@ -1,0 +1,16 @@
+RID=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62
+VIDEO_ID=5
+SINCE=15m
+
+===== WEB (pattern: rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62|video_id=5|/videos/5\b|/upload/complete|status=) =====
+4:2026-02-23 10:57:35 INFO [uvicorn.access] rid=272276d3-7959-4bde-8ff7-97451638ec01 tid=552bfbb0-3828-4570-91db-ba4e26463ad1 172.18.0.1:40358 - "POST /api/v1/videos/5/upload/direct HTTP/1.1" 200
+5:2026-02-23 10:57:36 INFO [service.storage_service] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Local storage initialized at: uploads
+6:2026-02-23 10:57:36 INFO [uvicorn.access] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 172.18.0.1:40374 - "POST /api/v1/videos/5/upload/complete HTTP/1.1" 200
+
+===== OUTBOX (pattern: rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62|outbox|published|event_type=video\.process|video_id=5) =====
+
+===== WORKER (pattern: rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62|ffmpeg|ffprobe|video_id=5|start video_id=5|done video_id=5) =====
+1:2026-02-23 10:57:36 INFO [worker] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 start video_id=5 key=original/u1/v5/0239d874-c215-44f4-899f-8212d1578c34.mp4 event_id=96aebe8f-8ca4-4de4-ab11-09da359f0a2e
+
+===== RABBITMQ (pattern: 8447bb1d-8413-4e3a-b6ee-7d0826a7ab62|x-request-id|x-trace-id|video\.process|video_id=5) =====
+

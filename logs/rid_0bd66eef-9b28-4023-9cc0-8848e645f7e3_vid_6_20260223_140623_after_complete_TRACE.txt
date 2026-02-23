@@ -1,0 +1,187 @@
+RID=0bd66eef-9b28-4023-9cc0-8848e645f7e3
+VIDEO_ID=6
+STAGE=after_complete
+SINCE=15m
+
+===== WEB (match: rid=0bd66eef-9b28-4023-9cc0-8848e645f7e3 video_id=6 /videos/6\b|/api/v1/videos/6\b) =====
+2026-02-23 10:57:36 INFO [uvicorn.access] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 172.18.0.1:40374 - "POST /api/v1/videos/5/upload/complete HTTP/1.1" 200
+2026-02-23 10:57:36 INFO [uvicorn.access] rid=16cb04ad-eecb-4659-bb5d-abb0b10078bc tid=fcd23809-a4ea-4bdf-9ace-aa3c9ea9b2e9 172.18.0.1:40390 - "POST /api/v1/videos/5/upload/complete HTTP/1.1" 200
+2026-02-23 11:06:23 INFO [uvicorn.access] rid=01c52320-7f91-4b25-8da3-0f310e6b3f6e tid=6b1312f2-3d1c-4843-a268-2086deba0d29 172.18.0.1:55782 - "POST /api/v1/videos/6/upload/direct HTTP/1.1" 200
+2026-02-23 11:06:23 INFO [service.storage_service] rid=0bd66eef-9b28-4023-9cc0-8848e645f7e3 tid=36c8de6d-6261-4a22-99e4-ac4aa517b1bb Local storage initialized at: uploads
+2026-02-23 11:06:23 INFO [uvicorn.access] rid=0bd66eef-9b28-4023-9cc0-8848e645f7e3 tid=36c8de6d-6261-4a22-99e4-ac4aa517b1bb 172.18.0.1:55784 - "POST /api/v1/videos/6/upload/complete HTTP/1.1" 200
+
+===== OUTBOX (match: rid=0bd66eef-9b28-4023-9cc0-8848e645f7e3 video_id=6) =====
+2026-02-23 10:57:36 INFO [outbox] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 published to worker queue event_type=video.process.requested event_id=96aebe8f-8ca4-4de4-ab11-09da359f0a2e
+2026-02-23 10:57:37 INFO [outbox] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 published to events exchange event_type=video.process.completed event_id=58487cf9-a8ae-4c1b-8d09-04f1abeafa1b
+
+===== WORKER (match: rid=0bd66eef-9b28-4023-9cc0-8848e645f7e3 video_id=6) =====
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 run: ffmpeg -y -hide_banner -loglevel info -ss 1.0 -i uploads/original/u1/v5/0239d874-c215-44f4-899f-8212d1578c34.mp4 -frames:v 1 -q:v 3 -update 1 uploads/thumbnails/v5/thumb.jpg
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'uploads/original/u1/v5/0239d874-c215-44f4-899f-8212d1578c34.mp4':
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     major_brand     : isom
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     minor_version   : 512
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     compatible_brands: isomiso2avc1mp41
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     creation_time   : 2026-02-07T16:56:06.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Duration: 00:00:02.86, start: 0.000000, bitrate: 1030 kb/s
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0[0x1](eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 66 kb/s (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : SoundHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:1[0x2](eng): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 384x384, 1053 kb/s, 13.84 fps, 90k tbr, 90k tbn (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:04.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : VideoHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Stream mapping:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:1 -> #0:0 (h264 (native) -> mjpeg (native))
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Press [q] to stop, [?] for help
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Output #0, image2, to 'uploads/thumbnails/v5/thumb.jpg':
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     major_brand     : isom
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     minor_version   : 512
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     compatible_brands: isomiso2avc1mp41
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     encoder         : Lavf61.7.100
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0(eng): Video: mjpeg, yuv420p(pc, bt470bg/bt470bg/bt709, progressive), 384x384, q=2-31, 200 kb/s, 13.84 fps, 13.84 tbn (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:04.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : VideoHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 mjpeg
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Side data:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         cpb: bitrate max/min/avg: 0/0/200000 buffer size: 0 vbv_delay: N/A
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [out#0/image2 @ 0x5acd8a473bc0] video:13KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 frame=    1 fps=0.0 q=3.0 Lsize=N/A time=00:00:00.07 bitrate=N/A dup=1 drop=0 speed=2.33x    
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 run: ffmpeg -y -hide_banner -loglevel info -i uploads/original/u1/v5/0239d874-c215-44f4-899f-8212d1578c34.mp4 -filter_complex [0:v]split=3[v1][v2][v3];[v1]scale=w=640:h=360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1[v360];[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1[v720];[v3]scale=w=1920:h=1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v1080] -map [v360] -map 0:a:0? -map [v720] -map 0:a:0? -map [v1080] -map 0:a:0? -c:v libx264 -preset veryfast -profile:v main -pix_fmt yuv420p -g 48 -keyint_min 48 -sc_threshold 0 -b:v:0 800k -maxrate:v:0 856k -bufsize:v:0 1200k -b:v:1 2800k -maxrate:v:1 2996k -bufsize:v:1 4200k -b:v:2 5000k -maxrate:v:2 5350k -bufsize:v:2 7500k -c:a aac -ac 2 -b:a:0 96k -b:a:1 128k -b:a:2 192k -f hls -hls_time 2 -hls_list_size 0 -hls_playlist_type vod -hls_flags independent_segments+temp_file -hls_segment_type mpegts -start_number 0 -hls_segment_filename uploads/hls/v5__tmp/%v/seg_%05d.ts -master_pl_name master.m3u8 -var_stream_map v:0,a:0,name:360p v:1,a:1,name:720p v:2,a:2,name:1080p uploads/hls/v5__tmp/%v/index.m3u8
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'uploads/original/u1/v5/0239d874-c215-44f4-899f-8212d1578c34.mp4':
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     major_brand     : isom
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     minor_version   : 512
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     compatible_brands: isomiso2avc1mp41
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     creation_time   : 2026-02-07T16:56:06.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Duration: 00:00:02.86, start: 0.000000, bitrate: 1030 kb/s
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0[0x1](eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 66 kb/s (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : SoundHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:1[0x2](eng): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 384x384, 1053 kb/s, 13.84 fps, 90k tbr, 90k tbn (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:04.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : VideoHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Stream mapping:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:1 (h264) -> split:default
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   setsar:default -> Stream #0:0 (libx264)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0 -> #0:1 (aac (native) -> aac (native))
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   setsar:default -> Stream #0:2 (libx264)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0 -> #0:3 (aac (native) -> aac (native))
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   setsar:default -> Stream #0:4 (libx264)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0 -> #0:5 (aac (native) -> aac (native))
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Press [q] to stop, [?] for help
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] using SAR=1/1
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] profile Main, level 2.2, 4:2:0, 8-bit
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x1:0x111 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=11 lookahead_threads=2 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=48 keyint_min=25 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=abr mbtree=1 bitrate=800 ratetol=1.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 vbv_maxrate=856 vbv_bufsize=1200 nal_hrd=none filler=0 ip_ratio=1.40 aq=1:1.00
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] using SAR=1/1
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] profile Main, level 3.1, 4:2:0, 8-bit
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x1:0x111 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=22 lookahead_threads=5 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=48 keyint_min=25 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=abr mbtree=1 bitrate=2800 ratetol=1.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 vbv_maxrate=2996 vbv_bufsize=4200 nal_hrd=none filler=0 ip_ratio=1.40 aq=1:1.00
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] using SAR=1/1
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] profile Main, level 4.0, 4:2:0, 8-bit
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x1:0x111 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=34 lookahead_threads=8 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=48 keyint_min=25 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=abr mbtree=1 bitrate=5000 ratetol=1.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 vbv_maxrate=5350 vbv_bufsize=7500 nal_hrd=none filler=0 ip_ratio=1.40 aq=1:1.00
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 Output #0, hls, to 'uploads/hls/v5__tmp/%v/index.m3u8':
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     major_brand     : isom
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     minor_version   : 512
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     compatible_brands: isomiso2avc1mp41
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80     encoder         : Lavf61.7.100
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:0: Video: h264, yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 640x360 [SAR 1:1 DAR 16:9], q=2-31, 800 kb/s, 13.84 fps, 90k tbn (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 libx264
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Side data:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         cpb: bitrate max/min/avg: 856000/0/800000 buffer size: 1200000 vbv_delay: N/A
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:1(eng): Audio: aac (LC), 48000 Hz, stereo, fltp, 96 kb/s (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : SoundHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 aac
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:2: Video: h264, yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 1280x720 [SAR 1:1 DAR 16:9], q=2-31, 2800 kb/s, 13.84 fps, 90k tbn
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 libx264
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Side data:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         cpb: bitrate max/min/avg: 2996000/0/2800000 buffer size: 4200000 vbv_delay: N/A
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:3(eng): Audio: aac (LC), 48000 Hz, stereo, fltp, 128 kb/s (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : SoundHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 aac
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:4: Video: h264, yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 5000 kb/s, 13.84 fps, 90k tbn
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 libx264
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Side data:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         cpb: bitrate max/min/avg: 5350000/0/5000000 buffer size: 7500000 vbv_delay: N/A
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80   Stream #0:5(eng): Audio: aac (LC), 48000 Hz, stereo, fltp, 192 kb/s (default)
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80       Metadata:
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         handler_name    : SoundHandle
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         vendor_id       : [0][0][0][0]
+2026-02-23 10:57:36 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80         encoder         : Lavc61.19.101 aac
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 frame=    4 fps=0.0 q=18.0 q=0.0 q=0.0 size=N/A time=N/A bitrate=N/A speed=N/A    
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/360p/seg_00000.ts.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/360p/index.m3u8.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/720p/seg_00000.ts.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/720p/index.m3u8.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/1080p/seg_00000.ts.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/1080p/index.m3u8.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [hls @ 0x59b4473812c0] Opening 'uploads/hls/v5__tmp/master.m3u8.tmp' for writing
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [out#0/hls @ 0x59b4474d1640] video:2571KiB audio:86KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 frame=   36 fps=0.0 q=-1.0 Lq=-1.0 q=-1.0 size=N/A time=00:00:02.45 bitrate=N/A speed=3.18x    
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] frame I:1     Avg QP:11.20  size: 11603
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] frame P:11    Avg QP:14.34  size:  8614
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] frame B:24    Avg QP:17.55  size:  4074
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] consecutive B-frames:  8.3%  5.6%  8.3% 77.8%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] mb I  I16..4: 53.4%  0.0% 46.6%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] mb P  I16..4: 20.5%  0.0% 20.8%  P16..4: 13.5%  7.0%  4.7%  0.0%  0.0%    skip:33.6%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] mb B  I16..4:  2.5%  0.0%  2.7%  B16..8: 14.6%  9.7%  2.9%  direct:15.5%  skip:52.1%  L0:37.9% L1:32.2% BI:29.9%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] coded y,uvDC,uvAC intra: 53.5% 52.5% 21.7% inter: 20.5% 19.4% 0.6%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] i16 v,h,dc,p: 70%  7%  8% 15%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 28% 16% 15%  7%  8%  7%  6%  9%  5%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] i8c dc,h,v,p: 57% 11% 25%  7%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] Weighted P-Frames: Y:45.5% UV:27.3%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44739c780] kb/s:627.86
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [aac @ 0x59b447417700] Qavg: 58863.625
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] frame I:1     Avg QP: 5.45  size: 42462
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] frame P:12    Avg QP:12.04  size: 31451
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] frame B:23    Avg QP:14.32  size: 19301
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] consecutive B-frames: 11.1%  5.6% 16.7% 66.7%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] mb I  I16..4: 59.1%  0.0% 40.9%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] mb P  I16..4: 21.1%  0.0% 31.6%  P16..4:  6.5%  3.3%  2.4%  0.0%  0.0%    skip:35.1%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] mb B  I16..4:  4.2%  0.0% 12.7%  B16..8: 12.8%  8.8%  2.2%  direct:10.5%  skip:48.9%  L0:44.1% L1:34.8% BI:21.2%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] coded y,uvDC,uvAC intra: 68.0% 50.0% 22.5% inter: 17.2% 19.8% 0.9%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] i16 v,h,dc,p: 67% 11% 10% 11%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 29% 18% 14%  7%  8%  7%  6%  7%  5%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] i8c dc,h,v,p: 52% 14% 26%  7%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] Weighted P-Frames: Y:25.0% UV:25.0%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741b280] kb/s:2656.91
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [aac @ 0x59b44741d140] Qavg: 63359.910
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] frame I:1     Avg QP: 4.13  size: 81528
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] frame P:10    Avg QP:12.23  size: 59235
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] frame B:25    Avg QP:13.87  size: 35538
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] consecutive B-frames:  5.6%  5.6%  0.0% 88.9%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] mb I  I16..4: 65.3%  0.0% 34.7%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] mb P  I16..4: 14.8%  0.0% 33.5%  P16..4:  3.5%  2.3%  1.1%  0.0%  0.0%    skip:44.8%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] mb B  I16..4:  6.6%  0.0% 13.7%  B16..8: 10.9%  7.3%  1.6%  direct: 9.3%  skip:50.5%  L0:46.8% L1:37.7% BI:15.5%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] coded y,uvDC,uvAC intra: 70.2% 45.8% 19.1% inter: 12.2% 17.7% 0.8%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] i16 v,h,dc,p: 52% 17% 16% 15%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 32% 20% 13%  6%  8%  6%  5%  6%  4%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] i8c dc,h,v,p: 49% 17% 27%  7%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] Weighted P-Frames: Y:0.0% UV:0.0%
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [libx264 @ 0x59b44741fa80] kb/s:4805.46
+2026-02-23 10:57:37 INFO [ffmpeg] rid=8447bb1d-8413-4e3a-b6ee-7d0826a7ab62 tid=6b7e726a-4987-48b3-927a-a5bc7827cb80 [aac @ 0x59b447378c00] Qavg: 64621.578
+
+===== RABBITMQ (contains rid/trace hints) =====
+

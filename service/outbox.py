@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from db.models import OutboxEvent, OutboxStatus
 from service.events import EventEnvelope
 from service.events import EventEnvelope, SCHEMA_VERSION
+from service.correlation import ensure_request_id, ensure_trace_id
 
 
 EVENT_VIDEO_PROCESS_COMPLETED = "video.process.completed"
@@ -70,6 +71,10 @@ def add_event(
     В payload БД всегда хранится полноценный EventEnvelope.
     """
 
+    # Гарантируем rid/tid на уровне outbox, даже если вызывающий код забыл прокинуть
+    correlation_id = ensure_request_id(correlation_id)
+    trace_id = ensure_trace_id(trace_id)
+
     envelope = EventEnvelope(
         event_type=event_type,
         schema_version=schema_version or SCHEMA_VERSION,
@@ -81,7 +86,7 @@ def add_event(
 
     evt = OutboxEvent(
         event_type=event_type,  # отдельная колонка для индексов
-        payload=envelope.model_dump(mode="json"),  # 🔒 всегда валидированный envelope
+        payload=envelope.model_dump(mode="json"),  # всегда валидированный envelope
         aggregate_type=aggregate_type,
         aggregate_id=aggregate_id,
         available_at=available_at or datetime.utcnow(),

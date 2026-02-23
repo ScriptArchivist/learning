@@ -1,0 +1,11 @@
+RID=9ab3b60e-5892-4d4a-97c0-51236cd41a7a
+
+===== WEB (rid=9ab3b60e-5892-4d4a-97c0-51236cd41a7a) =====
+2026-02-23 10:36:39 INFO [service.storage_service] rid=9ab3b60e-5892-4d4a-97c0-51236cd41a7a tid=fc1f1625-40bc-4fcf-9764-335da8393176 Local storage initialized at: uploads
+2026-02-23 10:36:39 INFO [uvicorn.access] rid=9ab3b60e-5892-4d4a-97c0-51236cd41a7a tid=fc1f1625-40bc-4fcf-9764-335da8393176 172.18.0.1:35232 - "POST /api/v1/videos/4/upload/complete HTTP/1.1" 200
+
+===== OUTBOX (rid=9ab3b60e-5892-4d4a-97c0-51236cd41a7a) =====
+
+===== WORKER (rid=9ab3b60e-5892-4d4a-97c0-51236cd41a7a) =====
+
+===== RABBITMQ (contains rid) =====

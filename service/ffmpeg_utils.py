@@ -16,6 +16,9 @@ def _run_logged(cmd: List[str], cwd: Optional[str] = None, tail_lines: int = 200
 
     tail_lines: сколько последних строк вывода держать для текста ошибки.
     """
+    # Логируем старт (в этот момент уже должен быть выставлен rid/tid в worker contextvars)
+    log.info("run: %s", " ".join(cmd))
+
     proc = subprocess.Popen(
         cmd,
         cwd=cwd,

@@ -1,20 +1,20 @@
 # src/worker.py
 import os
-import json
 import logging
 import logging.config
 from datetime import datetime
 
 from pydantic import ValidationError
 
-# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая ffmpeg_utils) ---
 from service.correlation import (
     get_request_id,
     get_trace_id,
+    ensure_trace_id,
     set_request_id,
     set_trace_id,
 )
 
+# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая сторонние libs) ---
 _old_factory = logging.getLogRecordFactory()
 
 
@@ -30,26 +30,25 @@ logging.setLogRecordFactory(record_factory)
 
 # Подхватываем формат логов из ini (у тебя там rid=%(request_id)s ...)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
+logger = logging.getLogger("worker")
 
-from service.broker import consume_forever
-from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail
-from service.processing_service import (
+# ⚠️ Импорты ниже — после настройки логов (чтобы даже их import-time логи не падали)
+from service.broker import consume_forever  # noqa: E402
+from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail  # noqa: E402
+from service.processing_service import (  # noqa: E402
     claim_video_processing,
     complete_video_processing_with_lock,
     fail_video_processing_with_lock,
 )
-from service.storage_service import get_storage_provider
-from service import storage_keys
-from src.config import VIDEO_LOCK_TTL_SECONDS
+from service.storage_service import get_storage_provider  # noqa: E402
+from service import storage_keys  # noqa: E402
+from src.config import VIDEO_LOCK_TTL_SECONDS  # noqa: E402
 
 # Event contract (A1)
-from service.events import EventEnvelope, VideoProcessRequestedPayload
-
-# Если у тебя эти константы лежат в service/outbox.py — импортируй оттуда
-from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED
+from service.events import EventEnvelope, VideoProcessRequestedPayload  # noqa: E402
+from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED  # noqa: E402
 
 storage = get_storage_provider()  # ✅ единый storage
-logger = logging.getLogger("worker")
 
 
 def _safe_error_message(e: Exception, limit: int = 500) -> str:
@@ -72,7 +71,6 @@ def _major_version(schema_version) -> int | None:
         s = schema_version.strip()
         if not s:
             return None
-        # "1" или "1.0"
         try:
             return int(s.split(".", 1)[0])
         except Exception:
@@ -108,13 +106,21 @@ def handle(message: dict):
         raise
 
     # 2) Ставим correlation/trace в contextvars ДО любых логов обработки
-    set_request_id(envelope.correlation_id)
-    set_trace_id(envelope.trace_id)
+    #    Вычисляем rid/tid один раз и потом используем везде дальше
+    headers = {}
+    if isinstance(message, dict):
+        headers = message.get("__headers__") or {}
+
+    rid = envelope.correlation_id or headers.get("x-request-id")
+    tid = envelope.trace_id or headers.get("x-trace-id")
+    tid = ensure_trace_id(tid)  # trace_id всегда обязателен
+
+    set_request_id(rid)
+    set_trace_id(tid)
 
     # 3) Проверяем версию схемы (MAJOR)
     major = _major_version(getattr(envelope, "schema_version", None))
     if major != 1:
-        # Это осознанно: лучше отправить в retry/DLQ, чем “молча” обработать неправильно
         raise ValueError(f"unsupported schema_version={envelope.schema_version!r}")
 
     # 4) Обрабатываем только нужный event_type
@@ -175,8 +181,8 @@ def handle(message: dict):
                 thumbnail_path=thumb_key,
                 mime_type="video/mp4",
                 hls_master_key=hls_master_key,
-                correlation_id=envelope.correlation_id,
-                trace_id=envelope.trace_id,
+                correlation_id=rid,
+                trace_id=tid,
             )
             logger.info("done video_id=%s (already existed)", video_id)
             return
@@ -209,21 +215,20 @@ def handle(message: dict):
             thumbnail_path=thumb_key,
             mime_type="video/mp4",
             hls_master_key=hls_master_key,
-            correlation_id=envelope.correlation_id,
-            trace_id=envelope.trace_id,
+            correlation_id=rid,
+            trace_id=tid,
         )
 
         logger.info("done video_id=%s", video_id)
 
     except Exception as e:
-        # Пишем failed-событие (idempotent защита уже у тебя есть через lock/DB)
         try:
             fail_video_processing_with_lock(
                 video_id=video_id,
                 lock_token=lock_token,
                 error_message=_safe_error_message(e),
-                correlation_id=envelope.correlation_id,
-                trace_id=envelope.trace_id,
+                correlation_id=rid,
+                trace_id=tid,
             )
         except Exception:
             logger.exception("fail_video_processing_with_lock error (video_id=%s)", video_id)
