@@ -1,0 +1,20 @@
+RID=ba1cec5c-1eca-4424-8a07-e041af931a75
+VIDEO_ID=1
+STAGE=after_complete
+SINCE=15m
+
+===== WEB (learning_app-web-1) (rid=ba1cec5c-1eca-4424-8a07-e041af931a75 OR video_id=1) =====
+2026-02-23 16:48:05 INFO [uvicorn.access] rid=15dd29c7-0aa3-4630-b83c-66d954a02ba2 tid=552157e2-b50f-4ff7-beeb-82112e696aa9 172.18.0.1:54368 - "POST /api/v1/videos/1/upload/direct HTTP/1.1" 200
+2026-02-23 16:48:06 INFO [service.storage_service] rid=ba1cec5c-1eca-4424-8a07-e041af931a75 tid=975cb34e-7c49-470d-814b-b7d80e54c751 Local storage initialized at: uploads
+2026-02-23 16:48:06 INFO [uvicorn.access] rid=ba1cec5c-1eca-4424-8a07-e041af931a75 tid=975cb34e-7c49-470d-814b-b7d80e54c751 172.18.0.1:54374 - "POST /api/v1/videos/1/upload/complete HTTP/1.1" 200
+
+===== OUTBOX (learning_app-outbox-1) (rid=ba1cec5c-1eca-4424-8a07-e041af931a75 OR video_id=1) =====
+2026-02-23 16:47:40 INFO [outbox] rid=- tid=- self_check: ok (db + rabbit)
+2026-02-23 16:47:40 INFO [outbox] rid=- tid=- boot: started publisher loop
+2026-02-23 16:48:06 INFO [outbox] rid=ba1cec5c-1eca-4424-8a07-e041af931a75 tid=975cb34e-7c49-470d-814b-b7d80e54c751 published to worker queue event_type=video.process.requested event_id=dbeb3ba0-5f05-4bab-9d70-1e5c3a5318a1
+
+===== WORKER (learning_app-worker-1) (rid=ba1cec5c-1eca-4424-8a07-e041af931a75 OR video_id=1) =====
+2026-02-23 16:48:06 INFO [worker] rid=ba1cec5c-1eca-4424-8a07-e041af931a75 tid=975cb34e-7c49-470d-814b-b7d80e54c751 start video_id=1 key=original/u1/v1/f70b5ad6-016d-47bb-90da-df7ba92591e0.mp4 event_id=dbeb3ba0-5f05-4bab-9d70-1e5c3a5318a1
+
+===== RABBITMQ (learning_app-rabbitmq-1) (contains rid) =====
+

@@ -4,6 +4,7 @@ import logging
 import mimetypes
 import uuid
 from pathlib import Path
+from fastapi import FastAPI, HTTPException, Request
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +17,11 @@ from service.correlation import get_request_id, get_trace_id, set_request_id, se
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response as StarletteResponse
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from starlette.status import HTTP_500_INTERNAL_SERVER_ERROR
+from errors import AppError
+from model.api_error import ErrorResponse, ErrorDTO
 
 # --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая uvicorn) ---
 _old_factory = logging.getLogRecordFactory()
@@ -32,6 +38,101 @@ logging.setLogRecordFactory(record_factory)
 # ----------------------------------------------------------------------------------------
 
 app = FastAPI()
+
+
+# ===================== ERROR HANDLERS (FE-BE2) =====================
+
+def _code_from_status(status_code: int) -> str:
+    if status_code == 400:
+        return "validation_error"
+    if status_code == 401:
+        return "unauthorized"
+    if status_code == 403:
+        return "forbidden"
+    if status_code == 404:
+        return "not_found"
+    if status_code == 409:
+        return "conflict"
+    if status_code == 422:
+        return "validation_error"
+    if 500 <= status_code <= 599:
+        return "internal"
+    # fallback
+    return "internal"
+
+
+@app.exception_handler(AppError)
+async def app_error_handler(request: Request, exc: AppError):
+    """
+    Твои доменные исключения (NotFoundError/ForbiddenError/ValidationError/ConflictError/...).
+    """
+    status_code = getattr(exc, "status_code", 400) or 400
+    code = _code_from_status(status_code)
+
+    payload = ErrorResponse(
+        error=ErrorDTO(
+            code=code,
+            message=str(getattr(exc, "message", None) or str(exc) or "Error"),
+            details=None,
+        )
+    )
+    return JSONResponse(status_code=status_code, content=payload.model_dump())
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """
+    Любые HTTPException (включая security dependency: Missing Authorization header).
+    Приводим к единому формату.
+    """
+    status_code = exc.status_code or 400
+    code = _code_from_status(status_code)
+
+    # FastAPI иногда кладёт detail как dict/list — сохраним это в details
+    detail = exc.detail
+    if isinstance(detail, (dict, list)):
+        message = "Request error"
+        details = detail
+    else:
+        message = str(detail) if detail else "Request error"
+        details = None
+
+    payload = ErrorResponse(error=ErrorDTO(code=code, message=message, details=details))
+    return JSONResponse(status_code=status_code, content=payload.model_dump())
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_handler(request: Request, exc: RequestValidationError):
+    """
+    Ошибки валидации входящих данных (422).
+    """
+    payload = ErrorResponse(
+        error=ErrorDTO(
+            code="validation_error",
+            message="Validation error",
+            details=exc.errors(),
+        )
+    )
+    return JSONResponse(status_code=422, content=payload.model_dump())
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request: Request, exc: Exception):
+    """
+    Любая непойманная ошибка -> 500 internal.
+    """
+    # логируем stacktrace
+    logging.getLogger(__name__).exception("Unhandled exception", exc_info=exc)
+
+    payload = ErrorResponse(
+        error=ErrorDTO(
+            code="internal",
+            message="Internal server error",
+            details=None,
+        )
+    )
+    return JSONResponse(status_code=HTTP_500_INTERNAL_SERVER_ERROR, content=payload.model_dump())
+
 
 # ===================== REQUEST CORRELATION =====================
 

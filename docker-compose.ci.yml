@@ -31,12 +31,12 @@ services:
     ports:
       - "6379:6379"
 
+  # Единственная точка выполнения миграций
   migrate:
     build: .
     command: >
       sh -c "
         echo 'Waiting for database...' &&
-        sleep 5 &&
         alembic upgrade head
       "
     depends_on:
@@ -55,42 +55,31 @@ services:
     build: .
     command: >
       sh -c "
-        echo 'Applying migrations...' &&
-        alembic upgrade head &&
         echo 'Starting API...' &&
         uvicorn src.main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log
       "
     depends_on:
-      - db
-      - migrate
-      - rabbitmq
-      - redis
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
 
-      # По умолчанию НЕ требуем никаких префиксов перед docker-compose up:
-      # - "local": всё (HLS/MP4/thumb) отдаётся через API
-      # - "url": HLS отдаёт nginx origin (контейнер "origin"), а API возвращает внешние ссылки
       DELIVERY_MODE: ${DELIVERY_MODE:-local}
-
-      # ВАЖНО:
-      # - Внутри docker-сети правильный адрес origin: http://origin (порт 80)
-      # - Но если ты хочешь, чтобы API ВОЗВРАЩАЛ ссылки, которые кликаются с твоего хоста,
-      #   то переопредели DELIVERY_PUBLIC_BASE_URL=http://localhost:8080
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
-
-      # Публичный base-url (для ссылок в JSON/страницах), по умолчанию на хост.
-      # Если не задавать — будем использовать DELIVERY_BASE_URL.
       DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-http://localhost:8080}
 
-      # Redis locks
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
 
-      # HLS token
       HLS_TOKEN_SECRET: ${HLS_TOKEN_SECRET:-super-long-random-secret-1234567890}
       HLS_TOKEN_TTL_SECONDS: ${HLS_TOKEN_TTL_SECONDS:-300}
 
@@ -104,15 +93,18 @@ services:
       - ./alembic.ini:/app/alembic.ini
       - uploads_data:/app/uploads
 
-
   worker:
     build: .
     command: python -m src.worker
     depends_on:
-      - db
-      - rabbitmq
-      - migrate
-      - redis
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
@@ -126,20 +118,19 @@ services:
       - ./model:/app/model
       - uploads_data:/app/uploads
 
-
-  # ✅ NEW: Outbox publisher (PR #3)
   outbox:
     build: .
     command: python -m src.outbox_publisher
     depends_on:
-      - db
-      - rabbitmq
-      - migrate
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
-      # RABBIT_QUEUE: video.process
-
       OUTBOX_BATCH_SIZE: "50"
       OUTBOX_POLL_INTERVAL: "0.5"
     volumes:
@@ -147,7 +138,6 @@ services:
       - ./service:/app/service
       - ./db:/app/db
       - ./model:/app/model
-
 
   origin:
     image: nginx:1.25-alpine
@@ -157,7 +147,8 @@ services:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/app/uploads
     depends_on:
-      - web    
+      web:
+        condition: service_started
 
 volumes:
   postgres_data:
