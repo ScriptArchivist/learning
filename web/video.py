@@ -15,6 +15,8 @@ import time
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote_plus
+from model.video_contract import VideoDetailDTO, VideoListResponse
+from service.video_presenter import to_detail, to_list_item
 
 from service.video_status import VideoStatusTransitionError
 from service.paths import (
@@ -317,7 +319,7 @@ def create_video_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/", response_model=dict)
+@router.get("/", response_model=VideoListResponse)
 def list_videos(
     status: Optional[VideoStatus] = Query(None, description="Фильтр по статусу"),
     visibility: Optional[Visibility] = Query(None, description="Фильтр по видимости"),
@@ -330,6 +332,9 @@ def list_videos(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db_read),  # READ
 ):
+    """
+    FE-BE1: строго items/page/per_page/total.
+    """
     try:
         filter_data = VideoFilter(
             status=status,
@@ -343,34 +348,20 @@ def list_videos(
 
         videos, total = get_videos(db, filter_data, pagination, user_id=current_user["id"])
 
-        url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
+        items = [to_list_item(v) for v in videos]
 
-        items = []
-        for v in videos:
-            r = VideoResponse.from_orm(v)
-
-            r.hls_ready = (v.status == VideoStatus.READY)
-            if url_mode and r.hls_ready:
-                r.hls_url = _delivery_url(hls_master_key(v.id))
-            else:
-                r.hls_ready = r.hls_ready and Path(_hls_master_full_path(v.id)).exists()
-                r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
-
-            items.append(r)
-
-        return {
-            "items": items,
-            "total": total,
-            "page": page,
-            "per_page": per_page,
-            "pages": (total + per_page - 1) // per_page,
-        }
+        return VideoListResponse(
+            items=items,
+            total=total,
+            page=page,
+            per_page=per_page,
+        )
     except Exception as e:
         logger.exception("Error listing videos")
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.get("/{video_id}", response_model=VideoResponse)
+@router.get("/{video_id}", response_model=VideoDetailDTO)
 def get_video_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
@@ -378,19 +369,7 @@ def get_video_endpoint(
 ):
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
-        resp = VideoResponse.from_orm(video)
-
-        url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
-
-        resp.hls_ready = (video.status == VideoStatus.READY)
-        if url_mode and resp.hls_ready:
-            resp.hls_url = _delivery_url(hls_master_key(video_id))
-        else:
-            hls_path = _hls_master_full_path(video_id)
-            resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
-            resp.hls_url = _hls_playlist_url(video_id) if resp.hls_ready else None
-
-        return resp
+        return to_detail(video)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ForbiddenError as e:
@@ -572,27 +551,14 @@ def revoke_share_link_endpoint(
         raise HTTPException(status_code=403, detail=str(e))
 
 
-@router.get("/shared/{token}", response_model=VideoResponse)
+@router.get("/shared/{token}", response_model=VideoDetailDTO)
 def get_shared_video_endpoint(
     token: str,
     db: Session = Depends(get_db_read),  # READ
 ):
     try:
         video = get_video_by_share_token(db, token)
-        resp = VideoResponse.from_orm(video)
-
-        url_mode = getattr(settings, "DELIVERY_MODE", "local") == "url"
-        resp.hls_ready = (video.status == VideoStatus.READY)
-
-        if url_mode and resp.hls_ready:
-            resp.hls_url = _delivery_url(hls_master_key(video.id))
-        else:
-            hls_path = _hls_master_full_path(video.id)
-            resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
-            resp.hls_url = _hls_shared_playlist_url(token) if resp.hls_ready else None
-
-        return resp
-
+        return to_detail(video, shared_token=token)
     except NotFoundError as e:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
     except ForbiddenError as e:
@@ -726,7 +692,7 @@ from fastapi import HTTPException, Depends
 from sqlalchemy.orm import Session
 
 
-@router.post("/{video_id}/upload/complete", response_model=VideoResponse)
+@router.post("/{video_id}/upload/complete", response_model=VideoDetailDTO)
 def upload_complete_endpoint(
     video_id: int,
     payload: VideoUploadComplete,
@@ -755,7 +721,7 @@ def upload_complete_endpoint(
         # фиксируем изменения (и video, и outbox) одной транзакцией
         db.commit()
         db.refresh(video)
-        return VideoResponse.from_orm(video)
+        return to_detail(video)
 
     except (NotFoundError, ForbiddenError, ValidationError) as e:
         db.rollback()
