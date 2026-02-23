@@ -15,7 +15,13 @@ import time
 from pathlib import Path
 from typing import Optional
 from urllib.parse import quote_plus
+
 from service.video_status import VideoStatusTransitionError
+from service.paths import (
+    delivery_url as build_delivery_url,
+    hls_master as hls_master_key,
+    hls_dir as hls_dir_key,
+)
 
 # third-party
 from fastapi import (
@@ -159,23 +165,23 @@ def _rewrite_playlist_add_token(playlist_text: str, token: str) -> str:
 
 def _full_storage_path(rel_path: str) -> str:
     """
-    rel_path вида: original/u1/v3/xxx.mp4 или hls/3/master.m3u8
+    rel_path — storage object_key (например original/u1/v3/... или hls/v42/master.m3u8)
     """
     base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
-    return str(Path(base) / rel_path)
+    return str(Path(base) / rel_path.lstrip("/"))
 
 
 def _delivery_url(object_key: str) -> str:
-    base = getattr(settings, "DELIVERY_BASE_URL", "http://localhost:8080").rstrip("/")
-    return f"{base}/{object_key.lstrip('/')}"
+    """
+    Единый источник правды: service.paths.delivery_url()
+    """
+    return build_delivery_url(object_key)
 
 
 # ===== HLS helpers (единый источник правды) =====
-# ВАЖНО: ЕДИНАЯ схема путей — hls/{video_id}/...  (без "v")
-# Это согласовано с service/video_service.py и с nginx /hls/1/master.m3u8
 
 def _hls_master_full_path(video_id: int) -> str:
-    return _full_storage_path(f"hls/{video_id}/master.m3u8")
+    return _full_storage_path(hls_master_key(video_id))
 
 
 def _hls_playlist_url(video_id: int) -> str:
@@ -345,7 +351,7 @@ def list_videos(
 
             r.hls_ready = (v.status == VideoStatus.READY)
             if url_mode and r.hls_ready:
-                r.hls_url = _delivery_url(f"hls/{v.id}/master.m3u8")
+                r.hls_url = _delivery_url(hls_master_key(v.id))
             else:
                 r.hls_ready = r.hls_ready and Path(_hls_master_full_path(v.id)).exists()
                 r.hls_url = _hls_playlist_url(v.id) if r.hls_ready else None
@@ -378,7 +384,7 @@ def get_video_endpoint(
 
         resp.hls_ready = (video.status == VideoStatus.READY)
         if url_mode and resp.hls_ready:
-            resp.hls_url = _delivery_url(f"hls/{video_id}/master.m3u8")
+            resp.hls_url = _delivery_url(hls_master_key(video_id))
         else:
             hls_path = _hls_master_full_path(video_id)
             resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
@@ -496,7 +502,7 @@ def get_video_hls_file(
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
 
-        full_path = _full_storage_path(f"hls/{video_id}/{hls_path}")
+        full_path = _full_storage_path(f"{hls_dir_key(video_id)}/{hls_path}")
         if not Path(full_path).exists():
             raise HTTPException(status_code=404, detail="HLS file not ready")
 
@@ -579,7 +585,7 @@ def get_shared_video_endpoint(
         resp.hls_ready = (video.status == VideoStatus.READY)
 
         if url_mode and resp.hls_ready:
-            resp.hls_url = _delivery_url(f"hls/{video.id}/master.m3u8")
+            resp.hls_url = _delivery_url(hls_master_key(video.id))
         else:
             hls_path = _hls_master_full_path(video.id)
             resp.hls_ready = resp.hls_ready and Path(hls_path).exists()
@@ -638,11 +644,6 @@ def upload_prepare_endpoint(
     - создаём Video (status=UPLOADING)
     - генерим storage_path и сохраняем его в video.original_path
     - возвращаем upload_url, куда фронт пошлёт файл
-
-    Примечание:
-    - prepare_video_upload(...) внутри себя делает commit'ы (идемпотентность и создание записи),
-      поэтому здесь обычно не нужен дополнительный db.commit().
-    - но на ошибках делаем db.rollback(), чтобы сессия не оставалась в failed state.
     """
     storage = get_storage_provider()
     backend = StorageBackendAdapter(storage)
@@ -656,27 +657,21 @@ def upload_prepare_endpoint(
         )
 
         # Для local-режима: upload_url указывает на наш direct endpoint
-        # (presigned URL понадобится позже, когда подключите S3)
         result.upload_url = f"/api/v1/videos/{result.video_id}/upload/direct"
-
         return result
 
     except ValidationError as e:
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
-
     except NotFoundError as e:
         db.rollback()
         raise HTTPException(status_code=404, detail=str(e))
-
     except ForbiddenError as e:
         db.rollback()
         raise HTTPException(status_code=403, detail=str(e))
-
     except VideoStatusTransitionError as e:
         db.rollback()
         raise HTTPException(status_code=409, detail=str(e))
-
     except Exception as e:
         db.rollback()
         logger.exception("upload_prepare_endpoint failed")
@@ -757,10 +752,9 @@ def upload_complete_endpoint(
             storage_backend=backend,
         )
 
-        # ✅ фиксируем изменения (и video, и outbox) одной транзакцией
+        # фиксируем изменения (и video, и outbox) одной транзакцией
         db.commit()
         db.refresh(video)
-
         return VideoResponse.from_orm(video)
 
     except (NotFoundError, ForbiddenError, ValidationError) as e:
@@ -771,16 +765,12 @@ def upload_complete_endpoint(
         elif isinstance(e, ForbiddenError):
             status_code = 403
         raise HTTPException(status_code=status_code, detail=str(e))
-
-    # ✅ ВАЖНО: неверный переход статуса -> 409 Conflict (как вы уже делаете в prepare)
     except VideoStatusTransitionError as e:
         db.rollback()
         raise HTTPException(status_code=409, detail=str(e))
-
     except HTTPException:
         db.rollback()
         raise
-
     except Exception as e:
         db.rollback()
         logger.exception("upload_complete_endpoint failed")
@@ -1119,7 +1109,7 @@ def get_shared_hls_file(
         if not HLS_PATH_RE.match(hls_path):
             raise HTTPException(status_code=400, detail="Invalid HLS path")
 
-        full_path = _full_storage_path(f"hls/{video.id}/{hls_path}")
+        full_path = _full_storage_path(f"{hls_dir_key(video.id)}/{hls_path}")
         if not Path(full_path).exists():
             raise HTTPException(status_code=404, detail="HLS file not ready")
 

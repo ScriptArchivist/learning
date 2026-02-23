@@ -40,16 +40,19 @@ from model.video import (
 from service.correlation import get_request_id, get_trace_id
 from service.events import VideoProcessRequestedPayload
 from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED, add_event
-from service.storage_keys import original_key
+from service.paths import (
+    original_path,
+    hls_dir,
+    thumbnail_dir,
+    hls_public_master_url,
+)
 from service.storage_service import get_storage_provider
 from service.video_status import transition_video_status
-
-from src.config import HLS_PUBLIC_BASE_URL, HLS_PUBLIC_PATH_PREFIX
 
 
 def build_hls_public_url(video_id: int) -> str:
     """Public HLS URL served by nginx/CDN: https://domain/hls/{video_id}/master.m3u8"""
-    return f"{HLS_PUBLIC_BASE_URL}/{HLS_PUBLIC_PATH_PREFIX}/{video_id}/master.m3u8"
+    return hls_public_master_url(video_id)
 
 
 # ========== VIDEO CRUD ==========
@@ -223,6 +226,7 @@ def delete_video(db: Session, video_id: int, user_id: int) -> bool:
     if video.owner_id != user_id:
         raise ForbiddenError("You can only delete your own videos")
 
+    # storage quota
     if video.size_bytes:
         user = db.query(User).filter(User.id == user_id).first()
         if user:
@@ -230,19 +234,22 @@ def delete_video(db: Session, video_id: int, user_id: int) -> bool:
 
     storage = get_storage_provider()
 
+    # original
     try:
         if video.original_path:
             storage.delete_file(video.original_path)
     except Exception:
         pass
 
+    # thumbnails/v{video_id}/...
     try:
-        storage.delete_dir(f"thumbnails/{video.id}")
+        storage.delete_dir(thumbnail_dir(video.id))
     except Exception:
         pass
 
+    # hls/v{video_id}/...
     try:
-        storage.delete_dir(f"hls/{video.id}")
+        storage.delete_dir(hls_dir(video.id))
     except Exception:
         pass
 
@@ -300,7 +307,7 @@ def prepare_video_upload(
 
     if existing:
         if not existing.original_path:
-            existing.original_path = original_key(
+            existing.original_path = original_path(
                 user_id=user_id,
                 video_id=existing.id,
                 filename=upload_data.filename,
@@ -339,7 +346,7 @@ def prepare_video_upload(
         file_size=upload_data.file_size,
     )
 
-    storage_path = original_key(
+    storage_path = original_path(
         user_id=user_id,
         video_id=video.id,
         filename=upload_data.filename,

@@ -2,28 +2,14 @@
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy.orm import Session
-from sqlalchemy import update, or_, and_
-
 from db.database import SessionLocal
 from db.models import Video, VideoStatus
-from service.outbox import add_event, EVENT_VIDEO_PROCESS_COMPLETED
-from service.events import VideoProcessCompletedPayload
+from service.events import VideoProcessCompletedPayload, VideoProcessFailedPayload
 from service.outbox import (
     add_event,
     EVENT_VIDEO_PROCESS_COMPLETED,
     EVENT_VIDEO_PROCESS_FAILED,
 )
-
-
-import uuid
-from datetime import datetime, timedelta
-
-from sqlalchemy import and_, or_, select
-from sqlalchemy.orm import Session
-
-from db.database import SessionLocal
-from db.models import Video, VideoStatus
 from service.video_status import transition_video_status
 
 
@@ -38,7 +24,6 @@ def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
 
     Если видео уже в PROCESSING/READY/FAILED или lock активен — возвращаем None.
     """
-
     lock_token = str(uuid.uuid4())
     now = datetime.utcnow()
     expires_at = now + timedelta(seconds=lease_seconds)
@@ -87,6 +72,23 @@ def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
         db.close()
 
 
+def _set_hls_master_on_video(video: Video, hls_master_key: str | None) -> None:
+    """
+    A4: сохраняем master key в БД (если модель это поддерживает).
+    Не ломаемся, если поля нет (на разных ветках/миграциях).
+    """
+    if not hls_master_key:
+        return
+
+    if hasattr(video, "hls_master_key"):
+        setattr(video, "hls_master_key", hls_master_key)
+        return
+
+    if hasattr(video, "hls_master_path"):
+        setattr(video, "hls_master_path", hls_master_key)
+        return
+
+
 def complete_video_processing_with_lock(
     *,
     video_id: int,
@@ -110,7 +112,6 @@ def complete_video_processing_with_lock(
       - публикуем outbox event video.process.completed
       - чистим lock
     """
-
     db = SessionLocal()
     try:
         video = (
@@ -134,6 +135,9 @@ def complete_video_processing_with_lock(
         video.height = height
         video.thumbnail_path = thumbnail_path
         video.mime_type = mime_type or video.mime_type
+
+        # ---- HLS master key (если поле существует) ----
+        _set_hls_master_on_video(video, hls_master_key)
 
         # ---- Статус строго через state machine ----
         transition_video_status(
@@ -175,14 +179,6 @@ def complete_video_processing_with_lock(
         db.close()
 
 
-from sqlalchemy.orm import Session
-
-from db.database import SessionLocal
-from db.models import Video, VideoStatus
-from service.outbox import add_event, EVENT_VIDEO_PROCESS_FAILED
-from service.events import VideoProcessFailedPayload
-
-
 def fail_video_processing_with_lock(
     *,
     video_id: int,
@@ -199,7 +195,6 @@ def fail_video_processing_with_lock(
       - публикуем video.process.failed
       - чистим lock
     """
-
     db = SessionLocal()
     try:
         video = (

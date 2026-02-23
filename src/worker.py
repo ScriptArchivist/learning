@@ -6,6 +6,7 @@ from datetime import datetime
 
 from pydantic import ValidationError
 
+from service.paths import thumbnail_path, hls_dir, hls_master
 from service.correlation import (
     get_request_id,
     get_trace_id,
@@ -41,7 +42,6 @@ from service.processing_service import (  # noqa: E402
     fail_video_processing_with_lock,
 )
 from service.storage_service import get_storage_provider  # noqa: E402
-from service import storage_keys  # noqa: E402
 from src.config import VIDEO_LOCK_TTL_SECONDS  # noqa: E402
 
 # Event contract (A1)
@@ -81,23 +81,7 @@ def _major_version(schema_version) -> int | None:
 def handle(message: dict):
     """
     Worker принимает ТОЛЬКО ENVELOPE (единый контракт A1).
-
-    Пример:
-      {
-        "event_id": "...uuid...",
-        "event_type": "video.process.requested",
-        "schema_version": "1.0",
-        "occurred_at": "...",
-        "producer": "api",
-        "correlation_id": "...",
-        "trace_id": "...",
-        "payload": {
-          "video_id": 123,
-          "path": "original/..."
-        }
-      }
     """
-
     # 1) Строго валидируем envelope
     try:
         envelope = EventEnvelope.model_validate(message)
@@ -105,15 +89,14 @@ def handle(message: dict):
         logger.exception("invalid EventEnvelope: message=%r", message)
         raise
 
-    # 2) Ставим correlation/trace в contextvars ДО любых логов обработки
-    #    Вычисляем rid/tid один раз и потом используем везде дальше
+    # 2) correlation/trace в contextvars
     headers = {}
     if isinstance(message, dict):
         headers = message.get("__headers__") or {}
 
     rid = envelope.correlation_id or headers.get("x-request-id")
     tid = envelope.trace_id or headers.get("x-trace-id")
-    tid = ensure_trace_id(tid)  # trace_id всегда обязателен
+    tid = ensure_trace_id(tid)
 
     set_request_id(rid)
     set_trace_id(tid)
@@ -151,14 +134,14 @@ def handle(message: dict):
         return
 
     try:
-        thumb_key = storage_keys.thumbnail_key(video_id)
-        hls_dir_key = storage_keys.hls_dir(video_id)
-        hls_master_key = storage_keys.hls_master_key(video_id)
+        thumb_key = thumbnail_path(video_id)
+        hls_dir_key_str = hls_dir(video_id)
+        hls_master_key_str = hls_master(video_id)
 
         orig_full = storage.resolve_local_path(orig_key)
         thumb_full = storage.resolve_local_path(thumb_key)
-        hls_dir_full = storage.resolve_local_path(hls_dir_key)
-        hls_master_full = storage.resolve_local_path(hls_master_key)
+        hls_dir_full = storage.resolve_local_path(hls_dir_key_str)
+        hls_master_full = storage.resolve_local_path(hls_master_key_str)
 
         if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
             raise RuntimeError("Non-local storage is not supported by worker yet")
@@ -180,7 +163,7 @@ def handle(message: dict):
                 height=None,
                 thumbnail_path=thumb_key,
                 mime_type="video/mp4",
-                hls_master_key=hls_master_key,
+                hls_master_key=hls_master_key_str,
                 correlation_id=rid,
                 trace_id=tid,
             )
@@ -200,7 +183,7 @@ def handle(message: dict):
 
         make_hls(orig_full, hls_dir_full)
         if not os.path.exists(hls_master_full):
-            raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key})")
+            raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key_str})")
 
         processed_at = datetime.utcnow()
 
@@ -214,7 +197,7 @@ def handle(message: dict):
             height=height,
             thumbnail_path=thumb_key,
             mime_type="video/mp4",
-            hls_master_key=hls_master_key,
+            hls_master_key=hls_master_key_str,
             correlation_id=rid,
             trace_id=tid,
         )

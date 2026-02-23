@@ -1,8 +1,8 @@
-import os
+# service/storage_service.py
 import shutil
-from typing import BinaryIO, Optional
-from pathlib import Path
 import logging
+from pathlib import Path
+from typing import BinaryIO, Optional
 
 from fastapi import UploadFile
 
@@ -35,14 +35,21 @@ class StorageProvider:
 
     def generate_upload_url(self, path: str, expires_minutes: int = 60) -> str:
         raise NotImplementedError
+
     def delete_dir(self, path: str) -> bool:
         raise NotImplementedError
 
+    def resolve_local_path(self, path: str) -> str | None:
+        """
+        Вернуть полный путь на локальном FS, если backend local.
+        Для S3/MinIO вернёт None (в будущем будем делать download_to_tmp()).
+        """
+        return None
 
 
 class LocalStorage(StorageProvider):
     def __init__(self, base_path: Optional[str] = None):
-        # ✅ Нормальный дефолт:
+        # дефолт:
         # - если в контейнере есть /app/uploads — используем его
         # - иначе используем ./uploads
         default_path = "/app/uploads" if Path("/app/uploads").exists() else "uploads"
@@ -50,7 +57,7 @@ class LocalStorage(StorageProvider):
         self.base_path = Path(base_path or cfg_path)
 
         self.base_path.mkdir(parents=True, exist_ok=True)
-        logger.info(f"Local storage initialized at: {self.base_path}")
+        logger.info("Local storage initialized at: %s", self.base_path)
 
     def _get_full_path(self, path: str) -> Path:
         full_path = self.base_path / path
@@ -94,7 +101,9 @@ class LocalStorage(StorageProvider):
         return self._get_full_path(path).stat().st_size
 
     def generate_upload_url(self, path: str, expires_minutes: int = 60) -> str:
+        # локальная схема (как было у тебя)
         return f"/api/v1/upload/direct/{path}"
+
     def delete_dir(self, path: str) -> bool:
         full_path = self._get_full_path(path)
         if not full_path.exists():
@@ -103,11 +112,10 @@ class LocalStorage(StorageProvider):
             raise ValueError("Not a directory")
         shutil.rmtree(full_path, ignore_errors=True)
         return True
-    
-    def resolve_local_path(self, path: str) -> str:
-        # Важно: используем безопасную _get_full_path (защита от traversal)
-        return str(self._get_full_path(path))
 
+    def resolve_local_path(self, path: str) -> str:
+        # безопасная защита от traversal
+        return str(self._get_full_path(path))
 
 
 def get_storage_provider() -> StorageProvider:
@@ -115,10 +123,3 @@ def get_storage_provider() -> StorageProvider:
     if storage_type == "local":
         return LocalStorage()
     raise ValueError(f"Unknown storage type: {storage_type}")
-
-    def resolve_local_path(self, path: str) -> str | None:
-        """
-        Вернуть полный путь на локальном FS, если backend local.
-        Для S3/MinIO вернёт None (в будущем будем делать download_to_tmp()).
-        """
-        return None
