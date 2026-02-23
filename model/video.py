@@ -93,18 +93,41 @@ class VideoResponse(VideoBase):
 
     id: int
     owner_id: int
+
     original_filename: Optional[str] = None
     duration: Optional[float] = None
     width: Optional[int] = None
     height: Optional[int] = None
     size_bytes: Optional[int] = None
     mime_type: Optional[str] = None
+
     status: VideoStatus
     is_blocked: bool
+
     original_path: Optional[str] = None
     thumbnail_path: Optional[str] = None
+
+    # ===== HLS (stable flags/links) =====
     hls_url: Optional[str] = None
     hls_ready: bool = False
+
+    # ===== Stable frontend URLs =====
+    watch_url: Optional[str] = None
+    file_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+
+    # ===== Share flags/links =====
+    is_shared: bool = False
+    share_url: Optional[str] = None
+
+    # ===== UI-friendly permissions (FE-BE5 extended) =====
+    can_watch: bool = False
+    can_download: bool = False
+    can_edit: bool = False
+    can_delete: bool = False
+    can_share: bool = False
+    can_revoke_share: bool = False
+
     uploaded_at: datetime
     processed_at: Optional[datetime] = None
 

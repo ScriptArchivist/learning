@@ -85,7 +85,7 @@ except ImportError:
     settings = Settings()
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/videos", tags=["videos"])
+router = APIRouter(prefix="/videos", tags=["videos"], redirect_slashes=False)
 
 # ===================== CONSTANTS / REGEX =====================
 
@@ -305,6 +305,7 @@ def _range_stream_response(file_path: str, content_type: str, request: Request):
 
 # ===================== VIDEO CRUD =====================
 
+@router.post("", response_model=VideoResponse, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=VideoResponse, status_code=status.HTTP_201_CREATED)
 def create_video_endpoint(
     video_data: VideoCreate,
@@ -319,6 +320,7 @@ def create_video_endpoint(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
+@router.get("", response_model=VideoListResponse)
 @router.get("/", response_model=VideoListResponse)
 def list_videos(
     status: Optional[VideoStatus] = Query(None, description="Фильтр по статусу"),
