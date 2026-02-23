@@ -757,14 +757,13 @@ def upload_complete_endpoint(
             storage_backend=backend,
         )
 
-        # ✅ ВАЖНО: фиксируем изменения (и video, и outbox) одной транзакцией
+        # ✅ фиксируем изменения (и video, и outbox) одной транзакцией
         db.commit()
         db.refresh(video)
 
         return VideoResponse.from_orm(video)
 
     except (NotFoundError, ForbiddenError, ValidationError) as e:
-        # ✅ ВАЖНО: на ожидаемых ошибках тоже откатываем транзакцию
         db.rollback()
         status_code = 400
         if isinstance(e, NotFoundError):
@@ -772,6 +771,11 @@ def upload_complete_endpoint(
         elif isinstance(e, ForbiddenError):
             status_code = 403
         raise HTTPException(status_code=status_code, detail=str(e))
+
+    # ✅ ВАЖНО: неверный переход статуса -> 409 Conflict (как вы уже делаете в prepare)
+    except VideoStatusTransitionError as e:
+        db.rollback()
+        raise HTTPException(status_code=409, detail=str(e))
 
     except HTTPException:
         db.rollback()

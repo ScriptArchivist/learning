@@ -2,67 +2,89 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal, Set, Tuple
+from datetime import datetime
+from typing import Dict, Optional, Set, Tuple
 
 from db.models import Video, VideoStatus
 
 
-Actor = Literal["api", "worker"]
-
-
-class VideoStatusTransitionError(ValueError):
+class VideoStatusTransitionError(Exception):
+    """Неверный переход статуса или нет прав у actor."""
     pass
 
 
-@dataclass(frozen=True)
-class TransitionRule:
-    actor: Actor
-    from_status: VideoStatus
-    to_status: VideoStatus
+# ====== Разрешённые переходы (state machine) ======
+_ALLOWED_TRANSITIONS: Dict[VideoStatus, Set[VideoStatus]] = {
+    VideoStatus.UPLOADING: {VideoStatus.UPLOADED},
+    VideoStatus.UPLOADED: {VideoStatus.PROCESSING},
+    VideoStatus.PROCESSING: {VideoStatus.READY, VideoStatus.FAILED},
+    VideoStatus.READY: set(),
+    VideoStatus.FAILED: set(),
+}
 
-
-# Допустимые переходы + кто имеет право
-_ALLOWED: Set[TransitionRule] = {
-    # API
-    TransitionRule("api", VideoStatus.UPLOADING, VideoStatus.UPLOADED),
-
-    # Worker
-    TransitionRule("worker", VideoStatus.UPLOADED, VideoStatus.PROCESSING),
-    TransitionRule("worker", VideoStatus.PROCESSING, VideoStatus.READY),
-    TransitionRule("worker", VideoStatus.PROCESSING, VideoStatus.FAILED),
+# ====== Права actor на конкретные переходы ======
+_ALLOWED_BY_ACTOR: Dict[str, Set[Tuple[VideoStatus, VideoStatus]]] = {
+    "api": {
+        (VideoStatus.UPLOADING, VideoStatus.UPLOADED),
+    },
+    "worker": {
+        (VideoStatus.UPLOADED, VideoStatus.PROCESSING),
+        (VideoStatus.PROCESSING, VideoStatus.READY),
+        (VideoStatus.PROCESSING, VideoStatus.FAILED),
+    },
 }
 
 
 def transition_video_status(
     video: Video,
     target_status: VideoStatus,
+    actor: str,
     *,
-    actor: Actor,
-    error_message: str | None = None,
+    error_message: Optional[str] = None,
+    processed_at: Optional[datetime] = None,
 ) -> None:
     """
-    Единый метод смены статуса.
+    Единый способ менять статус видео.
 
-    - проверяет допустимость перехода
-    - проверяет права actor (api/worker)
-    - при FAILED выставляет error_message (если передали)
+    Правила:
+    - Строгие разрешённые переходы:
+        UPLOADING -> UPLOADED -> PROCESSING -> READY
+        PROCESSING -> FAILED
+    - Права:
+        api НЕ может ставить READY/PROCESSING/FAILED
+        worker НЕ может ставить UPLOADED
+    - При FAILED: обязателен error_message
     """
+
     current = video.status
 
-    if current == target_status:
-        # идемпотентно: повторная установка того же статуса допустима
-        return
-
-    rule = TransitionRule(actor, current, target_status)
-    if rule not in _ALLOWED:
+    # 1) Проверка перехода
+    allowed_targets = _ALLOWED_TRANSITIONS.get(current, set())
+    if target_status not in allowed_targets:
         raise VideoStatusTransitionError(
-            f"Forbidden transition: actor={actor} {current.value} -> {target_status.value}"
+            f"Invalid status transition: {current.value} -> {target_status.value}"
         )
 
-    video.status = target_status
+    # 2) Проверка actor
+    actor_rules = _ALLOWED_BY_ACTOR.get(actor)
+    if not actor_rules:
+        raise VideoStatusTransitionError(f"Unknown actor: {actor!r}")
 
+    if (current, target_status) not in actor_rules:
+        raise VideoStatusTransitionError(
+            f"Actor '{actor}' is not allowed: {current.value} -> {target_status.value}"
+        )
+
+    # 3) Спец-правила FAILED/READY
     if target_status == VideoStatus.FAILED:
-        video.error_message = error_message or video.error_message
-    else:
-        # при успешных переходах очищаем ошибку
+        if not error_message:
+            raise VideoStatusTransitionError("FAILED transition requires error_message")
+        video.error_message = error_message
+
+    if target_status == VideoStatus.READY:
+        # READY = успешно обработано -> ошибку чистим
         video.error_message = None
+        video.processed_at = processed_at or datetime.utcnow()
+
+    # 4) Применяем
+    video.status = target_status

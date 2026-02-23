@@ -29,62 +29,56 @@ from service.video_status import transition_video_status
 
 def claim_video_processing(video_id: int, lease_seconds: int) -> str | None:
     """
-    Атомарно "захватывает" обработку видео на уровне БД.
-    Возвращает lock_token если захват успешен, иначе None.
+    Берём lease/lock на обработку видео.
 
-    Захват возможен если:
-      - status = UPLOADED
-      - или status = PROCESSING, но lease истёк (воркер умер)
+    Успех:
+      - ставим processing_lock_token / expires_at / processing_started_at
+      - делаем переход UPLOADED -> PROCESSING (actor=worker)
+      - возвращаем lock_token
 
-    ВАЖНО (TASK A2):
-      - переход в PROCESSING выполняется только через transition_video_status(..., actor="worker")
-      - чтобы не было обхода state machine через прямой SQL update(status=...)
+    Если видео уже в PROCESSING/READY/FAILED или lock активен — возвращаем None.
     """
-    db: Session = SessionLocal()
+
+    lock_token = str(uuid.uuid4())
+    now = datetime.utcnow()
+    expires_at = now + timedelta(seconds=lease_seconds)
+
+    db = SessionLocal()
     try:
-        token = str(uuid.uuid4())
-        now = datetime.utcnow()
-        expires_at = now + timedelta(seconds=lease_seconds)
-
-        # Берём строку под блокировку, чтобы "захват" был атомарным
         video = (
-            db.execute(
-                select(Video)
-                .where(Video.id == video_id)
-                .with_for_update()
-            )
-            .scalar_one_or_none()
+            db.query(Video)
+            .filter(Video.id == video_id)
+            .with_for_update()
+            .one_or_none()
         )
-
-        if video is None:
-            db.rollback()
+        if not video:
             return None
 
-        can_claim = (
-            video.status == VideoStatus.UPLOADED
-            or (
-                video.status == VideoStatus.PROCESSING
-                and video.processing_lock_expires_at is not None
-                and video.processing_lock_expires_at < now
-            )
-        )
-
-        if not can_claim:
-            db.rollback()
+        # Уже обработано или в процессе
+        if video.status in (VideoStatus.PROCESSING, VideoStatus.READY, VideoStatus.FAILED):
             return None
 
-        # ✅ State machine: только worker может переводить в PROCESSING
-        # (если уже PROCESSING и lease истёк — статус остаётся PROCESSING, просто обновим lock)
-        if video.status == VideoStatus.UPLOADED:
-            transition_video_status(video, VideoStatus.PROCESSING, actor="worker")
+        # Берём только UPLOADED
+        if video.status != VideoStatus.UPLOADED:
+            return None
 
-        video.processing_lock_token = token
+        # Активный lock
+        if (
+            video.processing_lock_token
+            and video.processing_lock_expires_at
+            and video.processing_lock_expires_at > now
+        ):
+            return None
+
+        video.processing_lock_token = lock_token
         video.processing_lock_expires_at = expires_at
         video.processing_started_at = now
-        video.error_message = None
+
+        # 🔐 Строгий переход статуса
+        transition_video_status(video, VideoStatus.PROCESSING, actor="worker")
 
         db.commit()
-        return token
+        return lock_token
 
     except Exception:
         db.rollback()
@@ -97,81 +91,82 @@ def complete_video_processing_with_lock(
     *,
     video_id: int,
     lock_token: str,
-    processed_at: datetime,
-    file_size: int,
+    processed_at,
+    file_size: int | None,
     duration: float | None,
     width: int | None,
     height: int | None,
     thumbnail_path: str | None,
     mime_type: str | None,
-    hls_master_key: str,
+    hls_master_key: str | None,
     correlation_id: str | None = None,
     trace_id: str | None = None,
-) -> bool:
+):
     """
-    Атомарно:
-    - обновляет метаданные видео
-    - переводит в READY
-    - снимает lock
-    - добавляет outbox-событие video.process.completed (в envelope)
+    Завершение обработки по lock_token:
+      - проверяем lock
+      - пишем метаданные
+      - PROCESSING -> READY
+      - публикуем outbox event video.process.completed
+      - чистим lock
     """
 
-    db: Session = SessionLocal()
+    db = SessionLocal()
     try:
         video = (
             db.query(Video)
-            .filter(
-                Video.id == video_id,
-                Video.processing_lock_token == lock_token,
-            )
+            .filter(Video.id == video_id)
+            .with_for_update()
             .one_or_none()
         )
-
         if not video:
-            db.rollback()
-            return False
+            return
 
-        # --- обновление метаданных ---
-        video.processed_at = processed_at
-        video.size_bytes = file_size
+        if not video.processing_lock_token or video.processing_lock_token != lock_token:
+            return
 
-        if duration is not None:
-            video.duration = duration
-        if width is not None:
-            video.width = width
-        if height is not None:
-            video.height = height
-        if thumbnail_path is not None:
-            video.thumbnail_path = thumbnail_path
-        if mime_type is not None:
-            video.mime_type = mime_type
+        # ---- Обновляем метаданные ----
+        if file_size is not None:
+            video.size_bytes = file_size
 
-        # --- финальный статус ---
-        from service.video_status import transition_video_status
-        transition_video_status(video, VideoStatus.READY, actor="worker")
-        video.processing_lock_token = None
-        video.processing_lock_expires_at = None
+        video.duration = duration
+        video.width = width
+        video.height = height
+        video.thumbnail_path = thumbnail_path
+        video.mime_type = mime_type or video.mime_type
 
-        # --- строго типизированный payload ---
-        completed_payload = VideoProcessCompletedPayload(
-            video_id=video_id,
-            # intentionally minimal v1.0
-            # metadata можно будет добавить в v1.1 без breaking change
+        # ---- Статус строго через state machine ----
+        transition_video_status(
+            video,
+            VideoStatus.READY,
+            actor="worker",
+            processed_at=processed_at,
+        )
+
+        # ---- Outbox event ----
+        payload = VideoProcessCompletedPayload(
+            video_id=video.id,
+            duration=video.duration,
+            width=video.width,
+            height=video.height,
         )
 
         add_event(
-            db,
+            db=db,
             event_type=EVENT_VIDEO_PROCESS_COMPLETED,
-            payload=completed_payload.model_dump(),
+            payload=payload.model_dump(),
             producer="worker",
             correlation_id=correlation_id,
             trace_id=trace_id,
             aggregate_type="video",
-            aggregate_id=str(video_id),
+            aggregate_id=str(video.id),
         )
 
+        # ---- Снимаем lock ----
+        video.processing_lock_token = None
+        video.processing_lock_expires_at = None
+
         db.commit()
-        return True
 
     except Exception:
         db.rollback()
@@ -195,57 +190,60 @@ def fail_video_processing_with_lock(
     error_message: str,
     correlation_id: str | None = None,
     trace_id: str | None = None,
-) -> bool:
+):
     """
-    Атомарно:
-    - ставит FAILED
-    - записывает error_message
-    - очищает lock
-    - добавляет outbox-событие video.process.failed (в envelope)
+    Ошибка обработки:
+      - проверяем lock
+      - PROCESSING -> FAILED
+      - сохраняем error_message
+      - публикуем video.process.failed
+      - чистим lock
     """
-    db: Session = SessionLocal()
+
+    db = SessionLocal()
     try:
         video = (
             db.query(Video)
-            .filter(
-                Video.id == video_id,
-                Video.processing_lock_token == lock_token,
-            )
+            .filter(Video.id == video_id)
+            .with_for_update()
             .one_or_none()
         )
-
         if not video:
-            db.rollback()
-            return False
+            return
 
+        if not video.processing_lock_token or video.processing_lock_token != lock_token:
+            return
 
+        # ---- Статус через state machine ----
         transition_video_status(
             video,
             VideoStatus.FAILED,
             actor="worker",
             error_message=error_message,
         )
-        video.processing_lock_token = None
-        video.processing_lock_expires_at = None
 
-        failed_payload = VideoProcessFailedPayload(
-            video_id=video_id,
-            error=error_message,
+        # ---- Outbox event ----
+        payload = VideoProcessFailedPayload(
+            video_id=video.id,
+            error_message=video.error_message,
         )
 
         add_event(
-            db,
+            db=db,
             event_type=EVENT_VIDEO_PROCESS_FAILED,
-            payload=failed_payload.model_dump(),
+            payload=payload.model_dump(),
             producer="worker",
             correlation_id=correlation_id,
             trace_id=trace_id,
             aggregate_type="video",
-            aggregate_id=str(video_id),
+            aggregate_id=str(video.id),
         )
 
+        # ---- Снимаем lock ----
+        video.processing_lock_token = None
+        video.processing_lock_expires_at = None
+
         db.commit()
-        return True
 
     except Exception:
         db.rollback()
