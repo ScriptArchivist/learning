@@ -171,10 +171,38 @@ Path("/app/uploads/hls").mkdir(parents=True, exist_ok=True)
 
 # ===================== CORS =====================
 
+import os  # noqa: E402
+
+def _split_csv(value: str | None) -> list[str]:
+    if not value:
+        return []
+    return [v.strip() for v in value.split(",") if v.strip()]
+
+# ENV:
+# - CORS_ALLOW_ORIGINS="http://localhost:5173,http://localhost:3000"
+# - CORS_ALLOW_ORIGIN_REGEX="^https?://(localhost|127\\.0\\.0\\.1)(:\\d+)?$"
+cors_allow_origins = _split_csv(os.getenv("CORS_ALLOW_ORIGINS"))
+
+# dev-friendly default: разрешаем localhost/127.0.0.1 с любым портом
+cors_origin_regex = os.getenv(
+    "CORS_ALLOW_ORIGIN_REGEX",
+    r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+)
+
+# allow_credentials=True НЕ работает с allow_origins=["*"] в браузерах.
+# Поэтому:
+# - если явно задан список origins -> credentials=True
+# - если origins пустой -> используем regex и credentials=True
+# - если кто-то всё же выставит "*" -> принудительно credentials=False
+allow_credentials = True
+if cors_allow_origins and "*" in cors_allow_origins:
+    allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # В разработке. В продакшене укажи конкретные домены
-    allow_credentials=True,
+    allow_origins=cors_allow_origins if cors_allow_origins and "*" not in cors_allow_origins else [],
+    allow_origin_regex=None if cors_allow_origins else cors_origin_regex,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
