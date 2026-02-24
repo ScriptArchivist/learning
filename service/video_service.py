@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy import desc, func, or_
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import update, select
+from db.models import Video, VideoStatus
 
 from db.models import (
     ProcessingTask,
@@ -643,3 +645,113 @@ __all__ = [
     "revoke_share_link",
     "get_video_by_share_token",
 ]
+
+
+def try_claim_video_processing(
+    db: Session,
+    *,
+    video_id: int,
+    lock_token: str,
+    ttl_seconds: int = 900,
+) -> bool:
+    """
+    Атомарно "берём" видео в обработку.
+    - Если READY -> false (no-op)
+    - Если PROCESSING и lock ещё жив -> false (no-op)
+    - Иначе -> ставим PROCESSING + lock_token + expires_at и возвращаем true
+    """
+    now = datetime.utcnow()
+    expires_at = now + timedelta(seconds=ttl_seconds)
+
+    # 1) Быстрый no-op если уже READY
+    st = db.execute(select(Video.status).where(Video.id == video_id)).scalar_one_or_none()
+    if st is None:
+        # видео не найдено — пусть будет no-op (или можно raise)
+        return False
+    if st == VideoStatus.READY:
+        return False
+
+    # 2) Claim: разрешаем взять если:
+    #    - статус != PROCESSING
+    #    - ИЛИ PROCESSING, но lock истёк (crash recovery)
+    q = (
+        update(Video)
+        .where(
+            Video.id == video_id,
+            (
+                (Video.status != VideoStatus.PROCESSING)
+                | (Video.processing_lock_expires_at.is_(None))
+                | (Video.processing_lock_expires_at < now)
+            ),
+            Video.status != VideoStatus.READY,
+        )
+        .values(
+            status=VideoStatus.PROCESSING,
+            processing_lock_token=lock_token,
+            processing_lock_expires_at=expires_at,
+            processing_started_at=now,
+        )
+    )
+    res = db.execute(q)
+    return (res.rowcount or 0) == 1
+
+
+def mark_video_ready_once(
+    db: Session,
+    *,
+    video_id: int,
+    lock_token: str,
+    processed_at: datetime | None = None,
+) -> bool:
+    """
+    Переводим в READY только если видео всё ещё "наше" (lock_token совпал).
+    Возвращает True только один раз (защита от повторной доставки/гонок).
+    """
+    now = datetime.utcnow()
+    q = (
+        update(Video)
+        .where(
+            Video.id == video_id,
+            Video.status == VideoStatus.PROCESSING,
+            Video.processing_lock_token == lock_token,
+        )
+        .values(
+            status=VideoStatus.READY,
+            processed_at=processed_at or now,
+            processing_lock_expires_at=None,
+            # token можно оставить для трассировки, но обычно чистим:
+            # processing_lock_token=None,
+            error_message=None,
+        )
+    )
+    res = db.execute(q)
+    return (res.rowcount or 0) == 1
+
+
+def mark_video_failed_once(
+    db: Session,
+    *,
+    video_id: int,
+    lock_token: str,
+    error_message: str,
+) -> bool:
+    """
+    Аналогично READY — пишем FAILED только если lock_token совпал.
+    """
+    q = (
+        update(Video)
+        .where(
+            Video.id == video_id,
+            Video.status == VideoStatus.PROCESSING,
+            Video.processing_lock_token == lock_token,
+        )
+        .values(
+            status=VideoStatus.FAILED,
+            error_message=(error_message or "")[:4000],
+            processing_lock_expires_at=None,
+            # processing_lock_token=None,
+        )
+    )
+    res = db.execute(q)
+    return (res.rowcount or 0) == 1
+# --- /B2 helpers ---

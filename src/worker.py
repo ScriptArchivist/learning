@@ -34,15 +34,18 @@ logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("worker")
 
 # ⚠️ Импорты ниже — после настройки логов (чтобы даже их import-time логи не падали)
+from db.database import SessionLocal  # noqa: E402
 from service.broker import consume_forever  # noqa: E402
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail  # noqa: E402
 from service.processing_service import (  # noqa: E402
-    claim_video_processing,
     complete_video_processing_with_lock,
     fail_video_processing_with_lock,
 )
 from service.storage_service import get_storage_provider  # noqa: E402
 from src.config import VIDEO_LOCK_TTL_SECONDS  # noqa: E402
+
+# B2: DB-claim для идемпотентности
+from service.video_service import try_claim_video_processing  # noqa: E402
 
 # Event contract (A1)
 from service.events import EventEnvelope, VideoProcessRequestedPayload  # noqa: E402
@@ -81,6 +84,9 @@ def _major_version(schema_version) -> int | None:
 def handle(message: dict):
     """
     Worker принимает ТОЛЬКО ENVELOPE (единый контракт A1).
+    Идемпотентность (B2):
+      - claim видео в PROCESSING атомарно в БД
+      - повторная доставка -> safe no-op
     """
     # 1) Строго валидируем envelope
     try:
@@ -125,12 +131,29 @@ def handle(message: dict):
 
     video_id = int(payload.video_id)
     orig_key = payload.path
+    event_id = str(envelope.event_id)
 
-    logger.info("start video_id=%s key=%s event_id=%s", video_id, orig_key, envelope.event_id)
+    logger.info("start video_id=%s key=%s event_id=%s", video_id, orig_key, event_id)
 
-    lock_token = claim_video_processing(video_id, lease_seconds=VIDEO_LOCK_TTL_SECONDS)
-    if not lock_token:
-        logger.info("skip video_id=%s: already processing/processed", video_id)
+    # ---------------------------------------------------------------------
+    # B2: DB-claim (идемпотентность)
+    # lock_token = event_id (стабильный токен на конкретную доставку)
+    # ---------------------------------------------------------------------
+    lock_token = event_id
+    db = SessionLocal()
+    try:
+        with db.begin():
+            claimed = try_claim_video_processing(
+                db,
+                video_id=video_id,
+                lock_token=lock_token,
+                ttl_seconds=int(VIDEO_LOCK_TTL_SECONDS),
+            )
+    finally:
+        db.close()
+
+    if not claimed:
+        logger.info("idempotency: skip video_id=%s event_id=%s (already processing/ready)", video_id, event_id)
         return
 
     try:
