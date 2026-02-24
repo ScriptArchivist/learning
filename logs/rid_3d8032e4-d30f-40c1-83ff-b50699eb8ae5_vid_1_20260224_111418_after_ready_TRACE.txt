@@ -1,0 +1,1519 @@
+RID=3d8032e4-d30f-40c1-83ff-b50699eb8ae5
+VIDEO_ID=1
+STAGE=after_ready
+SINCE=15m
+
+===== WEB (learning_app-web-1) (rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 OR video_id=1) =====
+2026-02-24 08:14:15 INFO [uvicorn.access] rid=065ae34d-bcb7-4a8d-825d-fdbb7a35f2d2 tid=53784fa6-86bc-42fd-b7fc-b8f3bb645e96 172.18.0.1:56078 - "POST /api/v1/videos/1/upload/direct HTTP/1.1" 200
+2026-02-24 08:14:16 INFO [service.storage_service] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Local storage initialized at: uploads
+2026-02-24 08:14:16 INFO [uvicorn.access] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 172.18.0.1:56094 - "POST /api/v1/videos/1/upload/complete HTTP/1.1" 200
+2026-02-24 08:14:16 INFO [uvicorn.access] rid=09ab7dc7-ee4b-40dc-9cd4-740246645773 tid=9f10210b-8645-41d5-be96-221d928c3b41 172.18.0.1:56108 - "POST /api/v1/videos/1/upload/complete HTTP/1.1" 200
+2026-02-24 08:14:16 INFO [uvicorn.access] rid=a20607c2-0e88-4cb0-8beb-0760c99911c0 tid=d787f4a2-804f-4e47-a6fc-8b190028f13f 172.18.0.1:56124 - "GET /api/v1/videos/1 HTTP/1.1" 200
+2026-02-24 08:14:17 INFO [uvicorn.access] rid=16b69002-d0d2-451e-98b7-427c3e9d7dc8 tid=9efa99ea-1c79-41f5-8bb5-13c09a05719c 172.18.0.1:56138 - "GET /api/v1/videos/1 HTTP/1.1" 200
+2026-02-24 08:14:17 INFO [uvicorn.access] rid=995d9dc4-f988-4677-a42f-a46580cf1876 tid=9b41a3fd-d07a-465f-9159-6333fab74d8b 172.18.0.1:56150 - "GET /api/v1/videos/1 HTTP/1.1" 200
+
+===== OUTBOX (learning_app-outbox-1) (rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 OR video_id=1) =====
+2026-02-24 08:03:09 INFO [outbox] rid=- tid=- self_check: ok (db + rabbit)
+2026-02-24 08:03:09 INFO [outbox] rid=- tid=- boot: started publisher loop
+2026-02-24 08:03:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:03:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:04:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:05:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:06:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:07:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:08:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:09:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:10:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:11:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:12:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:16 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:17 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:18 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:19 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:20 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:21 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:22 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:23 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:24 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:25 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:26 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:27 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:28 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:29 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:30 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:31 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:32 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:33 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:34 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:35 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:36 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:37 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:38 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:39 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:40 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:41 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:42 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:43 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:44 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:45 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:46 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:47 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:48 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:49 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:50 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:51 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:52 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:53 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:54 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:55 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:56 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:57 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:58 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:13:59 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:00 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:01 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:02 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:03 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:04 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:05 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:06 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:07 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:08 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:09 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:10 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:11 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:12 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:13 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:14 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:15 INFO [outbox] rid=- tid=- outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:16 INFO [outbox] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 published to worker queue event_type=video.process.requested event_id=a5e03939-32fe-4729-a1cd-f17d94cd5aef
+2026-02-24 08:14:16 INFO [outbox] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 outbox batch: claimed=1 published=1 failed=0
+2026-02-24 08:14:16 INFO [outbox] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:17 INFO [outbox] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 outbox batch: claimed=0 published=0 failed=0
+2026-02-24 08:14:17 INFO [outbox] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 published to events exchange event_type=video.process.completed event_id=ddbe4a99-e32f-428a-88eb-535ceab68aaf
+2026-02-24 08:14:17 INFO [outbox] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 outbox batch: claimed=1 published=1 failed=0
+
+===== WORKER (learning_app-worker-1) (rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 OR video_id=1) =====
+2026-02-24 08:14:16 INFO [worker] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 start video_id=1 key=original/u1/v1/ccae3cbf-b517-4c2a-9fd6-3c9a914a6d72.mp4 event_id=a5e03939-32fe-4729-a1cd-f17d94cd5aef
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 run: ffmpeg -y -hide_banner -loglevel info -ss 1.0 -i uploads/original/u1/v1/ccae3cbf-b517-4c2a-9fd6-3c9a914a6d72.mp4 -frames:v 1 -q:v 3 -update 1 uploads/thumbnails/v1/thumb.jpg
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'uploads/original/u1/v1/ccae3cbf-b517-4c2a-9fd6-3c9a914a6d72.mp4':
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     major_brand     : isom
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     minor_version   : 512
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     compatible_brands: isomiso2avc1mp41
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     creation_time   : 2026-02-07T16:56:06.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Duration: 00:00:02.86, start: 0.000000, bitrate: 1030 kb/s
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0[0x1](eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 66 kb/s (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : SoundHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:1[0x2](eng): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 384x384, 1053 kb/s, 13.84 fps, 90k tbr, 90k tbn (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:04.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : VideoHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Stream mapping:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:1 -> #0:0 (h264 (native) -> mjpeg (native))
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Press [q] to stop, [?] for help
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Output #0, image2, to 'uploads/thumbnails/v1/thumb.jpg':
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     major_brand     : isom
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     minor_version   : 512
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     compatible_brands: isomiso2avc1mp41
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     encoder         : Lavf61.7.100
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0(eng): Video: mjpeg, yuv420p(pc, bt470bg/bt470bg/bt709, progressive), 384x384, q=2-31, 200 kb/s, 13.84 fps, 13.84 tbn (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:04.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : VideoHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 mjpeg
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Side data:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         cpb: bitrate max/min/avg: 0/0/200000 buffer size: 0 vbv_delay: N/A
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [out#0/image2 @ 0x622afa97dbc0] video:13KiB audio:0KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 frame=    1 fps=0.0 q=3.0 Lsize=N/A time=00:00:00.07 bitrate=N/A dup=1 drop=0 speed=2.67x    
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 run: ffmpeg -y -hide_banner -loglevel info -i uploads/original/u1/v1/ccae3cbf-b517-4c2a-9fd6-3c9a914a6d72.mp4 -filter_complex [0:v]split=3[v1][v2][v3];[v1]scale=w=640:h=360:force_original_aspect_ratio=decrease,pad=640:360:(ow-iw)/2:(oh-ih)/2,setsar=1[v360];[v2]scale=w=1280:h=720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,setsar=1[v720];[v3]scale=w=1920:h=1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,setsar=1[v1080] -map [v360] -map 0:a:0? -map [v720] -map 0:a:0? -map [v1080] -map 0:a:0? -c:v libx264 -preset veryfast -profile:v main -pix_fmt yuv420p -g 48 -keyint_min 48 -sc_threshold 0 -b:v:0 800k -maxrate:v:0 856k -bufsize:v:0 1200k -b:v:1 2800k -maxrate:v:1 2996k -bufsize:v:1 4200k -b:v:2 5000k -maxrate:v:2 5350k -bufsize:v:2 7500k -c:a aac -ac 2 -b:a:0 96k -b:a:1 128k -b:a:2 192k -f hls -hls_time 2 -hls_list_size 0 -hls_playlist_type vod -hls_flags independent_segments+temp_file -hls_segment_type mpegts -start_number 0 -hls_segment_filename uploads/hls/v1__tmp/%v/seg_%05d.ts -master_pl_name master.m3u8 -var_stream_map v:0,a:0,name:360p v:1,a:1,name:720p v:2,a:2,name:1080p uploads/hls/v1__tmp/%v/index.m3u8
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Input #0, mov,mp4,m4a,3gp,3g2,mj2, from 'uploads/original/u1/v1/ccae3cbf-b517-4c2a-9fd6-3c9a914a6d72.mp4':
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     major_brand     : isom
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     minor_version   : 512
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     compatible_brands: isomiso2avc1mp41
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     creation_time   : 2026-02-07T16:56:06.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Duration: 00:00:02.86, start: 0.000000, bitrate: 1030 kb/s
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0[0x1](eng): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, mono, fltp, 66 kb/s (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : SoundHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:1[0x2](eng): Video: h264 (High) (avc1 / 0x31637661), yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 384x384, 1053 kb/s, 13.84 fps, 90k tbr, 90k tbn (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:04.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : VideoHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Stream mapping:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:1 (h264) -> split:default
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   setsar:default -> Stream #0:0 (libx264)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0 -> #0:1 (aac (native) -> aac (native))
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   setsar:default -> Stream #0:2 (libx264)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0 -> #0:3 (aac (native) -> aac (native))
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   setsar:default -> Stream #0:4 (libx264)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0 -> #0:5 (aac (native) -> aac (native))
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Press [q] to stop, [?] for help
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] using SAR=1/1
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] profile Main, level 2.2, 4:2:0, 8-bit
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x1:0x111 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=11 lookahead_threads=2 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=48 keyint_min=25 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=abr mbtree=1 bitrate=800 ratetol=1.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 vbv_maxrate=856 vbv_bufsize=1200 nal_hrd=none filler=0 ip_ratio=1.40 aq=1:1.00
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] using SAR=1/1
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] profile Main, level 3.1, 4:2:0, 8-bit
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x1:0x111 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=22 lookahead_threads=5 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=48 keyint_min=25 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=abr mbtree=1 bitrate=2800 ratetol=1.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 vbv_maxrate=2996 vbv_bufsize=4200 nal_hrd=none filler=0 ip_ratio=1.40 aq=1:1.00
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] using SAR=1/1
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] using cpu capabilities: MMX2 SSE2Fast SSSE3 SSE4.2 AVX FMA3 BMI2 AVX2
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] profile Main, level 4.0, 4:2:0, 8-bit
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] 264 - core 164 r3108 31e19f9 - H.264/MPEG-4 AVC codec - Copyleft 2003-2023 - http://www.videolan.org/x264.html - options: cabac=1 ref=1 deblock=1:0:0 analyse=0x1:0x111 me=hex subme=2 psy=1 psy_rd=1.00:0.00 mixed_ref=0 me_range=16 chroma_me=1 trellis=0 8x8dct=0 cqm=0 deadzone=21,11 fast_pskip=1 chroma_qp_offset=0 threads=34 lookahead_threads=8 sliced_threads=0 nr=0 decimate=1 interlaced=0 bluray_compat=0 constrained_intra=0 bframes=3 b_pyramid=2 b_adapt=1 b_bias=0 direct=1 weightb=1 open_gop=0 weightp=1 keyint=48 keyint_min=25 scenecut=0 intra_refresh=0 rc_lookahead=10 rc=abr mbtree=1 bitrate=5000 ratetol=1.0 qcomp=0.60 qpmin=0 qpmax=69 qpstep=4 vbv_maxrate=5350 vbv_bufsize=7500 nal_hrd=none filler=0 ip_ratio=1.40 aq=1:1.00
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 Output #0, hls, to 'uploads/hls/v1__tmp/%v/index.m3u8':
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     major_brand     : isom
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     minor_version   : 512
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     compatible_brands: isomiso2avc1mp41
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273     encoder         : Lavf61.7.100
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:0: Video: h264, yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 640x360 [SAR 1:1 DAR 16:9], q=2-31, 800 kb/s, 13.84 fps, 90k tbn (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 libx264
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Side data:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         cpb: bitrate max/min/avg: 856000/0/800000 buffer size: 1200000 vbv_delay: N/A
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:1(eng): Audio: aac (LC), 48000 Hz, stereo, fltp, 96 kb/s (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : SoundHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 aac
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:2: Video: h264, yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 1280x720 [SAR 1:1 DAR 16:9], q=2-31, 2800 kb/s, 13.84 fps, 90k tbn
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 libx264
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Side data:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         cpb: bitrate max/min/avg: 2996000/0/2800000 buffer size: 4200000 vbv_delay: N/A
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:3(eng): Audio: aac (LC), 48000 Hz, stereo, fltp, 128 kb/s (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : SoundHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 aac
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:4: Video: h264, yuv420p(tv, bt470bg/bt470bg/bt709, progressive), 1920x1080 [SAR 1:1 DAR 16:9], q=2-31, 5000 kb/s, 13.84 fps, 90k tbn
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 libx264
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Side data:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         cpb: bitrate max/min/avg: 5350000/0/5000000 buffer size: 7500000 vbv_delay: N/A
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273   Stream #0:5(eng): Audio: aac (LC), 48000 Hz, stereo, fltp, 192 kb/s (default)
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273       Metadata:
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         creation_time   : 2026-02-07T16:56:03.000000Z
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         handler_name    : SoundHandle
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         vendor_id       : [0][0][0][0]
+2026-02-24 08:14:16 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273         encoder         : Lavc61.19.101 aac
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 frame=    9 fps=0.0 q=18.0 q=0.0 q=0.0 size=N/A time=N/A bitrate=N/A speed=N/A    
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/360p/seg_00000.ts.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/360p/index.m3u8.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/720p/seg_00000.ts.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/720p/index.m3u8.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/1080p/seg_00000.ts.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/1080p/index.m3u8.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [hls @ 0x6118385822c0] Opening 'uploads/hls/v1__tmp/master.m3u8.tmp' for writing
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [out#0/hls @ 0x6118386d2640] video:2580KiB audio:86KiB subtitle:0KiB other streams:0KiB global headers:0KiB muxing overhead: unknown
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 frame=   36 fps=0.0 q=-1.0 Lq=-1.0 q=-1.0 size=N/A time=00:00:02.45 bitrate=N/A speed=3.25x    
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] frame I:1     Avg QP:11.20  size: 11603
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] frame P:11    Avg QP:14.25  size:  8714
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] frame B:24    Avg QP:17.66  size:  4094
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] consecutive B-frames:  8.3%  5.6%  8.3% 77.8%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] mb I  I16..4: 53.4%  0.0% 46.6%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] mb P  I16..4: 21.2%  0.0% 20.6%  P16..4: 13.4%  6.7%  4.6%  0.0%  0.0%    skip:33.5%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] mb B  I16..4:  2.7%  0.0%  2.5%  B16..8: 14.7%  9.5%  3.0%  direct:15.3%  skip:52.3%  L0:37.6% L1:32.6% BI:29.9%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] coded y,uvDC,uvAC intra: 53.2% 52.9% 22.5% inter: 20.4% 19.5% 0.6%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] i16 v,h,dc,p: 69%  7%  9% 15%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 28% 16% 15%  7%  8%  7%  6%  9%  5%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] i8c dc,h,v,p: 57% 10% 25%  7%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] Weighted P-Frames: Y:45.5% UV:27.3%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183859d780] kb/s:632.78
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [aac @ 0x611838618700] Qavg: 58863.625
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] frame I:1     Avg QP: 5.45  size: 42462
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] frame P:12    Avg QP:12.08  size: 31282
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] frame B:23    Avg QP:14.32  size: 19207
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] consecutive B-frames: 11.1%  5.6% 16.7% 66.7%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] mb I  I16..4: 59.1%  0.0% 40.9%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] mb P  I16..4: 21.1%  0.0% 31.5%  P16..4:  6.5%  3.4%  2.4%  0.0%  0.0%    skip:35.1%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] mb B  I16..4:  4.2%  0.0% 12.4%  B16..8: 12.8%  9.0%  2.3%  direct:10.5%  skip:48.9%  L0:44.0% L1:35.2% BI:20.8%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] coded y,uvDC,uvAC intra: 67.7% 49.9% 22.3% inter: 17.3% 19.9% 0.9%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] i16 v,h,dc,p: 67% 11% 10% 11%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 29% 18% 14%  7%  8%  7%  6%  7%  4%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] i8c dc,h,v,p: 52% 14% 26%  7%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] Weighted P-Frames: Y:25.0% UV:25.0%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x61183861c280] kb/s:2644.02
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [aac @ 0x61183861e140] Qavg: 63359.910
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] frame I:1     Avg QP: 4.13  size: 81528
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] frame P:10    Avg QP:12.10  size: 59907
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] frame B:25    Avg QP:13.85  size: 35759
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] consecutive B-frames:  5.6%  5.6%  0.0% 88.9%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] mb I  I16..4: 65.3%  0.0% 34.7%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] mb P  I16..4: 14.7%  0.0% 33.6%  P16..4:  3.4%  2.2%  1.2%  0.0%  0.0%    skip:44.8%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] mb B  I16..4:  6.6%  0.0% 13.8%  B16..8: 10.9%  7.3%  1.5%  direct: 9.3%  skip:50.5%  L0:46.8% L1:37.8% BI:15.4%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] coded y,uvDC,uvAC intra: 70.5% 46.0% 19.4% inter: 12.2% 17.6% 0.8%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] i16 v,h,dc,p: 52% 17% 16% 15%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] i4 v,h,dc,ddl,ddr,vr,hd,vl,hu: 32% 20% 13%  6%  8%  6%  5%  6%  4%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] i8c dc,h,v,p: 49% 17% 27%  7%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] Weighted P-Frames: Y:0.0% UV:0.0%
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [libx264 @ 0x611838620a80] kb/s:4843.15
+2026-02-24 08:14:17 INFO [ffmpeg] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 [aac @ 0x611838579c00] Qavg: 64621.578
+2026-02-24 08:14:17 INFO [worker] rid=3d8032e4-d30f-40c1-83ff-b50699eb8ae5 tid=678833cc-e250-4d64-a516-f14bafe62273 done video_id=1
+
+===== RABBITMQ (learning_app-rabbitmq-1) (contains rid) =====
+

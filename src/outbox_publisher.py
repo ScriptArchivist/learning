@@ -218,12 +218,30 @@ def main() -> None:
                     with db.begin():
                         events = fetch_pending_batch(db, limit=BATCH_SIZE)
 
+                        claimed = len(events)
+                        published = 0
+                        failed = 0
+
                         for e in events:
                             try:
                                 publish_one(ch, e.event_type, e.payload)
                                 mark_published(db, e.id)
+                                published += 1
                             except Exception as ex:
-                                mark_failed_retry(db, e.id, str(ex), attempts=(e.attempts or 0) + 1)
+                                mark_failed_retry(
+                                    db,
+                                    e.id,
+                                    str(ex),
+                                    attempts=(e.attempts or 0) + 1,
+                                )
+                                failed += 1
+
+                    logger.info(
+                        "outbox batch: claimed=%s published=%s failed=%s",
+                        claimed,
+                        published,
+                        failed,
+                    )
                 finally:
                     db.close()
 

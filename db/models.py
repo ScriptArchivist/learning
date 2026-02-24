@@ -201,8 +201,10 @@ class ProcessingTask(Base):
 
 # ========== OUTBOX ==========
 class OutboxStatus(str, enum.Enum):
-    PENDING = "pending"
+    NEW = "new"
+    PROCESSING = "processing"
     PUBLISHED = "published"
+    FAILED = "failed"
 
 
 class OutboxEvent(Base):
@@ -219,12 +221,16 @@ class OutboxEvent(Base):
     # статус строкой (совпадает с миграцией)
     status: Mapped[str] = mapped_column(
         String(20),
-        default=OutboxStatus.PENDING.value,
+        default=OutboxStatus.NEW.value,
         index=True,
         nullable=False,
     )
 
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    locked_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
     last_error: Mapped[str | None] = mapped_column(Text)
 
     available_at: Mapped[datetime] = mapped_column(
@@ -238,5 +244,6 @@ class OutboxEvent(Base):
     published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
 
     __table_args__ = (
-        Index("ix_outbox_pending_available", "status", "available_at"),
+        Index("ix_outbox_status_available", "status", "available_at"),
+        Index("ix_outbox_status_locked", "status", "locked_at"),
     )
