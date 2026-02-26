@@ -6,7 +6,6 @@ from datetime import datetime
 
 from pydantic import ValidationError
 
-from service.paths import thumbnail_path, hls_dir, hls_master
 from service.correlation import (
     get_request_id,
     get_trace_id,
@@ -15,7 +14,7 @@ from service.correlation import (
     set_trace_id,
 )
 
-# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая сторонние libs) ---
+# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов ---
 _old_factory = logging.getLogRecordFactory()
 
 
@@ -27,15 +26,12 @@ def record_factory(*args, **kwargs):
 
 
 logging.setLogRecordFactory(record_factory)
-# ---------------------------------------------------------------------------------------------
-
-# Подхватываем формат логов из ini (у тебя там rid=%(request_id)s ...)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("worker")
 
-# ⚠️ Импорты ниже — после настройки логов (чтобы даже их import-time логи не падали)
+# ⚠️ Импорты ниже — после настройки логов
 from db.database import SessionLocal  # noqa: E402
-from service.broker import consume_forever  # noqa: E402
+from service.broker import consume_forever, MAX_RETRIES  # noqa: E402
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail  # noqa: E402
 from service.processing_service import (  # noqa: E402
     complete_video_processing_with_lock,
@@ -43,15 +39,16 @@ from service.processing_service import (  # noqa: E402
 )
 from service.storage_service import get_storage_provider  # noqa: E402
 from src.config import VIDEO_LOCK_TTL_SECONDS  # noqa: E402
-
-# B2: DB-claim для идемпотентности
 from service.video_service import try_claim_video_processing  # noqa: E402
-
-# Event contract (A1)
 from service.events import EventEnvelope, VideoProcessRequestedPayload  # noqa: E402
-from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED  # noqa: E402
+from service.paths import thumbnail_path, hls_dir, hls_master  # noqa: E402
+from service.outbox import (  # noqa: E402
+    EVENT_VIDEO_PROCESS_REQUESTED,
+    EVENT_VIDEO_PROCESS_FAILED,
+    add_event,
+)
 
-storage = get_storage_provider()  # ✅ единый storage
+storage = get_storage_provider()
 
 
 def _safe_error_message(e: Exception, limit: int = 500) -> str:
@@ -61,11 +58,6 @@ def _safe_error_message(e: Exception, limit: int = 500) -> str:
 
 
 def _major_version(schema_version) -> int | None:
-    """
-    Поддержка на время перехода:
-    - schema_version может быть "1.0" (строка) или 1 (int)
-    Возвращает MAJOR или None если распарсить нельзя.
-    """
     if schema_version is None:
         return None
     if isinstance(schema_version, int):
@@ -81,14 +73,12 @@ def _major_version(schema_version) -> int | None:
     return None
 
 
-def handle(message: dict):
+def handle(message: dict, retry_count: int) -> None:
     """
-    Worker принимает ТОЛЬКО ENVELOPE (единый контракт A1).
-    Идемпотентность (B2):
-      - claim видео в PROCESSING атомарно в БД
-      - повторная доставка -> safe no-op
+    Worker принимает только ENVELOPE (единый контракт).
+    retry_count — число попаданий в RETRY queue (x-death count).
     """
-    # 1) Строго валидируем envelope
+    # 1) валидируем envelope
     try:
         envelope = EventEnvelope.model_validate(message)
     except ValidationError:
@@ -107,17 +97,17 @@ def handle(message: dict):
     set_request_id(rid)
     set_trace_id(tid)
 
-    # 3) Проверяем версию схемы (MAJOR)
+    # 3) версия схемы
     major = _major_version(getattr(envelope, "schema_version", None))
     if major != 1:
         raise ValueError(f"unsupported schema_version={envelope.schema_version!r}")
 
-    # 4) Обрабатываем только нужный event_type
+    # 4) обрабатываем только нужный event_type
     if envelope.event_type != EVENT_VIDEO_PROCESS_REQUESTED:
         logger.info("skip event_type=%s event_id=%s", envelope.event_type, envelope.event_id)
         return
 
-    # 5) Строго валидируем payload по схеме
+    # 5) валидируем payload
     try:
         payload = VideoProcessRequestedPayload.model_validate(envelope.payload)
     except ValidationError:
@@ -133,12 +123,9 @@ def handle(message: dict):
     orig_key = payload.path
     event_id = str(envelope.event_id)
 
-    logger.info("start video_id=%s key=%s event_id=%s", video_id, orig_key, event_id)
+    logger.info("start video_id=%s key=%s event_id=%s retry_count=%s", video_id, orig_key, event_id, retry_count)
 
-    # ---------------------------------------------------------------------
-    # B2: DB-claim (идемпотентность)
-    # lock_token = event_id (стабильный токен на конкретную доставку)
-    # ---------------------------------------------------------------------
+    # ---- идемпотентность через DB-claim ----
     lock_token = event_id
     db = SessionLocal()
     try:
@@ -153,7 +140,7 @@ def handle(message: dict):
         db.close()
 
     if not claimed:
-        logger.info("idempotency: skip video_id=%s event_id=%s (already processing/ready)", video_id, event_id)
+        logger.info("idempotency: skip video_id=%s event_id=%s", video_id, event_id)
         return
 
     try:
@@ -172,7 +159,13 @@ def handle(message: dict):
         if not os.path.exists(orig_full):
             raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
 
-        # если артефакты уже есть — просто фиксируем processed
+        # если артефакты уже есть — всё равно заполним метаданные
+        meta = ffprobe_metadata(orig_full)
+        duration = meta["duration"]
+        width = meta["width"]
+        height = meta["height"]
+        size = os.path.getsize(orig_full)
+
         if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
             logger.info("artifacts already exist, mark processed video_id=%s", video_id)
 
@@ -180,10 +173,10 @@ def handle(message: dict):
                 video_id=video_id,
                 lock_token=lock_token,
                 processed_at=datetime.utcnow(),
-                file_size=os.path.getsize(orig_full),
-                duration=None,
-                width=None,
-                height=None,
+                file_size=size,
+                duration=duration,
+                width=width,
+                height=height,
                 thumbnail_path=thumb_key,
                 mime_type="video/mp4",
                 hls_master_key=hls_master_key_str,
@@ -193,13 +186,6 @@ def handle(message: dict):
             logger.info("done video_id=%s (already existed)", video_id)
             return
 
-        size = os.path.getsize(orig_full)
-
-        meta = ffprobe_metadata(orig_full)
-        duration = meta["duration"]
-        width = meta["width"]
-        height = meta["height"]
-
         make_thumbnail(orig_full, thumb_full, at_seconds=1.0)
         if not os.path.exists(thumb_full):
             raise RuntimeError(f"thumbnail was not created: {thumb_full} (key={thumb_key})")
@@ -208,12 +194,10 @@ def handle(message: dict):
         if not os.path.exists(hls_master_full):
             raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key_str})")
 
-        processed_at = datetime.utcnow()
-
         complete_video_processing_with_lock(
             video_id=video_id,
             lock_token=lock_token,
-            processed_at=processed_at,
+            processed_at=datetime.utcnow(),
             file_size=size,
             duration=duration,
             width=width,
@@ -228,18 +212,44 @@ def handle(message: dict):
         logger.info("done video_id=%s", video_id)
 
     except Exception as e:
-        try:
-            fail_video_processing_with_lock(
-                video_id=video_id,
-                lock_token=lock_token,
-                error_message=_safe_error_message(e),
-                correlation_id=rid,
-                trace_id=tid,
-            )
-        except Exception:
-            logger.exception("fail_video_processing_with_lock error (video_id=%s)", video_id)
+        # MAX_RETRIES — число ретраев (x-death count), первая попытка = retry_count=0
+        is_last_attempt = retry_count >= MAX_RETRIES
 
-        logger.exception("failed video_id=%s", video_id)
+        if not is_last_attempt:
+            logger.warning(
+                "video_id=%s failed (attempt %s, will retry up to %s)",
+                video_id,
+                retry_count + 1,
+                MAX_RETRIES,
+            )
+            raise
+
+        logger.error("video_id=%s failed окончательно after retries=%s", video_id, retry_count)
+
+        db = SessionLocal()
+        try:
+            with db.begin():
+                fail_video_processing_with_lock(
+                    video_id=video_id,
+                    lock_token=lock_token,
+                    error_message=_safe_error_message(e),
+                    correlation_id=rid,
+                    trace_id=tid,
+                )
+
+                add_event(
+                    db,
+                    event_type=EVENT_VIDEO_PROCESS_FAILED,
+                    payload={"video_id": video_id, "error": _safe_error_message(e)},
+                    producer="worker",
+                    correlation_id=rid,
+                    trace_id=tid,
+                    aggregate_type="video",
+                    aggregate_id=str(video_id),
+                )
+        finally:
+            db.close()
+
         raise
 
 

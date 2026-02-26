@@ -100,6 +100,21 @@ services:
       - ./alembic.ini:/app/alembic.ini
       - uploads_data:/app/uploads
 
+  ingest:
+    build: ./ingest
+    ports:
+      - "1935:1935"
+    volumes:
+      - uploads_data:/app/uploads
+      - ./ingest/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ingest/scripts:/opt/scripts:ro
+    command: >
+      sh -lc "
+        mkdir -p /app/uploads/live &&
+        chmod -R 0777 /app/uploads &&
+        nginx -g 'daemon off;'
+      "
+
   worker:
     build: .
     command: python -m src.worker

@@ -4,7 +4,7 @@ import logging
 import logging.config
 import os
 import time
-from typing import Callable, Any, Dict, Optional
+from typing import Any, Callable, Dict, Optional
 
 import pika
 
@@ -22,7 +22,7 @@ from service.correlation import (
     set_correlation,
 )
 
-# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая pika) ---
+# --- logging: гарантируем rid/tid в любых логах ---
 _old_factory = logging.getLogRecordFactory()
 
 
@@ -34,22 +34,19 @@ def record_factory(*args, **kwargs):
 
 
 logging.setLogRecordFactory(record_factory)
-# ----------------------------------------------------------------------------------------
-
-# logging
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("broker")
 
-# ---- retry/dlq settings ----
-MAX_RETRIES = int(os.getenv("VIDEO_MAX_RETRIES", "5"))
-RETRY_DELAY_MS = int(os.getenv("VIDEO_RETRY_DELAY_MS", "30000"))  # 30s
+# ---- retry settings ----
+MAX_RETRIES = int(os.getenv("VIDEO_MAX_RETRIES", "5"))          # количество RETRY (не считая первую попытку)
+RETRY_DELAY_MS = int(os.getenv("VIDEO_RETRY_DELAY_MS", "30000"))  # база экспоненциальной задержки
 
-QUEUE_MAIN = RABBIT_QUEUE
-QUEUE_RETRY = f"{RABBIT_QUEUE}.retry"
-QUEUE_DLQ = f"{RABBIT_QUEUE}.dlq"
+QUEUE_MAIN = RABBIT_QUEUE                      # обычно "video.process"
+QUEUE_RETRY = f"{RABBIT_QUEUE}.retry"          # "video.process.retry"
+QUEUE_DLQ = f"{RABBIT_QUEUE}.dlq"              # "video.process.dlq"
 
-EXCHANGE_RETRY = f"{RABBIT_QUEUE}.retry.x"
-EXCHANGE_DLX = f"{RABBIT_QUEUE}.dlx.x"
+EXCHANGE_RETRY = f"{RABBIT_QUEUE}.retry.x"     # direct
+EXCHANGE_DLX = f"{RABBIT_QUEUE}.dlx.x"         # direct
 
 
 def _connect() -> pika.BlockingConnection:
@@ -59,109 +56,70 @@ def _connect() -> pika.BlockingConnection:
     return pika.BlockingConnection(params)
 
 
-def ping() -> None:
-    """Lightweight RabbitMQ connectivity check (for self_check())."""
-    conn = _connect()
-    try:
-        ch = conn.channel()
-        ch.close()
-    finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
-
-
-def _declare_topology(ch: pika.adapters.blocking_connection.BlockingChannel) -> None:
+def _declare_topology(ch) -> None:
     """
-    Topology:
-    - MAIN queue: reject/nack(requeue=False) -> EXCHANGE_DLX -> DLQ
-    - RETRY queue: TTL -> EXCHANGE_RETRY -> MAIN
+    Схема:
+      MAIN --(reject requeue=False)--> EXCHANGE_RETRY -> QUEUE_RETRY
+      QUEUE_RETRY (per-message TTL via 'expiration') --(DLX to default exchange)--> MAIN
+      DLQ отдельная очередь, кладём туда явно.
     """
     ch.exchange_declare(exchange=EXCHANGE_DLX, exchange_type="direct", durable=True)
     ch.exchange_declare(exchange=EXCHANGE_RETRY, exchange_type="direct", durable=True)
 
+    # DLQ
     ch.queue_declare(queue=QUEUE_DLQ, durable=True)
     ch.queue_bind(queue=QUEUE_DLQ, exchange=EXCHANGE_DLX, routing_key=QUEUE_DLQ)
 
+    # MAIN: если reject(requeue=False), Rabbit отправит в EXCHANGE_RETRY/QUEUE_RETRY
     ch.queue_declare(
         queue=QUEUE_MAIN,
         durable=True,
         arguments={
-            "x-dead-letter-exchange": EXCHANGE_DLX,
-            "x-dead-letter-routing-key": QUEUE_DLQ,
+            "x-dead-letter-exchange": EXCHANGE_RETRY,
+            "x-dead-letter-routing-key": QUEUE_RETRY,
         },
     )
 
+    # RETRY: TTL per-message задаём через BasicProperties.expiration
+    # после истечения TTL сообщение вернётся в MAIN через default exchange
     ch.queue_declare(
         queue=QUEUE_RETRY,
         durable=True,
         arguments={
-            "x-message-ttl": RETRY_DELAY_MS,
-            "x-dead-letter-exchange": EXCHANGE_RETRY,
+            "x-dead-letter-exchange": "",
             "x-dead-letter-routing-key": QUEUE_MAIN,
         },
     )
-    ch.queue_bind(queue=QUEUE_MAIN, exchange=EXCHANGE_RETRY, routing_key=QUEUE_MAIN)
 
     ch.basic_qos(prefetch_count=1)
 
 
-def _declare_events_topology(ch: pika.adapters.blocking_connection.BlockingChannel) -> None:
-    """
-    Топология для доменных событий (completed/failed):
-    - topic exchange: RABBIT_EVENTS_EXCHANGE
-    - queue: RABBIT_EVENTS_QUEUE
-    - bind: routing_key = RABBIT_EVENTS_ROUTING_KEY
-    """
+def _declare_events_topology(ch) -> None:
     ch.exchange_declare(exchange=RABBIT_EVENTS_EXCHANGE, exchange_type="topic", durable=True)
     ch.queue_declare(queue=RABBIT_EVENTS_QUEUE, durable=True)
-    ch.queue_bind(queue=RABBIT_EVENTS_QUEUE, exchange=RABBIT_EVENTS_EXCHANGE, routing_key=RABBIT_EVENTS_ROUTING_KEY)
+    ch.queue_bind(
+        queue=RABBIT_EVENTS_QUEUE,
+        exchange=RABBIT_EVENTS_EXCHANGE,
+        routing_key=RABBIT_EVENTS_ROUTING_KEY,
+    )
 
 
-def _with_retry_count(headers: Dict[str, Any], retry_count: int) -> Dict[str, Any]:
-    new_headers = dict(headers or {})
-    new_headers["x-retry-count"] = retry_count
-    return new_headers
-
-
-def _get_retry_count(properties) -> int:
-    headers = getattr(properties, "headers", None) or {}
-    try:
-        return int(headers.get("x-retry-count", 0) or 0)
-    except Exception:
-        return 0
-
-
-def _extract_trace_headers(properties) -> Dict[str, Any]:
-    headers = dict(getattr(properties, "headers", None) or {})
-
-    rid = headers.get("x-request-id") or headers.get("X-Request-ID")
-    tid = headers.get("x-trace-id") or headers.get("X-Trace-Id") or headers.get("X-Trace-ID")
-
-    if rid and "x-request-id" not in headers:
-        headers["x-request-id"] = rid
-    if tid and "x-trace-id" not in headers:
-        headers["x-trace-id"] = tid
-
-    return headers
-
-
-def publish_video_process(
-    video_id: int,
-    path: str,
+def publish_worker_envelope(
+    envelope: dict,
     *,
     correlation_id: Optional[str] = None,
     trace_id: Optional[str] = None,
 ) -> None:
+    """
+    Публикуем в worker MAIN queue напрямую (default exchange).
+    Это именно то, что должен читать src/worker.py (EventEnvelope).
+    """
     conn = _connect()
     try:
         ch = conn.channel()
         _declare_topology(ch)
 
-        payload = {"video_id": int(video_id), "path": path}
-
-        headers = {"x-retry-count": 0}
+        headers: Dict[str, Any] = {}
         if correlation_id:
             headers["x-request-id"] = correlation_id
         if trace_id:
@@ -170,19 +128,16 @@ def publish_video_process(
         ch.basic_publish(
             exchange="",
             routing_key=QUEUE_MAIN,
-            body=json.dumps(payload).encode("utf-8"),
+            body=json.dumps(envelope).encode(),
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",
-                headers=headers,
                 correlation_id=correlation_id,
+                headers=headers or None,
             ),
         )
     finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+        conn.close()
 
 
 def publish_domain_event(
@@ -192,6 +147,27 @@ def publish_domain_event(
     correlation_id: Optional[str] = None,
     trace_id: Optional[str] = None,
 ) -> None:
+    """
+    1) video.process.requested — отправляем напрямую в worker queue (MAIN) как envelope.
+       (иначе можно легко получить "published в outbox, но worker не видит")
+    2) все остальные доменные события — в topic exchange как раньше
+    """
+    # импорт локально, чтобы не сделать круговой импорт
+    from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED
+
+    if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
+        envelope = {
+            "schema_version": "1.0",
+            "event_id": str(os.getenv("HOSTNAME", "worker-producer")) + ":" + str(time.time_ns()),
+            "event_type": event_type,
+            "payload": payload,
+            "occurred_at": time.time(),
+            "correlation_id": correlation_id,
+            "trace_id": trace_id,
+        }
+        publish_worker_envelope(envelope, correlation_id=correlation_id, trace_id=trace_id)
+        return
+
     conn = _connect()
     try:
         ch = conn.channel()
@@ -199,38 +175,47 @@ def publish_domain_event(
 
         envelope = {"event_type": event_type, "payload": payload}
 
-        headers: Dict[str, Any] = {}
-        if correlation_id:
-            headers["x-request-id"] = correlation_id
-        if trace_id:
-            headers["x-trace-id"] = trace_id
-
         ch.basic_publish(
             exchange=RABBIT_EVENTS_EXCHANGE,
             routing_key=RABBIT_EVENTS_ROUTING_KEY,
-            body=json.dumps(envelope).encode("utf-8"),
+            body=json.dumps(envelope).encode(),
             properties=pika.BasicProperties(
                 delivery_mode=2,
                 content_type="application/json",
-                headers=headers or None,
                 correlation_id=correlation_id,
             ),
             mandatory=True,
         )
     finally:
-        try:
-            conn.close()
-        except Exception:
-            pass
+        conn.close()
 
 
-def consume_forever(handler: Callable[[Dict[str, Any]], None]) -> None:
+def _get_retry_count_from_headers(headers: Dict[str, Any]) -> int:
     """
-    A3: прокидываем rid/tid (headers) внутрь handler через payload["__headers__"].
+    Считаем x-death по QUEUE_RETRY.
+    """
+    deaths = headers.get("x-death") or []
+    for d in deaths:
+        if d.get("queue") == QUEUE_RETRY:
+            try:
+                return int(d.get("count", 0))
+            except Exception:
+                return 0
+    return 0
+
+
+def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
+    """
+    Consumer на MAIN:
+      - на успех -> ack
+      - на исключение -> reject(requeue=False) => уходит в RETRY (через DLX из MAIN)
+      - по достижении MAX_RETRIES handler может сам решить "последняя попытка" и
+        сгенерировать fail-событие/запись, а мы всё равно отправим сообщение в retry/dlq?
+        Здесь мы делаем так:
+          * если handler выбросил -> мы reject(requeue=False) (Rabbit сам перегонит в RETRY)
+        А DLQ мы используем в handler (явной публикацией), чтобы не зависеть от policy.
     """
     params = pika.URLParameters(RABBIT_URL)
-    params.heartbeat = int(os.getenv("RABBIT_HEARTBEAT", "60"))
-    params.blocked_connection_timeout = int(os.getenv("RABBIT_BLOCKED_TIMEOUT", "120"))
 
     while True:
         conn = None
@@ -239,53 +224,30 @@ def consume_forever(handler: Callable[[Dict[str, Any]], None]) -> None:
             ch = conn.channel()
             _declare_topology(ch)
 
-            def publish_to_retry(body: bytes, properties, retry_count: int) -> None:
-                headers = _extract_trace_headers(properties)
-                headers = _with_retry_count(headers, retry_count)
+            def on_message(channel, method, properties, body):
+                headers = (properties.headers or {}) if properties else {}
+                retry_count = _get_retry_count_from_headers(headers)
 
-                ch.basic_publish(
-                    exchange="",
-                    routing_key=QUEUE_RETRY,
-                    body=body,
-                    properties=pika.BasicProperties(
-                        delivery_mode=2,
-                        content_type=getattr(properties, "content_type", None) or "application/json",
-                        headers=headers,
-                        correlation_id=getattr(properties, "correlation_id", None),
-                        message_id=getattr(properties, "message_id", None),
-                    ),
-                )
-
-            def on_message(channel, method, properties, body: bytes):
-                headers = _extract_trace_headers(properties)
-
+                # correlation для логов / контекста
                 set_correlation(
                     request_id=headers.get("x-request-id") or getattr(properties, "correlation_id", None),
                     trace_id=headers.get("x-trace-id"),
                 )
 
                 try:
-                    payload = json.loads(body.decode("utf-8"))
+                    payload = json.loads(body.decode())
+
+                    # прокинем headers, если handler захочет
                     if isinstance(payload, dict):
                         payload["__headers__"] = headers
 
-                    handler(payload)
-
+                    handler(payload, retry_count)
                     channel.basic_ack(delivery_tag=method.delivery_tag)
-                    return
 
-                except Exception as e:
-                    retry_count = _get_retry_count(properties) + 1
-
-                    if retry_count <= MAX_RETRIES:
-                        publish_to_retry(body, properties, retry_count)
-                        channel.basic_ack(delivery_tag=method.delivery_tag)
-                        logger.warning("retry %s/%s in %sms: %r", retry_count, MAX_RETRIES, RETRY_DELAY_MS, e)
-                        return
-
+                except Exception:
+                    logger.exception("handler failed, reject to retry (retry_count=%s)", retry_count)
+                    # отправит в EXCHANGE_RETRY -> QUEUE_RETRY (из аргументов MAIN)
                     channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
-                    logger.error("send to DLQ after %s retries: %r", MAX_RETRIES, e)
-                    return
 
             ch.basic_consume(queue=QUEUE_MAIN, on_message_callback=on_message)
             logger.info("consumer started queue=%s retry=%s dlq=%s", QUEUE_MAIN, QUEUE_RETRY, QUEUE_DLQ)
@@ -296,8 +258,5 @@ def consume_forever(handler: Callable[[Dict[str, Any]], None]) -> None:
             time.sleep(2)
 
         finally:
-            try:
-                if conn and conn.is_open:
-                    conn.close()
-            except Exception:
-                pass
+            if conn and conn.is_open:
+                conn.close()
