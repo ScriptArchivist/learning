@@ -25,8 +25,12 @@ PID="$(cat "$PID_FILE" 2>/dev/null || true)"
 [ -n "${PID:-}" ] || { log "on_publish_done: empty pidfile; removing"; rm -f "$PID_FILE" 2>/dev/null || true; exit 0; }
 
 # Проверяем, что PID — это именно ffmpeg нашего стрима (защита от гонок/реюза PID)
+# BusyBox ps не умеет -p, поэтому сканируем весь вывод.
 if ! ps -o pid,args 2>/dev/null | awk -v p="$PID" -v n="$NAME" '
-  $1==p && $0 ~ /ffmpeg/ && $0 ~ ("rtmp://127.0.0.1:1935/live/" n) { found=1 }
+  $1==p &&
+  $0 ~ /ffmpeg/ &&
+  $0 ~ ("/live/" n) &&
+  $0 ~ /-f hls/ { found=1 }
   END { exit(found?0:1) }
 '; then
   log "on_publish_done: pid=${PID} is not our ffmpeg; not killing; keeping pidfile"

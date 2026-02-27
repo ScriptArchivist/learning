@@ -24,13 +24,17 @@ OUT_DIR="/app/uploads/live/${NAME}"
 PID_FILE="/tmp/ffmpeg-live-${NAME}.pid"
 LOCK_DIR="/tmp/ffmpeg-live-${NAME}.lock"
 
-IN_URL="rtmp://127.0.0.1:1935/live/${NAME}"
+# ВАЖНО: внутри docker-compose сети ходим по имени сервиса, а не 127.0.0.1
+RTMP_HOST="${RTMP_HOST:-ingest}"
+RTMP_PORT="${RTMP_PORT:-1935}"
+
+IN_URL="rtmp://${RTMP_HOST}:${RTMP_PORT}/live/${NAME}"
+
 OUT_M3U8="${OUT_DIR}/master.m3u8"
 
 # lock (атомарно)
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   log "WARN lock exists ${LOCK_DIR} (another on_publish running?)"
-  # подождём чуть-чуть и попробуем ещё раз
   sleep 1
   mkdir "$LOCK_DIR" 2>/dev/null || { log "ERROR cannot acquire lock ${LOCK_DIR}"; exit 1; }
 fi
@@ -47,7 +51,7 @@ stop_old() {
   [ -n "${OLD_PID:-}" ] || { rm -f "$PID_FILE" 2>/dev/null || true; return 0; }
 
   if ps -o pid,args 2>/dev/null | awk -v p="$OLD_PID" -v n="$NAME" '
-    $1==p && $0 ~ /ffmpeg/ && $0 ~ ("rtmp://127.0.0.1:1935/live/" n) { found=1 }
+    $1==p && $0 ~ /ffmpeg/ && $0 ~ ("/live/" n) { found=1 }
     END { exit(found?0:1) }
   '; then
     log "stopping old ffmpeg pid=${OLD_PID}"
@@ -64,21 +68,22 @@ stop_old() {
 stop_old
 
 probe_ok() {
-  # короткий ffprobe, чтобы не виснуть
   if command -v timeout >/dev/null 2>&1; then
-    timeout 2 /usr/bin/ffprobe -v error -rw_timeout 2000000 \
+    out="$(timeout 2 /usr/bin/ffprobe -v error -rtmp_live live -rw_timeout 2000000 \
       -show_entries stream=codec_type -of default=nw=1:nk=1 \
-      "$IN_URL" >/dev/null 2>&1
-    return $?
+      "$IN_URL" 2>/dev/null || true)"
+  else
+    out="$(/usr/bin/ffprobe -v error -rtmp_live live -rw_timeout 2000000 \
+      -show_entries stream=codec_type -of default=nw=1:nk=1 \
+      "$IN_URL" 2>/dev/null || true)"
   fi
 
-  /usr/bin/ffprobe -v error -rw_timeout 2000000 \
-    -show_entries stream=codec_type -of default=nw=1:nk=1 \
-    "$IN_URL" >/dev/null 2>&1
+  # ВАЖНО: ждём именно video, иначе ffmpeg стартует как audio-only и потом видео уже не подцепит
+  echo "$out" | grep -q '^video$'
 }
 
 WAIT="${WAIT_SECONDS:-20}"
-log "waiting for input up to ${WAIT}s (ffprobe)"
+log "waiting for input up to ${WAIT}s (ffprobe) url=${IN_URL}"
 i=0
 while [ "$i" -lt "$WAIT" ]; do
   if probe_ok; then
@@ -94,7 +99,6 @@ if [ "$i" -ge "$WAIT" ]; then
   exit 1
 fi
 
-# стартуем ffmpeg
 log "starting ffmpeg in_url=${IN_URL} out=${OUT_M3U8}"
 
 (
@@ -105,6 +109,8 @@ log "starting ffmpeg in_url=${IN_URL} out=${OUT_M3U8}"
     -use_wallclock_as_timestamps 1 \
     -i "$IN_URL" \
     -map 0:v:0? -map 0:a:0? \
+    -vf "setpts=PTS-STARTPTS" \
+    -af "asetpts=PTS-STARTPTS,aresample=async=1:first_pts=0" \
     -c:v libx264 -preset veryfast -tune zerolatency -pix_fmt yuv420p \
     -g 48 -keyint_min 48 -sc_threshold 0 \
     -c:a aac -ar 48000 -ac 2 \
@@ -118,12 +124,9 @@ log "starting ffmpeg in_url=${IN_URL} out=${OUT_M3U8}"
 ) >> "$TMPLOG" 2>&1 &
 
 FFPID="$!"
-
-# запишем pidfile
 echo "$FFPID" > "$PID_FILE" 2>/dev/null || true
 log "ffmpeg started pid=${FFPID} (pid_file=${PID_FILE})"
 
-# убедимся, что он не умер сразу
 sleep 1
 if ! kill -0 "$FFPID" 2>/dev/null; then
   log "ERROR ffmpeg exited immediately pid=${FFPID} (see output above)"

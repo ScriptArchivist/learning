@@ -247,3 +247,28 @@ class OutboxEvent(Base):
         Index("ix_outbox_status_available", "status", "available_at"),
         Index("ix_outbox_status_locked", "status", "locked_at"),
     )
+
+
+# ========== LIVE SESSIONS ==========
+class LiveSession(Base):
+    __tablename__ = "live_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    stream_key: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
+
+    # status: "created" | "started" | "stopped" | "error"
+    status: Mapped[str] = mapped_column(String(20), default="created", index=True, nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), index=True)
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    stopped_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    error: Mapped[str | None] = mapped_column(Text)
+
+    owner: Mapped["User"] = relationship("User")

@@ -210,8 +210,10 @@ app.add_middleware(
 # ===================== ROUTERS =====================
 
 from web.video import router as video_router  # noqa: E402
+from web.live import router as live_router  # noqa: E402
 
 app.include_router(video_router, prefix="/api/v1")
+app.include_router(live_router, prefix="/api/v1")
 
 # ===================== ROOT =====================
 
