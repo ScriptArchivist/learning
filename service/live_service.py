@@ -1,6 +1,7 @@
 # service/live_service.py
 from __future__ import annotations
 
+import logging
 import os
 import secrets
 import shutil
@@ -12,6 +13,8 @@ from sqlalchemy.orm import Session
 
 from db.models import LiveSession
 from errors import ForbiddenError, NotFoundError
+
+logger = logging.getLogger(__name__)
 
 # settings (dev fallback)
 try:
@@ -38,7 +41,6 @@ def _live_session_dir(stream_key: str) -> Path:
 
 
 def _build_rtmp_url(stream_key: str) -> str:
-    # ✅ дефолт с портом 1935
     tpl = os.getenv(
         "LIVE_RTMP_URL_TEMPLATE",
         getattr(settings, "LIVE_RTMP_URL_TEMPLATE", "rtmp://localhost:1935/live/{stream_key}"),
@@ -47,7 +49,6 @@ def _build_rtmp_url(stream_key: str) -> str:
 
 
 def _build_hls_url(stream_key: str) -> str:
-    # ✅ дефолт на master.m3u8
     tpl = os.getenv(
         "LIVE_HLS_URL_TEMPLATE",
         getattr(settings, "LIVE_HLS_URL_TEMPLATE", ""),
@@ -61,6 +62,41 @@ def _build_hls_url(stream_key: str) -> str:
 
 def _gen_stream_key() -> str:
     return secrets.token_urlsafe(18).rstrip("=")
+
+
+def _safe_cleanup_stream_dir(stream_key: str) -> None:
+    """
+    Безопасно удаляет /<storage_path>/live/<stream_key>/:
+    - не даёт удалить что-то вне live root (защита от ../)
+    - не удаляет сам live root
+    """
+    if not stream_key:
+        logger.warning("live cleanup skipped: empty stream_key")
+        return
+
+    root = _live_root_dir().resolve()
+    target = _live_session_dir(stream_key).resolve()
+
+    # target должен быть строго внутри root
+    try:
+        target.relative_to(root)
+    except Exception:
+        logger.error("live cleanup blocked (path traversal?): root=%s target=%s", root, target)
+        return
+
+    if target == root:
+        logger.error("live cleanup blocked: target equals root: %s", target)
+        return
+
+    if not target.exists():
+        logger.info("live cleanup: nothing to remove: %s", target)
+        return
+
+    try:
+        shutil.rmtree(target)
+        logger.info("live cleanup: removed %s", target)
+    except Exception:
+        logger.exception("live cleanup failed for %s", target)
 
 
 def create_live_session(db: Session, owner_id: int) -> Tuple[LiveSession, str, str]:
@@ -106,5 +142,5 @@ def stop_live_session(db: Session, session_id: int, owner_id: int) -> LiveSessio
         db.refresh(session)
 
     # TASK C3: cleanup после stop
-    shutil.rmtree(_live_session_dir(session.stream_key), ignore_errors=True)
+    _safe_cleanup_stream_dir(session.stream_key)
     return session

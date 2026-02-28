@@ -154,6 +154,21 @@ services:
       - ./db:/app/db
       - ./model:/app/model
 
+  live-cleaner:
+    build: .
+    command: python -m src.live_ttl_cleaner
+    depends_on:
+      web:
+        condition: service_started
+    environment:
+      STORAGE_PATH: /app/uploads
+      LIVE_TTL_MINUTES: ${LIVE_TTL_MINUTES:-30}
+      LIVE_TTL_INTERVAL_SECONDS: ${LIVE_TTL_INTERVAL_SECONDS:-60}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./src:/app/src
+      - uploads_data:/app/uploads
+
   origin:
     image: nginx:1.25-alpine
     ports:

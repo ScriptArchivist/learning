@@ -66,3 +66,6 @@ def get_live_session_endpoint(
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:
         raise HTTPException(status_code=403, detail=str(e))
+    except Exception as e:
+        logger.exception("get_live_session_endpoint failed")
+        raise HTTPException(status_code=400, detail=str(e))

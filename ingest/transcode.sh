@@ -3,7 +3,9 @@ set -eu
 
 # список ключей для MVP (можно расширять)
 STREAM_KEYS="${STREAM_KEYS:-test123}"
-HLS_ROOT="/app/uploads/live"
+
+# можно переопределять снаружи, но по умолчанию как и было
+HLS_ROOT="${HLS_ROOT:-/app/uploads/live}"
 
 mkdir -p "$HLS_ROOT"
 
