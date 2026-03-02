@@ -272,3 +272,49 @@ class LiveSession(Base):
     error: Mapped[str | None] = mapped_column(Text)
 
     owner: Mapped["User"] = relationship("User")
+
+
+    # ========== UPLOAD ==========
+class UploadStatus(str, enum.Enum):
+    INITIATED = "initiated"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class Upload(Base):
+    __tablename__ = "uploads"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+
+    video_id: Mapped[int] = mapped_column(
+        ForeignKey("videos.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        index=True,
+        nullable=False,
+    )
+
+    object_key: Mapped[str] = mapped_column(String(1000), nullable=False)
+
+    size: Mapped[int | None] = mapped_column(BigInteger)
+    checksum: Mapped[str | None] = mapped_column(String(128))
+    content_type: Mapped[str | None] = mapped_column(String(100))
+
+    status: Mapped[UploadStatus] = mapped_column(
+        Enum(UploadStatus),
+        default=UploadStatus.INITIATED,
+        index=True,
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
+
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )

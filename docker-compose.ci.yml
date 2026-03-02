@@ -93,6 +93,35 @@ services:
       - ./alembic.ini:/app/alembic.ini
       - uploads_data:/app/uploads
 
+  # ✅ NEW: Upload microservice
+  upload-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.upload
+    command: >
+      sh -c "echo 'Starting upload-service...' && uvicorn src.upload_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8002:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      AUTH_STUB: "1"
+      STORAGE_PATH: /app/uploads
+    volumes:
+      - ./src:/app/src
+      - ./web:/app/web
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - uploads_data:/app/uploads
+      - ./logging.ini:/app/logging.ini
+
   ingest:
     build: ./ingest
     ports:
@@ -131,7 +160,7 @@ services:
       - ./model:/app/model
       - uploads_data:/app/uploads
 
-  outbox:
+  outbox-publisher:
     build: .
     command: python -m src.outbox_publisher
     depends_on:
@@ -144,8 +173,28 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+
       OUTBOX_BATCH_SIZE: "50"
       OUTBOX_POLL_INTERVAL: "0.5"
+      OUTBOX_LEADER_LOCK_KEY: "424242"
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+
+  dlq-replayer:
+    build: .
+    command: python -m src.dlq_replayer
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      DLQ_REPLAY_LIMIT: "200"
+      DLQ_RESET_ATTEMPTS: "1"
     volumes:
       - ./src:/app/src
       - ./service:/app/service

@@ -1,270 +1,238 @@
 # src/outbox_publisher.py
-import os
-import time
-import json
+from __future__ import annotations
+
 import logging
 import logging.config
+import os
+import time
+from contextlib import contextmanager
+from typing import Any, Dict, List, Optional, TypedDict
 
-import pika
-from sqlalchemy.orm import Session
 from sqlalchemy import text
-
-from service.correlation import (
-    get_request_id,
-    get_trace_id,
-    set_correlation,
-)
+from sqlalchemy.orm import Session
 
 from db.database import SessionLocal
-from service.broker import _declare_topology, _declare_events_topology
-from src.config import (
-    RABBIT_URL,
-    RABBIT_QUEUE,
-    RABBIT_EVENTS_EXCHANGE,
-    RABBIT_EVENTS_ROUTING_KEY,
-)
-from service.outbox import (
-    fetch_pending_batch,
-    mark_published,
-    mark_failed_retry,
-    EVENT_VIDEO_PROCESS_REQUESTED,
-    EVENT_VIDEO_PROCESS_COMPLETED,
-    EVENT_VIDEO_PROCESS_FAILED,
-)
+from service.outbox import fetch_pending_batch, mark_failed_retry, mark_published
 
-BATCH_SIZE = int(os.getenv("OUTBOX_BATCH_SIZE", "50"))
-POLL_INTERVAL = float(os.getenv("OUTBOX_POLL_INTERVAL", "0.5"))
-
-# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов (включая pika) ---
-_old_factory = logging.getLogRecordFactory()
+# publish_domain_event already knows:
+# - video.process.requested -> MAIN queue (worker)
+# - others -> topic exchange
+from service.broker import publish_domain_event
 
 
-def record_factory(*args, **kwargs):
-    record = _old_factory(*args, **kwargs)
-    record.request_id = get_request_id() or "-"
-    record.trace_id = get_trace_id() or "-"
-    return record
-
-
-logging.setLogRecordFactory(record_factory)
-# ----------------------------------------------------------------------------------------
-
-# logging.ini (после factory!)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
-logger = logging.getLogger("outbox")
+logger = logging.getLogger("outbox-publisher")
+
+# Pika can be very noisy on network failures (which are expected for outbox retry).
+# Make it quiet to avoid megabytes of stacktraces in logs.
+logging.getLogger("pika").setLevel(logging.CRITICAL)
 
 
-def wait_for_outbox_table(
-    timeout_seconds: int = 60,
-    sleep_seconds: float = 1.0,
-    log_every_seconds: float = 2.0,
-) -> None:
-    """
-    Ждём, пока миграции создадут public.outbox_events.
-    """
-    deadline = time.time() + timeout_seconds
-    last_log = 0.0
-    last_err: Exception | None = None
-
-    while True:
-        if time.time() > deadline:
-            raise RuntimeError(
-                f"outbox_events not ready after {timeout_seconds}s"
-                + (f": last_err={last_err!r}" if last_err else "")
-            )
-
-        db: Session = SessionLocal()
-        try:
-            exists = db.execute(text("select to_regclass('public.outbox_events')")).scalar()
-            if exists:
-                return
-
-            now = time.time()
-            if now - last_log >= log_every_seconds:
-                logger.warning("waiting for migrations (outbox_events not ready yet)...")
-                last_log = now
-
-            time.sleep(sleep_seconds)
-
-        except Exception as e:
-            last_err = e
-            now = time.time()
-            if now - last_log >= log_every_seconds:
-                logger.warning("waiting for migrations (db not ready): %r", e)
-                last_log = now
-            time.sleep(sleep_seconds)
-
-        finally:
-            db.close()
+class OutboxItem(TypedDict):
+    id: int
+    event_type: str
+    envelope: Dict[str, Any]  # stored EventEnvelope (dict)
+    attempts: int
 
 
-def publish_one(ch, event_type: str, payload) -> None:
-    """
-    payload ожидается как ENVELOPE dict (event_id, event_type, schema_version, correlation_id, trace_id, payload, ...)
-    """
-    if not isinstance(payload, dict):
-        raise RuntimeError(f"outbox payload must be dict envelope, got: {type(payload)}")
-
-    rid = payload.get("correlation_id")
-    tid = payload.get("trace_id")
-
-    # Контекст корреляции для логов publisher'а
-    set_correlation(request_id=rid, trace_id=tid)
-
-    body = json.dumps(payload).encode("utf-8")
-
-    headers = {
-        "x-retry-count": 0,
-        "x-request-id": rid,
-        "x-trace-id": tid,
-    }
-
-    # 1) Команда воркеру
-    if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
-        ch.basic_publish(
-            exchange="",
-            routing_key=RABBIT_QUEUE,
-            body=body,
-            properties=pika.BasicProperties(
-                delivery_mode=2,
-                content_type="application/json",
-                headers=headers,
-                correlation_id=rid,
-                message_id=str(payload.get("event_id") or ""),
-            ),
-            mandatory=True,
-        )
-        logger.info("published to worker queue event_type=%s event_id=%s", event_type, payload.get("event_id"))
-        return
-
-    # 2) Доменные события
-    if event_type in (EVENT_VIDEO_PROCESS_COMPLETED, EVENT_VIDEO_PROCESS_FAILED):
-        ch.basic_publish(
-            exchange=RABBIT_EVENTS_EXCHANGE,
-            routing_key=RABBIT_EVENTS_ROUTING_KEY,
-            body=body,
-            properties=pika.BasicProperties(
-                delivery_mode=2,
-                content_type="application/json",
-                headers=headers,
-                correlation_id=rid,
-                message_id=str(payload.get("event_id") or ""),
-            ),
-            mandatory=True,
-        )
-        logger.info("published to events exchange event_type=%s event_id=%s", event_type, payload.get("event_id"))
-        return
-
-    raise RuntimeError(f"Unknown outbox event_type: {event_type}")
-
-
-def self_check(params: pika.URLParameters) -> None:
-    # 1) DB ping
-    db: Session = SessionLocal()
+def _env_int(name: str, default: int) -> int:
+    v = os.getenv(name)
+    if not v:
+        return default
     try:
-        db.execute(text("select 1"))
+        return int(v)
+    except Exception:
+        return default
+
+
+def _env_float(name: str, default: float) -> float:
+    v = os.getenv(name)
+    if not v:
+        return default
+    try:
+        return float(v)
+    except Exception:
+        return default
+
+
+BATCH_SIZE = _env_int("OUTBOX_BATCH_SIZE", 50)
+POLL_INTERVAL = _env_float("OUTBOX_POLL_INTERVAL", 0.5)
+
+# Leader election between replicas
+LEADER_LOCK_KEY = _env_int("OUTBOX_LEADER_LOCK_KEY", 424242)
+LEADER_REFRESH_SECONDS = _env_float("OUTBOX_LEADER_REFRESH_SECONDS", 2.0)
+
+
+@contextmanager
+def _session() -> Session:
+    db = SessionLocal()
+    try:
+        yield db
     finally:
         db.close()
 
-    # 2) Rabbit connect ping
-    conn = pika.BlockingConnection(params)
-    try:
-        ch = conn.channel()
-        ch.close()
-    finally:
-        conn.close()
 
-    logger.info("self_check: ok (db + rabbit)")
+def _try_advisory_lock(db: Session, lock_key: int) -> bool:
+    # pg_try_advisory_lock is held by the *connection*.
+    got = db.execute(text("select pg_try_advisory_lock(:k)"), {"k": lock_key}).scalar()
+    return bool(got)
+
+
+def _snapshot_events(events: list) -> List[OutboxItem]:
+    """
+    Convert ORM objects into plain dicts while still bound to Session.
+    Prevents DetachedInstanceError later.
+    """
+    snapped: List[OutboxItem] = []
+    for e in events:
+        envelope = e.payload
+        if envelope is None:
+            envelope = {}
+        if not isinstance(envelope, dict):
+            # keep as empty dict; will fail validation downstream and go to retry
+            envelope = {"_raw_payload": str(envelope)}
+
+        snapped.append(
+            {
+                "id": int(e.id),
+                "event_type": str(e.event_type),
+                "envelope": envelope,
+                "attempts": int(getattr(e, "attempts", 0) or 0),
+            }
+        )
+    return snapped
+
+
+def _extract_correlation(envelope: Dict[str, Any]) -> tuple[Optional[str], Optional[str]]:
+    rid = envelope.get("correlation_id") if isinstance(envelope, dict) else None
+    tid = envelope.get("trace_id") if isinstance(envelope, dict) else None
+    return (rid, tid)
+
+
+def _safe_err(e: Exception, limit: int = 800) -> str:
+    s = f"{type(e).__name__}: {e}"
+    s = s.replace("\n", " ").replace("\r", " ").strip()
+    return s[:limit]
+
+
+def _publish_one(it: OutboxItem) -> None:
+    event_id = it["id"]
+    event_type = it["event_type"]
+    envelope = it["envelope"]
+
+    if not isinstance(envelope, dict):
+        raise ValueError(f"outbox envelope is not a dict (event_id={event_id})")
+
+    rid, tid = _extract_correlation(envelope)
+
+    domain_payload = envelope.get("payload")
+    if not isinstance(domain_payload, dict):
+        raise ValueError(f"envelope.payload is not a dict (event_id={event_id})")
+
+    publish_domain_event(
+        event_type,
+        domain_payload,
+        correlation_id=rid,
+        trace_id=tid,
+    )
 
 
 def main() -> None:
-    params = pika.URLParameters(RABBIT_URL)
+    logger.info(
+        "boot: outbox-publisher batch=%s poll=%s lock_key=%s",
+        BATCH_SIZE,
+        POLL_INTERVAL,
+        LEADER_LOCK_KEY,
+    )
 
-    # Быстрый self-check перед стартом
-    try:
-        self_check(params)
-    except Exception as e:
-        logger.exception("self_check failed: %r", e)
-
-    params.heartbeat = int(os.getenv("RABBIT_HEARTBEAT", "60"))
-    params.blocked_connection_timeout = int(os.getenv("RABBIT_BLOCKED_TIMEOUT", "120"))
-
-    # чтобы логи сразу появлялись в docker logs
-    try:
-        import sys
-        sys.stdout.reconfigure(line_buffering=True)
-    except Exception:
-        pass
+    # Leader keeps this session open to hold pg advisory lock.
+    leader_db: Optional[Session] = None
 
     while True:
-        conn = None
-        ch = None
+        # 1) Ensure leader
+        if leader_db is None:
+            try:
+                leader_db = SessionLocal()
+                if not _try_advisory_lock(leader_db, LEADER_LOCK_KEY):
+                    leader_db.close()
+                    leader_db = None
+                    time.sleep(LEADER_REFRESH_SECONDS)
+                    continue
+
+                logger.info("leader lock acquired key=%s", LEADER_LOCK_KEY)
+            except Exception as e:
+                logger.warning("leader acquire failed err=%s", _safe_err(e), exc_info=False)
+                if leader_db is not None:
+                    try:
+                        leader_db.close()
+                    except Exception:
+                        pass
+                    leader_db = None
+                time.sleep(LEADER_REFRESH_SECONDS)
+                continue
+
         try:
-            wait_for_outbox_table(timeout_seconds=90, sleep_seconds=1.0)
+            # 2) Claim batch and snapshot in a short transaction
+            items: List[OutboxItem] = []
+            with _session() as db:
+                with db.begin():
+                    events = fetch_pending_batch(db, limit=BATCH_SIZE)
+                    if events:
+                        items = _snapshot_events(events)
+                # commit happens on exiting begin()
 
-            conn = pika.BlockingConnection(params)
-            ch = conn.channel()
+            if not items:
+                time.sleep(POLL_INTERVAL)
+                continue
 
-            _declare_topology(ch)
-            _declare_events_topology(ch)
+            # 3) Publish each item and mark result
+            for it in items:
+                event_id = it["id"]
+                event_type = it["event_type"]
+                attempts_next = it["attempts"] + 1
 
-            ch.confirm_delivery()
-
-            logger.info("boot: started publisher loop")
-
-            while True:
-                db: Session = SessionLocal()
                 try:
-                    with db.begin():
-                        events = fetch_pending_batch(db, limit=BATCH_SIZE)
+                    _publish_one(it)
 
-                        claimed = len(events)
-                        published = 0
-                        failed = 0
+                    with _session() as db:
+                        with db.begin():
+                            mark_published(db, event_id)
 
-                        for e in events:
-                            try:
-                                publish_one(ch, e.event_type, e.payload)
-                                mark_published(db, e.id)
-                                published += 1
-                            except Exception as ex:
-                                mark_failed_retry(
-                                    db,
-                                    e.id,
-                                    str(ex),
-                                    attempts=(e.attempts or 0) + 1,
-                                )
-                                failed += 1
+                    logger.info("published event_id=%s type=%s", event_id, event_type)
 
-                    logger.info(
-                        "outbox batch: claimed=%s published=%s failed=%s",
-                        claimed,
-                        published,
-                        failed,
+                except Exception as e:
+                    err = _safe_err(e)
+
+                    # Store retry/backoff in DB
+                    with _session() as db:
+                        with db.begin():
+                            mark_failed_retry(db, event_id, err, attempts_next)
+
+                    # No traceback: this is expected when broker is down
+                    logger.warning(
+                        "publish failed event_id=%s type=%s attempts=%s err=%s",
+                        event_id,
+                        event_type,
+                        attempts_next,
+                        err,
+                        exc_info=False,
                     )
-                finally:
-                    db.close()
 
-                if conn and conn.is_open:
-                    conn.sleep(POLL_INTERVAL)
-                else:
-                    raise RuntimeError("Rabbit connection closed")
+            # small pause to avoid tight loop
+            time.sleep(0.01)
 
         except Exception as e:
-            logger.exception("crashed: %r", e)
-            time.sleep(2)
+            # If something unexpected happened at loop-level, drop leadership and re-elect.
+            logger.warning("loop error, reset leader err=%s", _safe_err(e), exc_info=False)
 
-        finally:
-            try:
-                if ch and ch.is_open:
-                    ch.close()
-            except Exception:
-                pass
-            try:
-                if conn and conn.is_open:
-                    conn.close()
-            except Exception:
-                pass
+            if leader_db is not None:
+                try:
+                    leader_db.close()
+                except Exception:
+                    pass
+                leader_db = None
+
+            time.sleep(LEADER_REFRESH_SECONDS)
 
 
 if __name__ == "__main__":

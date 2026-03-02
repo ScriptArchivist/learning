@@ -36,6 +36,17 @@ def record_factory(*args, **kwargs):
 logging.setLogRecordFactory(record_factory)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("broker")
+# Pika логирует очень шумно на сетевых/DNS фейлах — для outbox это ожидаемо
+for name in (
+    "pika",
+    "pika.adapters",
+    "pika.adapters.blocking_connection",
+    "pika.adapters.utils.connection_workflow",
+    "pika.adapters.utils.selector_ioloop_adapter",
+):
+    logging.getLogger(name).setLevel(logging.WARNING)
+# Pika может очень шумно писать ERROR при сетевых проблемах/DNS — для outbox это ожидаемо
+logging.getLogger("pika").setLevel(logging.WARNING)
 
 # ---- retry settings ----
 MAX_RETRIES = int(os.getenv("VIDEO_MAX_RETRIES", "5"))          # количество RETRY (не считая первую попытку)
@@ -50,9 +61,23 @@ EXCHANGE_DLX = f"{RABBIT_QUEUE}.dlx.x"         # direct
 
 
 def _connect() -> pika.BlockingConnection:
+    """
+    Важно для outbox: быстро фейлимся и отдаём управление backoff'у в БД,
+    вместо долгих ретраев внутри Pika + тонны ERROR логов.
+    """
     params = pika.URLParameters(RABBIT_URL)
+
     params.heartbeat = int(os.getenv("RABBIT_HEARTBEAT", "60"))
     params.blocked_connection_timeout = int(os.getenv("RABBIT_BLOCKED_TIMEOUT", "120"))
+
+    # Быстрый fail (пусть ретраит outbox через available_at)
+    params.connection_attempts = int(os.getenv("RABBIT_CONNECTION_ATTEMPTS", "1"))
+    params.retry_delay = float(os.getenv("RABBIT_RETRY_DELAY_SECONDS", "0"))
+
+    # Таймауты сокета (чтобы не висеть)
+    params.socket_timeout = float(os.getenv("RABBIT_SOCKET_TIMEOUT_SECONDS", "5"))
+    params.stack_timeout = float(os.getenv("RABBIT_STACK_TIMEOUT_SECONDS", "10"))
+
     return pika.BlockingConnection(params)
 
 
@@ -158,13 +183,22 @@ def publish_domain_event(
     if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
         envelope = {
             "schema_version": "1.0",
-            "event_id": str(os.getenv("HOSTNAME", "worker-producer")) + ":" + str(time.time_ns()),
+            "event_id": str(os.getenv("HOSTNAME", "web-producer")) + ":" + str(time.time_ns()),
             "event_type": event_type,
-            "payload": payload,
-            "occurred_at": time.time(),
+
+            # ✅ ВАЖНО: worker ожидает producer как обязательное поле EventEnvelope
+            "producer": os.getenv("SERVICE_NAME", "web"),
+
             "correlation_id": correlation_id,
             "trace_id": trace_id,
+
+            # payload — доменный payload (job_id, video_id, input_key, output_prefix, attempt)
+            "payload": payload,
+
+            # оставляем как было (у тебя модель это принимает)
+            "occurred_at": time.time(),
         }
+
         publish_worker_envelope(envelope, correlation_id=correlation_id, trace_id=trace_id)
         return
 
@@ -183,6 +217,76 @@ def publish_domain_event(
                 delivery_mode=2,
                 content_type="application/json",
                 correlation_id=correlation_id,
+            ),
+            mandatory=True,
+        )
+    finally:
+        conn.close()
+
+
+def publish_outbox_envelope(envelope: dict) -> None:
+    """
+    Публикация ИМЕННО outbox envelope без перегенерации event_id.
+    Idempotency key = envelope["event_id"] (кладём в message_id + header).
+    """
+    event_type = envelope.get("event_type")
+    if not event_type:
+        raise ValueError("envelope has no event_type")
+
+    event_id = envelope.get("event_id")
+    correlation_id = envelope.get("correlation_id")
+    trace_id = envelope.get("trace_id")
+
+    # 1) video.process.requested -> worker MAIN queue (default exchange)
+    from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED
+
+    if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
+        conn = _connect()
+        try:
+            ch = conn.channel()
+            _declare_topology(ch)
+
+            headers: Dict[str, Any] = {}
+            if correlation_id:
+                headers["x-request-id"] = correlation_id
+            if trace_id:
+                headers["x-trace-id"] = trace_id
+            if event_id:
+                headers["x-event-id"] = event_id
+
+            ch.basic_publish(
+                exchange="",
+                routing_key=QUEUE_MAIN,
+                body=json.dumps(envelope).encode(),
+                properties=pika.BasicProperties(
+                    delivery_mode=2,
+                    content_type="application/json",
+                    correlation_id=correlation_id,
+                    message_id=str(event_id) if event_id else None,
+                    headers=headers or None,
+                ),
+            )
+        finally:
+            conn.close()
+        return
+
+    # 2) прочие доменные события -> topic exchange
+    conn = _connect()
+    try:
+        ch = conn.channel()
+        _declare_events_topology(ch)
+
+        # кладём envelope целиком, чтобы downstream видел event_id/correlation/trace/schema_version/etc
+        ch.basic_publish(
+            exchange=RABBIT_EVENTS_EXCHANGE,
+            routing_key=RABBIT_EVENTS_ROUTING_KEY,
+            body=json.dumps(envelope).encode(),
+            properties=pika.BasicProperties(
+                delivery_mode=2,
+                content_type="application/json",
+                correlation_id=correlation_id,
+                message_id=str(event_id) if event_id else None,
+                headers={"x-event-id": str(event_id)} if event_id else None,
             ),
             mandatory=True,
         )
