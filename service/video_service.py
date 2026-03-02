@@ -404,9 +404,13 @@ def complete_video_upload(
 
     transition_video_status(video, VideoStatus.UPLOADED, actor="api")
 
+    job_id = str(uuid.uuid4())
     requested_payload = VideoProcessRequestedPayload(
+        job_id=job_id,
         video_id=int(video.id),
-        path=video.original_path,
+        input_key=video.original_path,
+        output_prefix=f"hls/v{video.id}",
+        attempt=1,
     )
 
     add_event(

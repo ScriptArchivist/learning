@@ -38,13 +38,13 @@ class EventEnvelope(BaseModel):
 
 class VideoProcessRequestedPayload(BaseModel):
     """
-    video.process.requested (v1.0)
-
-    Пока worker работает только с локальным стораджем, используем path.
-    Когда подключите S3 — можно в v1.1 добавить storage_key/source_url и сделать path optional.
+    Job envelope для processing-worker.
     """
+    job_id: str
     video_id: int
-    path: str
+    input_key: str
+    output_prefix: str
+    attempt: int = 1
 
 
 class VideoProcessCompletedPayload(BaseModel):

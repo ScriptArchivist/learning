@@ -120,8 +120,10 @@ def handle(message: dict, retry_count: int) -> None:
         raise
 
     video_id = int(payload.video_id)
-    orig_key = payload.path
-    event_id = str(envelope.event_id)
+    orig_key = payload.input_key
+    output_prefix = payload.output_prefix
+    job_id = payload.job_id
+    event_id = job_id
 
     logger.info("start video_id=%s key=%s event_id=%s retry_count=%s", video_id, orig_key, event_id, retry_count)
 
@@ -145,8 +147,8 @@ def handle(message: dict, retry_count: int) -> None:
 
     try:
         thumb_key = thumbnail_path(video_id)
-        hls_dir_key_str = hls_dir(video_id)
-        hls_master_key_str = hls_master(video_id)
+        hls_dir_key_str = output_prefix
+        hls_master_key_str = f"{output_prefix}/master.m3u8"
 
         orig_full = storage.resolve_local_path(orig_key)
         thumb_full = storage.resolve_local_path(thumb_key)

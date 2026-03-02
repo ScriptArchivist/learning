@@ -31,7 +31,6 @@ services:
     ports:
       - "6379:6379"
 
-  # Единственная точка выполнения миграций
   migrate:
     build: .
     command: >
@@ -68,25 +67,22 @@ services:
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
       AUTH_STUB: "1"
 
-      # Delivery
       DELIVERY_MODE: ${DELIVERY_MODE:-local}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
       DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-http://localhost:8080}
 
-      # Redis locks
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
 
-      # HLS token
       HLS_TOKEN_SECRET: ${HLS_TOKEN_SECRET:-super-long-random-secret-1234567890}
       HLS_TOKEN_TTL_SECONDS: ${HLS_TOKEN_TTL_SECONDS:-300}
 
       LIVE_RTMP_URL_TEMPLATE: "rtmp://localhost:1935/live/{stream_key}"
       LIVE_HLS_URL_TEMPLATE: "http://localhost:8080/live/{stream_key}/master.m3u8"
 
-      # CORS
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
       CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-^https?://(localhost|127\.0\.0\.1)(:\d+)?$}
+
     volumes:
       - ./src:/app/src
       - ./web:/app/web
@@ -108,8 +104,10 @@ services:
     command: >
       sh -lc "mkdir -p /app/uploads/live && chmod -R 0777 /app/uploads && nginx -g 'daemon off;'"
 
-  worker:
-    build: .
+  processing-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
     command: python -m src.worker
     depends_on:
       db:
