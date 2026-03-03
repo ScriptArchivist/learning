@@ -1,56 +1,36 @@
 # service/video_presenter.py
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Optional
 
 from model.video_contract import VideoDetailDTO, VideoListItemDTO
-from service.paths import delivery_url, hls_master, hls_dir
+from service.paths import hls_public_master_url
 
 try:
     from src.config import settings
 except ImportError:
     class Settings:
-        storage_path = "/app/uploads"
-        DELIVERY_MODE = "local"  # "local" | "url"
+        DELIVERY_MODE = "url"
     settings = Settings()
 
 
 def _is_url_mode() -> bool:
-    return getattr(settings, "DELIVERY_MODE", "local") == "url"
+    # В “правильной” архитектуре playback всегда через origin/url-mode
+    return getattr(settings, "DELIVERY_MODE", "url") == "url"
 
 
-def _full_storage_path(rel_path: str) -> str:
-    base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
-    return str(Path(base) / rel_path.lstrip("/"))
+def _compute_hls_ready(status_value: str) -> bool:
+    # Единственный источник правды для готовности — доменный статус.
+    return status_value == "ready"
 
 
-def _compute_hls_ready(video_id: int, status_value: str) -> bool:
-    """
-    Стабильное правило для UI:
-      - hls_ready True только если реально есть master playlist (или url-mode).
-    """
-    if status_value != "ready":
-        return False
-
-    if _is_url_mode():
-        return True
-
-    master_key = hls_master(video_id)
-    return Path(_full_storage_path(master_key)).exists()
-
-
-def _build_hls_url(video_id: int, *, hls_ready: bool, shared_token: Optional[str] = None) -> Optional[str]:
+def _build_hls_url(video_id: int, *, hls_ready: bool) -> Optional[str]:
     if not hls_ready:
         return None
 
-    if _is_url_mode():
-        return delivery_url(hls_master(video_id))
-
-    # local-mode: отдаём API endpoint (там token-rewrite и проверка доступа)
-    if shared_token:
-        return f"/api/v1/videos/shared/{shared_token}/hls/master.m3u8"
-    return f"/api/v1/videos/{video_id}/hls/master.m3u8"
+    # В правильной схеме всегда публичная раздача через origin
+    # (/hls/v{id}/master.m3u8)
+    return hls_public_master_url(video_id)
 
 
 def _share_fields(video) -> tuple[bool, Optional[str]]:
@@ -61,18 +41,16 @@ def _share_fields(video) -> tuple[bool, Optional[str]]:
 
 
 def to_list_item(video, *, shared_token: Optional[str] = None) -> VideoListItemDTO:
-    """
-    SQLAlchemy Video -> стабильный DTO для списка.
-    shared_token задаётся только для /videos/shared/{token} (там урлы другие).
-    """
     status_value = getattr(video.status, "value", str(video.status))
     visibility_value = getattr(video.visibility, "value", str(video.visibility))
 
-    hls_ready = _compute_hls_ready(video.id, status_value=status_value)
-    hls_url = _build_hls_url(video.id, hls_ready=hls_ready, shared_token=shared_token)
+    hls_ready = _compute_hls_ready(status_value=status_value)
+    hls_url = _build_hls_url(video.id, hls_ready=hls_ready)
 
     is_shared, share_url = _share_fields(video)
 
+    # Эти url'ы в video-api могут быть неиспользуемы (Flutter ходит только в playback),
+    # но оставим стабильную схему DTO.
     if shared_token:
         watch_url = f"/api/v1/videos/shared/{shared_token}/watch"
         file_url = f"/api/v1/videos/shared/{shared_token}/file"
@@ -109,11 +87,7 @@ def to_list_item(video, *, shared_token: Optional[str] = None) -> VideoListItemD
 
 
 def to_detail(video, *, shared_token: Optional[str] = None) -> VideoDetailDTO:
-    """
-    Детальный DTO: list_item + owner/formats/tasks.
-    """
     base = to_list_item(video, shared_token=shared_token)
-
     return VideoDetailDTO(
         **base.model_dump(),
         owner=getattr(video, "owner", None),

@@ -364,3 +364,15 @@ def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
         finally:
             if conn and conn.is_open:
                 conn.close()
+
+
+def _declare_events_topology(ch) -> None:
+    # Только exchange + ОДНА очередь events.q
+    ch.exchange_declare(exchange=RABBIT_EVENTS_EXCHANGE, exchange_type="topic", durable=True)
+
+    ch.queue_declare(queue=RABBIT_EVENTS_QUEUE, durable=True)
+    ch.queue_bind(
+        queue=RABBIT_EVENTS_QUEUE,
+        exchange=RABBIT_EVENTS_EXCHANGE,
+        routing_key=RABBIT_EVENTS_ROUTING_KEY,
+    )

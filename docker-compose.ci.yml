@@ -47,6 +47,8 @@ services:
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
 
+  # Legacy / origin-facing API:
+  # upload + file/hls/thumb + share/watch etc
   web:
     build: .
     command: >
@@ -91,9 +93,69 @@ services:
       - ./model:/app/model
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
+      - ./logging.ini:/app/logging.ini
       - uploads_data:/app/uploads
 
-  # ✅ NEW: Upload microservice
+  # ✅ Video API for Flutter (metadata + playback only)
+  # ВАЖНО: delivery=url => не лезем в /app/uploads, отдаём публичные HLS URL через origin/nginx
+  video-api:
+    build: .
+    command: >
+      sh -c "echo 'Starting video-api...' && uvicorn src.video_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8003:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      AUTH_STUB: "1"
+
+      # ✅ video-api stateless: только публичные ссылки на origin (nginx)
+      DELIVERY_MODE: "url"
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-http://localhost:8080}
+
+      # необязательно, но пусть будет консистентно
+      DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
+    volumes:
+      - ./src:/app/src
+      - ./web:/app/web
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./logging.ini:/app/logging.ini
+
+  # ✅ Consumer доменных событий для обновления статусов в БД
+  # (UPLOAD_COMPLETED, PROCESSING_*)
+  video-events-consumer:
+    build: .
+    command: python -m src.video_events_consumer
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+
+      RABBIT_EVENTS_EXCHANGE: ${RABBIT_EVENTS_EXCHANGE:-video.events.x}
+      RABBIT_EVENTS_QUEUE: ${RABBIT_EVENTS_QUEUE:-events.q}
+      RABBIT_EVENTS_ROUTING_KEY: ${RABBIT_EVENTS_ROUTING_KEY:-video.events}
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./logging.ini:/app/logging.ini
+
+  # Upload microservice (если ты реально его используешь отдельно)
   upload-service:
     build:
       context: .
@@ -119,8 +181,8 @@ services:
       - ./model:/app/model
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
-      - uploads_data:/app/uploads
       - ./logging.ini:/app/logging.ini
+      - uploads_data:/app/uploads
 
   ingest:
     build: ./ingest
@@ -173,7 +235,6 @@ services:
     environment:
       DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
-
       OUTBOX_BATCH_SIZE: "50"
       OUTBOX_POLL_INTERVAL: "0.5"
       OUTBOX_LEADER_LOCK_KEY: "424242"
