@@ -6,42 +6,63 @@ umask 000
 
 NAME="${1:-}"
 
-TMPLOG="/tmp/live_exec_${NAME:-noname}.log"
+# Логи только в /app/uploads (гарантированно доступно по entrypoint chmod 0777)
 PLOG="/app/uploads/live_exec.log"
+SLOG="/app/uploads/live_exec_${NAME:-noname}.log"
 
 log() {
   ts="$(date '+%Y-%m-%dT%H:%M:%S%z' 2>/dev/null || echo '?')"
-  echo "$ts $*" >> "$TMPLOG" 2>/dev/null || true
+  # НИКОГДА не падаем из-за логов
+  echo "$ts $*" >> "$SLOG" 2>/dev/null || true
   echo "$ts $*" >> "$PLOG" 2>/dev/null || true
 }
 
 log "on_publish start name='${NAME}'"
 
-[ -n "${NAME:-}" ] || { log "ERROR empty name"; exit 1; }
-echo "$NAME" | grep -Eq '^[A-Za-z0-9_.-]+$' || { log "ERROR invalid name='$NAME'"; exit 1; }
+[ -n "${NAME:-}" ] || { log "ERROR empty name"; exit 0; }
+echo "$NAME" | grep -Eq '^[A-Za-z0-9_.-]+$' || { log "ERROR invalid name='$NAME'"; exit 0; }
 
 OUT_DIR="/app/uploads/live/${NAME}"
 PID_FILE="/tmp/ffmpeg-live-${NAME}.pid"
 LOCK_DIR="/tmp/ffmpeg-live-${NAME}.lock"
 
-# ВАЖНО: внутри docker-compose сети ходим по имени сервиса, а не 127.0.0.1
-RTMP_HOST="${RTMP_HOST:-ingest}"
-RTMP_PORT="${RTMP_PORT:-1935}"
+# ---- live-api create (best-effort) ----
+LIVE_API_URL="${LIVE_API_URL:-http://live-api:8000/live/sessions}"
+CORR_ID="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo $$)"
+STATE_FILE="/tmp/live_session_${NAME}.id"
 
-IN_URL="rtmp://${RTMP_HOST}:${RTMP_PORT}/live/${NAME}"
+# ttl_seconds обязателен (иначе 422)
+resp="$(curl -sS -X POST "$LIVE_API_URL" \
+  -H "Content-Type: application/json" \
+  -H "X-Correlation-Id: $CORR_ID" \
+  -d "{\"stream_key\":\"${NAME}\",\"ttl_seconds\":3600}" 2>/dev/null || true)"
 
-OUT_M3U8="${OUT_DIR}/master.m3u8"
+session_id="$(echo "$resp" | python3 -c 'import sys,json; 
+import sys
+s=sys.stdin.read().strip()
+if not s: 
+  sys.exit(0)
+d=json.loads(s)
+print(d.get("session",{}).get("id",""))' 2>/dev/null || true)"
+
+if [ -n "${session_id:-}" ]; then
+  echo "$session_id" > "$STATE_FILE" 2>/dev/null || true
+  log "live-api create ok session_id=${session_id} corr_id=${CORR_ID}"
+else
+  log "WARN live-api create failed (continuing). resp='${resp}'"
+fi
+# ---- /live-api create ----
 
 # lock (атомарно)
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   log "WARN lock exists ${LOCK_DIR} (another on_publish running?)"
   sleep 1
-  mkdir "$LOCK_DIR" 2>/dev/null || { log "ERROR cannot acquire lock ${LOCK_DIR}"; exit 1; }
+  mkdir "$LOCK_DIR" 2>/dev/null || { log "ERROR cannot acquire lock ${LOCK_DIR}"; exit 0; }
 fi
 cleanup() { rmdir "$LOCK_DIR" 2>/dev/null || true; }
 trap cleanup EXIT
 
-mkdir -p "$OUT_DIR" || { log "ERROR mkdir failed ${OUT_DIR}"; exit 1; }
+mkdir -p "$OUT_DIR" || { log "ERROR mkdir failed ${OUT_DIR}"; exit 0; }
 log "created OUT_DIR=${OUT_DIR}"
 
 # остановим старый ffmpeg (если он реально наш)
@@ -67,39 +88,12 @@ stop_old() {
 
 stop_old
 
-probe_ok() {
-  if command -v timeout >/dev/null 2>&1; then
-    out="$(timeout 2 /usr/bin/ffprobe -v error -rtmp_live live -rw_timeout 2000000 \
-      -show_entries stream=codec_type -of default=nw=1:nk=1 \
-      "$IN_URL" 2>/dev/null || true)"
-  else
-    out="$(/usr/bin/ffprobe -v error -rtmp_live live -rw_timeout 2000000 \
-      -show_entries stream=codec_type -of default=nw=1:nk=1 \
-      "$IN_URL" 2>/dev/null || true)"
-  fi
+RTMP_HOST="${RTMP_HOST:-ingest}"
+RTMP_PORT="${RTMP_PORT:-1935}"
+IN_URL="rtmp://${RTMP_HOST}:${RTMP_PORT}/live/${NAME}"
+OUT_M3U8="${OUT_DIR}/master.m3u8"
 
-  # ВАЖНО: ждём именно video, иначе ffmpeg стартует как audio-only и потом видео уже не подцепит
-  echo "$out" | grep -q '^video$'
-}
-
-WAIT="${WAIT_SECONDS:-20}"
-log "waiting for input up to ${WAIT}s (ffprobe) url=${IN_URL}"
-i=0
-while [ "$i" -lt "$WAIT" ]; do
-  if probe_ok; then
-    log "ffprobe ok after ${i}s"
-    break
-  fi
-  i=$((i+1))
-  sleep 1
-done
-
-if [ "$i" -ge "$WAIT" ]; then
-  log "ERROR input not available after ${WAIT}s: ${IN_URL}"
-  exit 1
-fi
-
-log "starting ffmpeg in_url=${IN_URL} out=${OUT_M3U8}"
+log "starting ffmpeg pull in_url=${IN_URL} out=${OUT_M3U8}"
 
 (
   exec /usr/bin/ffmpeg -hide_banner -loglevel info -y \
@@ -121,18 +115,10 @@ log "starting ffmpeg in_url=${IN_URL} out=${OUT_M3U8}"
     -hls_segment_type mpegts \
     -hls_segment_filename "${OUT_DIR}/seg_%05d.ts" \
     "$OUT_M3U8"
-) >> "$TMPLOG" 2>&1 &
+) >> "$SLOG" 2>&1 &
 
 FFPID="$!"
 echo "$FFPID" > "$PID_FILE" 2>/dev/null || true
-log "ffmpeg started pid=${FFPID} (pid_file=${PID_FILE})"
+log "ffmpeg pull started pid=${FFPID} pid_file=${PID_FILE}"
 
-sleep 1
-if ! kill -0 "$FFPID" 2>/dev/null; then
-  log "ERROR ffmpeg exited immediately pid=${FFPID} (see output above)"
-  rm -f "$PID_FILE" 2>/dev/null || true
-  exit 1
-fi
-
-log "on_publish done (ok)"
 exit 0
