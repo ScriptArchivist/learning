@@ -64,3 +64,27 @@ class VideoProcessFailedPayload(BaseModel):
     """
     video_id: int
     error: str
+
+# -------------------------
+# Live payload schemas (v1.0)
+# -------------------------
+
+class LiveSessionStartedPayload(BaseModel):
+    session_id: int
+    stream_key: str
+    owner_id: int
+    expires_at: Optional[datetime] = None
+
+
+class LiveSessionStoppedPayload(BaseModel):
+    session_id: int
+    stream_key: str
+    owner_id: int
+    stopped_at: datetime
+
+
+class LiveSessionExpiredPayload(BaseModel):
+    session_id: int
+    stream_key: str
+    owner_id: int
+    expired_at: datetime

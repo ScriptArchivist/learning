@@ -4,10 +4,10 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-LiveSessionStatus = Literal["created", "started", "stopped", "error"]
+LiveSessionStatus = Literal["created", "started", "stopped", "expired", "error"]
 
 
 class LiveSessionDTO(BaseModel):
@@ -18,10 +18,17 @@ class LiveSessionDTO(BaseModel):
     created_at: datetime
     started_at: Optional[datetime] = None
     stopped_at: Optional[datetime] = None
+    expires_at: Optional[datetime] = None
     error: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class LiveSessionCreateRequest(BaseModel):
+    # если не передан — генерируем
+    stream_key: Optional[str] = None
+    ttl_seconds: int = Field(default=1800, ge=60, le=24 * 3600)
 
 
 class LiveSessionCreateResponse(BaseModel):

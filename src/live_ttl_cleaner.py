@@ -2,102 +2,98 @@ from __future__ import annotations
 
 import logging
 import os
-import shutil
 import time
 from datetime import datetime, timezone
-from pathlib import Path
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+
+from db.database import get_db_write
+from db.models import LiveSession
+from service.live_service import _safe_cleanup_stream_dir  # noqa: SLF001
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("live_ttl_cleaner")
 
 
-def _live_root() -> Path:
-    storage_path = os.getenv("STORAGE_PATH", "/app/uploads")
-    return Path(storage_path) / "live"
-
-
-def _ttl_seconds() -> int:
-    minutes = int(os.getenv("LIVE_TTL_MINUTES", "30"))
-    return max(60, minutes * 60)
-
-
 def _interval_seconds() -> int:
-    return max(10, int(os.getenv("LIVE_TTL_INTERVAL_SECONDS", "60")))
+    return max(5, int(os.getenv("LIVE_TTL_INTERVAL_SECONDS", "10")))
 
 
-def _now_ts() -> float:
-    return datetime.now(timezone.utc).timestamp()
+def _batch_size() -> int:
+    return max(1, int(os.getenv("LIVE_TTL_BATCH_SIZE", "100")))
 
 
-def _dir_last_activity_ts(d: Path) -> float | None:
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def expire_once(db: Session) -> int:
     """
-    Надёжнее, чем d.stat().st_mtime:
-    берём max(mtime) по файлам внутри, чтобы TTL работал на overlayfs.
+    Ищем live_sessions, у которых истёк expires_at, и:
+      1) переводим статус -> expired (если ещё не stopped/expired)
+      2) чистим /app/uploads/live/<stream_key>
     """
-    try:
-        # ищем любые файлы внутри (включая сегменты)
-        mtimes = []
-        for p in d.rglob("*"):
-            if p.is_file():
-                try:
-                    mtimes.append(p.stat().st_mtime)
-                except FileNotFoundError:
-                    continue
-        if mtimes:
-            return max(mtimes)
-        # если файлов нет — fallback на mtime самой директории
-        return d.stat().st_mtime
-    except FileNotFoundError:
-        return None
+    now = _utc_now()
 
+    # Берём только активные сессии, у которых истёк expires_at
+    stmt = (
+        select(LiveSession)
+        .where(
+            LiveSession.expires_at.is_not(None),
+            LiveSession.expires_at <= now,
+            LiveSession.status.in_(("created", "started")),
+        )
+        .order_by(LiveSession.expires_at.asc())
+        .limit(_batch_size())
+        .with_for_update(skip_locked=True)
+    )
 
-def cleanup_once() -> None:
-    root = _live_root()
-    if not root.exists():
-        return
+    sessions = list(db.execute(stmt).scalars().all())
+    if not sessions:
+        return 0
 
-    root_resolved = root.resolve()
-    ttl = _ttl_seconds()
-    now = _now_ts()
+    expired_count = 0
+    for s in sessions:
+        stream_key = s.stream_key
 
-    for d in root.iterdir():
-        if not d.is_dir():
-            continue
+        # 1) mark expired in DB
+        s.status = "expired"
+        db.add(s)
+        expired_count += 1
 
-        # safety: must be inside root
+        # 2) cleanup files
         try:
-            dr = d.resolve()
-            dr.relative_to(root_resolved)
+            _safe_cleanup_stream_dir(stream_key)
+            logger.info("expired cleanup done: stream_key=%s session_id=%s", stream_key, s.id)
         except Exception:
-            logger.error("skip suspicious path: %s", d)
-            continue
+            logger.exception("expired cleanup failed: stream_key=%s session_id=%s", stream_key, s.id)
 
-        last_ts = _dir_last_activity_ts(dr)
-        if last_ts is None:
-            continue
-
-        age = now - last_ts
-        if age < ttl:
-            continue
-
-        try:
-            shutil.rmtree(dr)
-            logger.info("TTL cleanup removed: %s (age=%ss)", dr, int(age))
-        except Exception:
-            logger.exception("TTL cleanup failed for: %s", dr)
+    db.commit()
+    return expired_count
 
 
 def main() -> None:
-    root = _live_root()
     logger.info(
-        "live TTL cleaner started: root=%s ttl=%ss interval=%ss",
-        root,
-        _ttl_seconds(),
+        "live TTL cleaner started: interval=%ss batch=%s db=%s",
         _interval_seconds(),
+        _batch_size(),
+        os.getenv("DATABASE_URL") or os.getenv("DATABASE_WRITE_URL") or "unknown",
     )
 
     while True:
-        cleanup_once()
+        try:
+            # db write session
+            db = next(get_db_write())
+            try:
+                n = expire_once(db)
+                if n:
+                    logger.info("expired sessions: %s", n)
+            finally:
+                db.close()
+        except Exception:
+            logger.exception("live TTL cleaner loop failed")
+
         time.sleep(_interval_seconds())
 
 

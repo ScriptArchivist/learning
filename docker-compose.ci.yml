@@ -96,6 +96,35 @@ services:
       - ./logging.ini:/app/logging.ini
       - uploads_data:/app/uploads
 
+  # ✅ Live Control API (Stage 4.1)
+  live-api:
+    build: .
+    command: >
+      sh -c "echo 'Starting live-api...' && uvicorn src.live_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8004:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      AUTH_STUB: "1"
+
+      LIVE_RTMP_URL_TEMPLATE: "rtmp://localhost:1935/live/{stream_key}"
+      LIVE_HLS_URL_TEMPLATE: "http://localhost:8080/live/{stream_key}/master.m3u8"
+    volumes:
+      - ./src:/app/src
+      - ./web:/app/web
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./logging.ini:/app/logging.ini
+      - uploads_data:/app/uploads
+
   # ✅ Video API for Flutter (metadata + playback only)
   # ВАЖНО: delivery=url => не лезем в /app/uploads, отдаём публичные HLS URL через origin/nginx
   video-api:
@@ -262,19 +291,24 @@ services:
       - ./db:/app/db
       - ./model:/app/model
 
+  # ✅ TTL cleaner as separate process/container (Stage 4.1)
   live-cleaner:
     build: .
     command: python -m src.live_ttl_cleaner
     depends_on:
-      web:
-        condition: service_started
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
-      STORAGE_PATH: /app/uploads
-      LIVE_TTL_MINUTES: ${LIVE_TTL_MINUTES:-30}
-      LIVE_TTL_INTERVAL_SECONDS: ${LIVE_TTL_INTERVAL_SECONDS:-60}
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      LIVE_TTL_INTERVAL_SECONDS: ${LIVE_TTL_INTERVAL_SECONDS:-10}
+      LIVE_TTL_BATCH_SIZE: ${LIVE_TTL_BATCH_SIZE:-100}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
       - uploads_data:/app/uploads
 
   origin:

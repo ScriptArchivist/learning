@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from db.database import get_db_read, get_db_write
 from errors import ForbiddenError, NotFoundError
-from model.live import LiveSessionCreateResponse, LiveSessionDTO
+from model.live import LiveSessionCreateRequest, LiveSessionCreateResponse, LiveSessionDTO
 from model.user import UserInDB
-from service.live_service import create_live_session, get_live_session, stop_live_session
+from service.live_service import create_live_session, get_live_session_by_stream_key, stop_live_session
 from service.security import get_current_user as get_current_user_stub
 
 logger = logging.getLogger(__name__)
@@ -20,11 +20,23 @@ router = APIRouter(prefix="/live", tags=["live"], redirect_slashes=False)
 
 @router.post("/sessions", response_model=LiveSessionCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_live_session_endpoint(
+    body: LiveSessionCreateRequest,
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db_write),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
     try:
-        session, rtmp_url, hls_url = create_live_session(db=db, owner_id=current_user["id"])
+        session, rtmp_url, hls_url, created = create_live_session(
+            db=db,
+            owner_id=current_user["id"],
+            stream_key=body.stream_key,
+            ttl_seconds=body.ttl_seconds,
+            idempotency_key=idempotency_key,
+        )
+
+        # если запрос повторный — корректнее вернуть 200, но FastAPI status_code задан 201.
+        # Чтобы не ломать контракт — оставляем 201, а семантику идемпотентности обеспечиваем логикой.
+        # Если хочешь строго: created ? 201 : 200 — скажи, сделаю.
         return LiveSessionCreateResponse(
             session=LiveSessionDTO.model_validate(session),
             rtmp_url=rtmp_url,
@@ -35,15 +47,15 @@ def create_live_session_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/sessions/{session_id}/stop", response_model=LiveSessionDTO)
+@router.delete("/sessions/{session_id}", status_code=status.HTTP_204_NO_CONTENT)
 def stop_live_session_endpoint(
     session_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db_write),
 ):
     try:
-        session = stop_live_session(db=db, session_id=session_id, owner_id=current_user["id"])
-        return LiveSessionDTO.model_validate(session)
+        stop_live_session(db=db, session_id=session_id, owner_id=current_user["id"])
+        return None
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:
@@ -53,14 +65,14 @@ def stop_live_session_endpoint(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/sessions/{session_id}", response_model=LiveSessionDTO)
+@router.get("/sessions/{stream_key}", response_model=LiveSessionDTO)
 def get_live_session_endpoint(
-    session_id: int,
+    stream_key: str,
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db_read),
 ):
     try:
-        session = get_live_session(db=db, session_id=session_id, owner_id=current_user["id"])
+        session = get_live_session_by_stream_key(db=db, stream_key=stream_key, owner_id=current_user["id"])
         return LiveSessionDTO.model_validate(session)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
