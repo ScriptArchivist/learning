@@ -4,7 +4,6 @@ set -euo pipefail
 API_URL="${API_URL:-http://localhost:8004/live/sessions}"
 
 echo "Creating live session..."
-
 resp="$(curl -fsS -X POST "$API_URL" -H "Content-Type: application/json" -d '{"ttl_seconds":3600}')"
 
 SESSION_ID="$(python3 -c 'import json,sys; d=json.loads(sys.argv[1]); print(d["session"]["id"])' "$resp")"

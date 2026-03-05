@@ -6,13 +6,11 @@ umask 000
 
 NAME="${1:-}"
 
-# Логи только в /app/uploads (гарантированно доступно по entrypoint chmod 0777)
 PLOG="/app/uploads/live_exec.log"
 SLOG="/app/uploads/live_exec_${NAME:-noname}.log"
 
 log() {
   ts="$(date '+%Y-%m-%dT%H:%M:%S%z' 2>/dev/null || echo '?')"
-  # НИКОГДА не падаем из-за логов
   echo "$ts $*" >> "$SLOG" 2>/dev/null || true
   echo "$ts $*" >> "$PLOG" 2>/dev/null || true
 }
@@ -25,33 +23,55 @@ echo "$NAME" | grep -Eq '^[A-Za-z0-9_.-]+$' || { log "ERROR invalid name='$NAME'
 OUT_DIR="/app/uploads/live/${NAME}"
 PID_FILE="/tmp/ffmpeg-live-${NAME}.pid"
 LOCK_DIR="/tmp/ffmpeg-live-${NAME}.lock"
-
-# ---- live-api create (best-effort) ----
-LIVE_API_URL="${LIVE_API_URL:-http://live-api:8000/live/sessions}"
-CORR_ID="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo $$)"
 STATE_FILE="/tmp/live_session_${NAME}.id"
 
-# ttl_seconds обязателен (иначе 422)
-resp="$(curl -sS -X POST "$LIVE_API_URL" \
-  -H "Content-Type: application/json" \
-  -H "X-Correlation-Id: $CORR_ID" \
-  -d "{\"stream_key\":\"${NAME}\",\"ttl_seconds\":3600}" 2>/dev/null || true)"
+LIVE_API_URL="${LIVE_API_URL:-http://live-api:8000/live/sessions}"
+CORR_ID="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo $$)"
+REQ_BODY="{\"stream_key\":\"${NAME}\",\"ttl_seconds\":3600}"
 
-session_id="$(echo "$resp" | python3 -c 'import sys,json; 
-import sys
-s=sys.stdin.read().strip()
-if not s: 
-  sys.exit(0)
-d=json.loads(s)
-print(d.get("session",{}).get("id",""))' 2>/dev/null || true)"
+http_post_json() {
+  url="$1"
+  body="$2"
+
+  if command -v curl >/dev/null 2>&1; then
+    curl -sS --connect-timeout 2 --max-time 5 --retry 3 --retry-delay 0 --retry-all-errors \
+      -X POST "$url" \
+      -H "Content-Type: application/json" \
+      -H "X-Correlation-Id: $CORR_ID" \
+      -d "$body" 2>>"$SLOG" || true
+    return 0
+  fi
+
+  if command -v wget >/dev/null 2>&1; then
+    # BusyBox wget: --header поддерживается, --post-data тоже
+    wget -qO- \
+      --timeout=5 \
+      --header="Content-Type: application/json" \
+      --header="X-Correlation-Id: $CORR_ID" \
+      --post-data="$body" \
+      "$url" 2>>"$SLOG" || true
+    return 0
+  fi
+
+  log "WARN neither curl nor wget found in ingest image"
+  return 0
+}
+
+extract_session_id() {
+  # вытащим первое число после '"session"' и '"id"' (достаточно для нашего ответа)
+  # пример: {"session":{"id":123,"stream_key":"..."},"rtmp_url":"..."}
+  echo "$1" | tr -d '\n' | sed -n 's/.*"session"[^{]*{[^}]*"id"[[:space:]]*:[[:space:]]*\([0-9]\+\).*/\1/p' | head -n 1
+}
+
+resp="$(http_post_json "$LIVE_API_URL" "$REQ_BODY")"
+session_id="$(extract_session_id "$resp" || true)"
 
 if [ -n "${session_id:-}" ]; then
   echo "$session_id" > "$STATE_FILE" 2>/dev/null || true
   log "live-api create ok session_id=${session_id} corr_id=${CORR_ID}"
 else
-  log "WARN live-api create failed (continuing). resp='${resp}'"
+  log "WARN live-api create failed (continuing). resp='${resp}' url='${LIVE_API_URL}'"
 fi
-# ---- /live-api create ----
 
 # lock (атомарно)
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -64,29 +84,6 @@ trap cleanup EXIT
 
 mkdir -p "$OUT_DIR" || { log "ERROR mkdir failed ${OUT_DIR}"; exit 0; }
 log "created OUT_DIR=${OUT_DIR}"
-
-# остановим старый ffmpeg (если он реально наш)
-stop_old() {
-  [ -f "$PID_FILE" ] || return 0
-  OLD_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
-  [ -n "${OLD_PID:-}" ] || { rm -f "$PID_FILE" 2>/dev/null || true; return 0; }
-
-  if ps -o pid,args 2>/dev/null | awk -v p="$OLD_PID" -v n="$NAME" '
-    $1==p && $0 ~ /ffmpeg/ && $0 ~ ("/live/" n) { found=1 }
-    END { exit(found?0:1) }
-  '; then
-    log "stopping old ffmpeg pid=${OLD_PID}"
-    kill "$OLD_PID" 2>/dev/null || true
-    sleep 1
-    kill -0 "$OLD_PID" 2>/dev/null && kill -9 "$OLD_PID" 2>/dev/null || true
-  else
-    log "WARN old pidfile pid=${OLD_PID} is not our ffmpeg; not killing"
-  fi
-
-  rm -f "$PID_FILE" 2>/dev/null || true
-}
-
-stop_old
 
 RTMP_HOST="${RTMP_HOST:-ingest}"
 RTMP_PORT="${RTMP_PORT:-1935}"
