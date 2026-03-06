@@ -1,210 +1,246 @@
-# ✅ Новый `docs/events.md` (заменить файл полностью)
-
 ```md
-# Event Contract v1 (Outbox + RabbitMQ)
+# Events
 
-Документ фиксирует единый формат событий, которые:
+## Назначение
 
-- сохраняются в `outbox_events.payload`
-- публикуются в RabbitMQ
-- обрабатываются consumer'ами через строгий envelope
+Документ описывает фактические доменные события, которые используются между сервисами через outbox и RabbitMQ.
 
-Delivery semantics: **at-least-once**
+Важно: этот документ ориентирован на текущую реализацию проекта, а не на абстрактную целевую модель.
 
----
+Delivery semantics:
+- `at-least-once`
 
-# 1. Event Envelope (schema_version=1)
-
-```json
-{
-  "event_id": "uuid",
-  "event_type": "VIDEO_CREATED",
-  "schema_version": 1,
-  "occurred_at": "UTC ISO8601",
-  "producer": "video-api",
-  "correlation_id": "string",
-  "causation_id": "string",
-  "idempotency_key": "string",
-  "data": {}
-}
-
-Обязательные поля:
-
-event_id (UUID)
-
-event_type (enum)
-
-schema_version (int)
-
-occurred_at (UTC)
-
-producer
-
-idempotency_key
-
-data (object)
-
-2. Events v1
-2.1 VIDEO_CREATED
-
-Producer: video-api
-Consumers: upload, processing
-
-Idempotency key:
-VIDEO_CREATED:video:{video_id}
-
-{
-  "video_id": "123",
-  "owner_id": "42",
-  "title": "My video",
-  "created_at": "UTC ISO8601",
-  "source": {
-    "type": "upload",
-    "input_key": "uploads/42/123/source.mp4"
-  }
-}
-2.2 UPLOAD_COMPLETED
-
-Producer: upload
-Consumers: processing, video-api
-
-Idempotency key:
-UPLOAD_COMPLETED:video:{video_id}:input:{input_key}
-
-{
-  "video_id": "123",
-  "owner_id": "42",
-  "input_key": "uploads/42/123/source.mp4",
-  "size_bytes": 10485760,
-  "content_type": "video/mp4",
-  "checksum": {
-    "algo": "sha256",
-    "value": "ab12..."
-  },
-  "completed_at": "UTC ISO8601"
-}
-2.3 PROCESSING_STARTED
-
-Producer: processing
-Consumers: video-api
-
-Idempotency key:
-PROCESSING_STARTED:job:{job_id}
-
-{
-  "job": {
-    "job_id": "job_01J123...",
-    "attempt": 1
-  },
-  "video_id": "123",
-  "input_key": "uploads/42/123/source.mp4",
-  "output_prefix": "videos/123/hls/",
-  "started_at": "UTC ISO8601",
-  "worker": {
-    "service": "processing-worker",
-    "instance_id": "hostname-or-pod"
-  }
-}
-2.4 PROCESSING_DONE
-
-Producer: processing
-Consumers: video-api
-
-Idempotency key:
-PROCESSING_DONE:job:{job_id}
-
-{
-  "job": {
-    "job_id": "job_01J123...",
-    "attempt": 1
-  },
-  "video_id": "123",
-  "output": {
-    "output_prefix": "videos/123/hls/",
-    "hls_master_key": "videos/123/hls/master.m3u8",
-    "duration_ms": 120000,
-    "video_codec": "h264",
-    "audio_codec": "aac"
-  },
-  "finished_at": "UTC ISO8601"
-}
-2.5 PROCESSING_FAILED
-
-Producer: processing
-Consumers: video-api
-
-Idempotency key:
-PROCESSING_FAILED:job:{job_id}
-
-{
-  "job": {
-    "job_id": "job_01J123...",
-    "attempt": 2
-  },
-  "video_id": "123",
-  "failed_at": "UTC ISO8601",
-  "error": {
-    "code": "FFMPEG_ERROR",
-    "message": "ffmpeg exited with non-zero status",
-    "details": {
-      "exit_code": 1
-    }
-  }
-}
-2.6 LIVE_SESSION_STARTED
-
-Producer: live-api или live-ingest
-Consumers: live-ingest, monitoring
-
-Idempotency key:
-LIVE_SESSION_STARTED:session:{session_id}
-
-{
-  "session_id": "live_01JABC...",
-  "owner_id": "42",
-  "stream_key_id": "sk_123",
-  "playback": {
-    "output_prefix": "live/live_01JABC/hls/",
-    "hls_master_key": "live/live_01JABC/hls/master.m3u8"
-  },
-  "started_at": "UTC ISO8601"
-}
-2.7 LIVE_SESSION_STOPPED
-
-Producer: live-api или live-ingest
-Consumers: live-ingest, monitoring
-
-Idempotency key:
-LIVE_SESSION_STOPPED:session:{session_id}
-
-{
-  "session_id": "live_01JABC...",
-  "stopped_at": "UTC ISO8601",
-  "reason": "user_request"
-}
-3. Processing Worker Guarantees
-
-Worker stateless
-
-Повтор job_id безопасен
-
-События публикуются через outbox
-
-PROCESSING_STARTED публикуется один раз
-
-PROCESSING_DONE / FAILED публикуются идемпотентно
-
+Это означает, что consumer должен быть идемпотентным.
 
 ---
 
-# 🔎 Что мы улучшили
+## Event transport
 
-- Убрали рассинхрон `payload` vs `data`
-- Убрали `"MAJOR.MINOR"` → фиксировали `int`
-- Согласовали envelope
-- Зафиксировали guarantees
-- Упростили формулировки
-- Подготовили к реальному микросервисному разрезанию
+События:
+- сохраняются в `outbox`
+- публикуются `outbox-publisher`
+- попадают в RabbitMQ
+- обрабатываются consumer/worker сервисами
 
 ---
 
+## Event envelope
+
+В текущем коде используется envelope из `service.events.EventEnvelope` и outbox payload.
+
+На практике event содержит как минимум:
+- `event_type`
+- `schema_version`
+- `producer`
+- `correlation_id`
+- `trace_id`
+- `payload`
+
+Для processing worker особенно важен event:
+- `video.process.requested`
+
+---
+
+## Correlation
+
+Для логов и событий используются:
+- `request_id`
+- `trace_id`
+
+Они прокидываются:
+- из HTTP middleware
+- в outbox events
+- в RabbitMQ headers
+- в worker/consumer logs
+
+Это важно для отладки end-to-end потока.
+
+---
+
+## Основные события
+
+## 1. `upload.completed`
+
+Producer:
+- `upload-service`
+
+Consumer usage:
+- downstream processing / event consumers
+
+Payload fields:
+- `upload_id`
+- `video_id`
+- `object_key`
+- `size`
+- `checksum`
+- `content_type`
+
+Назначение:
+- сообщить, что файл загружен и подтверждён
+
+---
+
+## 2. `video.process.requested`
+
+Producer:
+- API/service layer через outbox
+
+Consumer:
+- `processing-worker`
+
+Payload fields:
+- `job_id`
+- `video_id`
+- `input_key`
+- `output_prefix`
+- `attempt`
+
+Назначение:
+- поставить задачу обработки видео в очередь
+
+---
+
+## 3. `video.process.completed`
+
+Producer:
+- `processing-worker`
+
+Consumer:
+- `video-events-consumer` / status update flows
+
+Payload содержит информацию о завершённой обработке, включая:
+- `video_id`
+- metadata результата
+
+Назначение:
+- перевести видео в READY / обновить metadata
+
+---
+
+## 4. `video.process.failed`
+
+Producer:
+- `processing-worker`
+
+Consumer:
+- `video-events-consumer`
+
+Payload:
+- `video_id`
+- `error` / `error_message`
+
+Назначение:
+- зафиксировать ошибку обработки
+- перевести видео в FAILED
+
+---
+
+## 5. `live.session.started`
+
+Producer:
+- `live-api`
+
+Payload fields:
+- `session_id`
+- `stream_key`
+- `owner_id`
+- `expires_at`
+
+Назначение:
+- зафиксировать старт live session
+
+---
+
+## 6. `live.session.stopped`
+
+Producer:
+- `live-api`
+
+Payload fields:
+- `session_id`
+- `stream_key`
+- `owner_id`
+- `stopped_at`
+
+Назначение:
+- зафиксировать остановку live session
+
+---
+
+## 7. `live.session.expired`
+
+Producer:
+- `live-api` / cleaner flow
+
+Payload fields:
+- `session_id`
+- `stream_key`
+- `owner_id`
+- `expired_at`
+
+Назначение:
+- зафиксировать TTL-expiration live session
+
+---
+
+## Idempotency
+
+## HTTP layer
+Идемпотентность явно поддерживается как минимум для:
+- create live session через `Idempotency-Key`
+- prepare/upload flows через `client_upload_id` и upload identifiers
+
+## Worker / consumers
+Consumer логика должна быть безопасна к повторной доставке.
+
+В текущем коде это достигается через:
+- DB claim / lock token
+- проверку статуса
+- lock TTL
+- outbox retry model
+
+---
+
+## Что важно для Flutter
+
+Flutter-клиент напрямую не работает с RabbitMQ событиями, но должен понимать их эффект на API-состояние.
+
+Практически это означает:
+
+### Upload flow
+После upload complete клиент не получает READY мгновенно.  
+Он должен опрашивать `video-api` до статуса:
+- `ready`
+или
+- `failed`
+
+### Live flow
+После создания live session playback может стать доступен не мгновенно.  
+Клиент должен опрашивать session/playback состояние.
+
+---
+
+## Recommended polling behavior for Flutter
+
+### Video processing
+Пока статус:
+- `uploading`
+- `uploaded`
+- `processing`
+
+повторять запрос `GET /videos/{id}` с интервалом 2–5 секунд.
+
+### Live session
+Пока live session активна, периодически проверять:
+- `GET /live/sessions/{stream_key}`
+
+---
+
+## Summary
+
+Для Flutter важнее не сами события, а их отражение в HTTP API:
+
+- `upload.completed` → видео продвигается к `processing`
+- `video.process.completed` → статус `ready`
+- `video.process.failed` → статус `failed`
+- `live.session.started/stopped/expired` → меняется состояние live session
