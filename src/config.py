@@ -5,12 +5,15 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # master (write)
-    database_write_url: str = "postgresql+psycopg://postgres:postgres@db:5432/app"
-    # replica (read) — по умолчанию = master, чтобы ничего не ломать
+    database_write_url: str = "postgresql+psycopg://postgres:postgres@db-master:5432/app"
+
+    # replica (read)
+    # если не задано — читаем тоже из master
     database_read_url: str | None = None
 
     @property
     def database_url(self) -> str:
+        # backward compatibility для старого кода
         return self.database_write_url
 
     secret_key: str = "changeme"
@@ -27,6 +30,7 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        case_sensitive = False
 
 
 settings = Settings()
@@ -49,7 +53,6 @@ RABBIT_EVENTS_QUEUE = os.getenv("RABBIT_EVENTS_QUEUE", "events.q")
 RABBIT_EVENTS_ROUTING_KEY = os.getenv("RABBIT_EVENTS_ROUTING_KEY", "video.events")
 
 # ===== Public HLS URL (served by nginx/origin/CDN) =====
-# ВАЖНО: наружу должны уходить public URL, а не internal http://origin
 HLS_PUBLIC_BASE_URL = (
     os.getenv("HLS_PUBLIC_BASE_URL")
     or os.getenv("DELIVERY_PUBLIC_BASE_URL")
@@ -59,7 +62,6 @@ HLS_PUBLIC_BASE_URL = (
 HLS_PUBLIC_PATH_PREFIX = (os.getenv("HLS_PUBLIC_PATH_PREFIX") or "hls").strip("/")
 
 # ===== Backward compatibility for old modules =====
-DELIVERY_MODE = os.getenv("DELIVERY_MODE", settings.DELIVERY_MODE)  # local | url
+DELIVERY_MODE = os.getenv("DELIVERY_MODE", settings.DELIVERY_MODE)
 DELIVERY_BASE_URL = os.getenv("DELIVERY_BASE_URL", settings.DELIVERY_BASE_URL).rstrip("/")
-
 ORIGIN_BASE_URL = os.getenv("ORIGIN_BASE_URL", settings.DELIVERY_PUBLIC_BASE_URL).rstrip("/")

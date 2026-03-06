@@ -22,15 +22,31 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db_read, get_db_write
 from errors import ForbiddenError, NotFoundError, ValidationError
-from model.user import UserInDB
 from model.video import VideoCreate, VideoFilter, VideoPagination, VideoStatus, Visibility
 from model.video_contract import VideoDetailDTO, VideoListResponse
-from service.security import get_current_user as get_current_user_stub
 from service.video_presenter import to_detail, to_list_item
 from service.video_service import create_video, get_video, get_videos
+from model.user import UserInDB
+
+
+def get_current_user_stub() -> UserInDB:
+    return {
+        "id": 1,
+        "username": "replica_test_user",
+        "email": "replica_test_user@example.com",
+        "role": "user",
+        "is_active": True,
+    }
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/videos", tags=["videos"], redirect_slashes=False)
+
+
+def get_video_api_read_db(
+    consistent: bool = Query(False, description="Read from master when true"),
+):
+    dependency = get_db_write if consistent else get_db_read
+    yield from dependency()
 
 
 @router.post("", response_model=VideoDetailDTO, status_code=status.HTTP_201_CREATED)
@@ -40,10 +56,6 @@ def create_video_endpoint(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db_write),
 ):
-    """
-    Создаёт запись Video (metadata), статус = uploading.
-    Upload flow будет обслуживаться upload-service.
-    """
     try:
         video = create_video(db=db, video_data=video_data, user_id=current_user["id"])
         return to_detail(video)
@@ -63,7 +75,7 @@ def list_videos_endpoint(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_video_api_read_db),
 ):
     filter_data = VideoFilter(
         status=status,
@@ -88,7 +100,7 @@ def list_videos_endpoint(
 def get_video_endpoint(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_video_api_read_db),
 ):
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
@@ -103,13 +115,8 @@ def get_video_endpoint(
 def get_video_playback(
     video_id: int,
     current_user: UserInDB = Depends(get_current_user_stub),
-    db: Session = Depends(get_db_read),
+    db: Session = Depends(get_video_api_read_db),
 ):
-    """
-    Единый endpoint для Flutter-плеера:
-    - hls_ready
-    - hls_url (public url, если готово)
-    """
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
         item = to_list_item(video)

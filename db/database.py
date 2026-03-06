@@ -11,29 +11,27 @@ def _connect_args(url: str, app_name: str | None = None) -> dict:
     if url.startswith("sqlite"):
         return {"check_same_thread": False}
 
-    # Postgres (psycopg3 / psycopg2): можно прокинуть application_name
+    # Postgres
     args: dict = {}
     if app_name and (url.startswith("postgresql") or url.startswith("postgres")):
         args["application_name"] = app_name
     return args
 
 
-# master (write)
-engine_write = create_engine(
-    settings.database_write_url,
-    pool_pre_ping=True,
-    connect_args=_connect_args(settings.database_write_url, "app_writer"),
-)
+def _make_engine(url: str, app_name: str):
+    return create_engine(
+        url,
+        pool_pre_ping=True,
+        connect_args=_connect_args(url, app_name),
+    )
 
+
+# master (write)
+engine_write = _make_engine(settings.database_write_url, "app_writer")
 SessionLocalWrite = sessionmaker(bind=engine_write, autocommit=False, autoflush=False)
 
 # replica (read)
-engine_read = create_engine(
-    settings.database_read_url,
-    pool_pre_ping=True,
-    connect_args=_connect_args(settings.database_read_url, "app_reader"),
-)
-
+engine_read = _make_engine(settings.database_read_url, "app_reader")
 SessionLocalRead = sessionmaker(bind=engine_read, autocommit=False, autoflush=False)
 
 # backward compatibility
@@ -58,7 +56,7 @@ def get_db_read():
 
 
 def get_db():
-    # старый get_db — это write
+    # старый get_db — write/master
     yield from get_db_write()
 
 

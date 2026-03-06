@@ -1,74 +1,95 @@
 # alembic/env.py
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
-
+from sqlalchemy import engine_from_config, pool
 from alembic import context
 
-import sys
 import os
+import sys
 
-# --- ВАЖНО: Добавляем путь к вашему проекту ---
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'src'))
+# Добавляем корень проекта в PYTHONPATH
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if PROJECT_ROOT not in sys.path:
+    sys.path.append(PROJECT_ROOT)
 
-# this is the Alembic Config object, which provides
-# access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# --- ИМПОРТИРУЕМ НАШИ МОДЕЛИ ---
+
+def get_database_url() -> str:
+    """
+    Для миграций всегда используем master/write БД.
+    Приоритет:
+    1. database_write_url
+    2. DATABASE_WRITE_URL
+    3. DATABASE_URL
+    4. sqlalchemy.url из alembic.ini
+    5. fallback
+    """
+    return (
+        os.getenv("database_write_url")
+        or os.getenv("DATABASE_WRITE_URL")
+        or os.getenv("DATABASE_URL")
+        or config.get_main_option("sqlalchemy.url")
+        or "postgresql+psycopg://postgres:postgres@db-master:5432/app"
+    )
+
+
+# Явно подменяем URL для Alembic из окружения
+config.set_main_option("sqlalchemy.url", get_database_url())
+
+
+# --- импорт моделей ---
 try:
     from db.base import Base
-    
-    # Устанавливаем метаданные для autogenerate
+    import db.models  # noqa: F401
+
     target_metadata = Base.metadata
-    
+
     print("✅ Модели успешно импортированы")
     print(f"✅ Таблицы для миграции: {list(Base.metadata.tables.keys())}")
-    
+    print(f"✅ Alembic DB URL: {get_database_url()}")
+
 except ImportError as e:
     print(f"❌ Ошибка импорта моделей: {e}")
     print("Проверьте пути импорта и структуру проекта")
     target_metadata = None
     raise
 
-# --- НАСТРОЙКИ ДЛЯ AUTOGENERATE (опционально) ---
+
 def include_object(object, name, type_, reflected, compare_to):
     """
-    Функция фильтрации объектов для autogenerate.
-    Можно исключить определенные таблицы из миграций.
+    Фильтр объектов для autogenerate.
     """
-    # Пример: исключить системные таблицы
-    if name and name.startswith('sqlite_'):
+    if name and name.startswith("sqlite_"):
         return False
     return True
+
 
 def process_revision_directives(context, revision, directives):
     """
     Кастомизация генерации миграций.
     """
-    if config.cmd_opts and config.cmd_opts.autogenerate:
+    if config.cmd_opts and getattr(config.cmd_opts, "autogenerate", False):
         script = directives[0]
         if script.upgrade_ops.is_empty():
             directives[:] = []
             print("ℹ️  Нет изменений в моделях, миграция не создана")
 
-# --- ФУНКЦИИ МИГРАЦИЙ ---
+
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode."""
+    """Run migrations in offline mode."""
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        compare_type=True,  # Сравнивать типы колонок
-        compare_server_default=True,  # Сравнивать значения по умолчанию
-        include_object=include_object,  # Применяем фильтр объектов
+        compare_type=True,
+        compare_server_default=True,
+        include_object=include_object,
         process_revision_directives=process_revision_directives,
     )
 
@@ -77,7 +98,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
+    """Run migrations in online mode."""
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",

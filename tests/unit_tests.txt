@@ -6,12 +6,41 @@ docker logs -n 200 learning_app-web-1
 
 
 Подключаемся к контейнеру БД:
-docker exec -it learning_app-db-1 psql -U postgres -d app
+Мастер
+docker exec -it learning_app-db-master-1 psql -U postgres -d app
+docker-compose -f docker-compose.ci.yml exec db-master psql -U postgres -d app
+
+Реплика
+docker-compose -f docker-compose.ci.yml exec db-replica psql -U postgres -d app
+
+Креды
+user: postgres
+password: postgres
+database: app
 
 
 Добавляем пользователя:
-INSERT INTO users (username, email, hashed_password, is_active, storage_limit, used_storage) 
-VALUES ('vadim', 'vadim@example.com', 'password_hash', true, 10737418240, 0);
+docker-compose -f docker-compose.ci.yml exec -e PGPASSWORD=postgres db-master \
+psql -U postgres -d app -c "
+INSERT INTO users (
+    username,
+    email,
+    hashed_password,
+    is_active,
+    role,
+    storage_limit,
+    used_storage
+)
+VALUES (
+    'vadim',
+    'vadim@example.com',
+    'password_hash',
+    true,
+    'user',
+    10737418240,
+    0
+);
+"
 
 
 Запуск автотеста - скрипт полного добавления пользователя:

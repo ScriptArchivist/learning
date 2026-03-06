@@ -1,12 +1,13 @@
-# config.py
-import os
-from dotenv import load_dotenv
+# config/dependencies.py
+from src.config import settings
 
-load_dotenv()
+DATABASE_URL = settings.database_write_url
+DATABASE_WRITE_URL = settings.database_write_url
+DATABASE_READ_URL = settings.database_read_url
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./database.db")
-SECRET_KEY = os.getenv("SECRET_KEY", "supersecretkey")
-ALGORITHM = os.getenv("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
-STORAGE_TYPE = os.getenv("STORAGE_TYPE", "local")
-STORAGE_PATH = os.getenv("STORAGE_PATH", "uploads")
+SECRET_KEY = settings.secret_key
+ALGORITHM = settings.algorithm
+ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
+
+STORAGE_TYPE = settings.storage_type
+STORAGE_PATH = settings.storage_path

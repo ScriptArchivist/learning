@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional, TypedDict
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from db.database import SessionLocal
+from db.database import SessionLocalWrite
 from service.outbox import fetch_pending_batch, mark_failed_retry, mark_published
 
 # publish_domain_event already knows:
@@ -65,7 +65,7 @@ LEADER_REFRESH_SECONDS = _env_float("OUTBOX_LEADER_REFRESH_SECONDS", 2.0)
 
 @contextmanager
 def _session() -> Session:
-    db = SessionLocal()
+    db = SessionLocalWrite()
     try:
         yield db
     finally:
@@ -152,7 +152,7 @@ def main() -> None:
         # 1) Ensure leader
         if leader_db is None:
             try:
-                leader_db = SessionLocal()
+                leader_db = SessionLocalWrite()
                 if not _try_advisory_lock(leader_db, LEADER_LOCK_KEY):
                     leader_db.close()
                     leader_db = None

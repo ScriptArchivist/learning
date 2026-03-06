@@ -1,4 +1,4 @@
-# src/video_main.py
+# src/video_api_main.py
 from __future__ import annotations
 
 import logging
@@ -6,8 +6,25 @@ import logging.config
 
 from fastapi import FastAPI
 
-# logging.ini ожидает request_id/trace_id поля в формате логов.
-# В video-api они будут "-", если middleware/record_factory не задан.
+
+def install_log_record_defaults() -> None:
+    old_factory = logging.getLogRecordFactory()
+
+    def record_factory(*args, **kwargs):
+        record = old_factory(*args, **kwargs)
+
+        if not hasattr(record, "request_id"):
+            record.request_id = "-"
+
+        if not hasattr(record, "trace_id"):
+            record.trace_id = "-"
+
+        return record
+
+    logging.setLogRecordFactory(record_factory)
+
+
+install_log_record_defaults()
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("video-api")
 
