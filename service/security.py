@@ -69,26 +69,27 @@ def decode_token(token: str) -> Dict[str, Any]:
     try:
         header_b64, payload_b64, sig_b64 = token.split(".", 2)
     except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    signing_input = f"{header_b64}.{payload_b64}".encode("utf-8")
-    expected_sig = _b64url_encode(_sign_hs256(signing_input, settings.secret_key))
+    signing_input = f"{header_b64}.{payload_b64}".encode()
+
+    expected_sig = _b64url_encode(
+        _sign_hs256(signing_input, settings.secret_key)
+    )
 
     if not hmac.compare_digest(sig_b64, expected_sig):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token signature")
+        raise HTTPException(status_code=401, detail="Invalid signature")
 
-    try:
-        payload = json.loads(_b64url_decode(payload_b64).decode("utf-8"))
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload")
+    payload = json.loads(_b64url_decode(payload_b64))
 
-    exp = payload.get("exp")
-    if not isinstance(exp, int):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token missing exp")
+    if payload.get("iss") != "identity-service":
+        raise HTTPException(401, "Invalid issuer")
 
-    now = int(time.time())
-    if exp < now:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
+    if payload.get("aud") != "video-platform":
+        raise HTTPException(401, "Invalid audience")
+
+    if payload["exp"] < int(time.time()):
+        raise HTTPException(401, "Token expired")
 
     return payload
 
@@ -117,4 +118,7 @@ def get_current_user(
     except Exception:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid sub")
 
-    return {"id": user_id}
+    return {
+        "id": user_id,
+        "role": claims.get("role", "user"),
+    }

@@ -6,6 +6,7 @@ from db.models import Upload
 from service.paths import original_path
 from service.storage_service import get_storage_provider
 from service.upload_service import create_upload, complete_upload
+from service.security import get_current_user as get_current_user_stub
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
 
@@ -13,10 +14,12 @@ router = APIRouter(prefix="/uploads", tags=["uploads"])
 @router.post("/init")
 def init_upload(
     video_id: int,
-    owner_id: int,
     filename: str,
+    current_user=Depends(get_current_user_stub),
     db: Session = Depends(get_db_write),
 ):
+    owner_id = current_user["id"]
+
     object_key = original_path(
         user_id=owner_id,
         video_id=video_id,
