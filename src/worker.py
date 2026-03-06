@@ -3,6 +3,7 @@ import os
 import logging
 import logging.config
 from datetime import datetime
+from src.metrics import start_background_metrics_server, track_job
 
 from pydantic import ValidationError
 
@@ -146,30 +147,55 @@ def handle(message: dict, retry_count: int) -> None:
         return
 
     try:
-        thumb_key = thumbnail_path(video_id)
-        hls_dir_key_str = output_prefix
-        hls_master_key_str = f"{output_prefix}/master.m3u8"
+        with track_job("processing-worker", "video.process"):
+            thumb_key = thumbnail_path(video_id)
+            hls_dir_key_str = output_prefix
+            hls_master_key_str = f"{output_prefix}/master.m3u8"
 
-        orig_full = storage.resolve_local_path(orig_key)
-        thumb_full = storage.resolve_local_path(thumb_key)
-        hls_dir_full = storage.resolve_local_path(hls_dir_key_str)
-        hls_master_full = storage.resolve_local_path(hls_master_key_str)
+            orig_full = storage.resolve_local_path(orig_key)
+            thumb_full = storage.resolve_local_path(thumb_key)
+            hls_dir_full = storage.resolve_local_path(hls_dir_key_str)
+            hls_master_full = storage.resolve_local_path(hls_master_key_str)
 
-        if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
-            raise RuntimeError("Non-local storage is not supported by worker yet")
+            if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
+                raise RuntimeError("Non-local storage is not supported by worker yet")
 
-        if not os.path.exists(orig_full):
-            raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
+            if not os.path.exists(orig_full):
+                raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
 
-        # если артефакты уже есть — всё равно заполним метаданные
-        meta = ffprobe_metadata(orig_full)
-        duration = meta["duration"]
-        width = meta["width"]
-        height = meta["height"]
-        size = os.path.getsize(orig_full)
+            meta = ffprobe_metadata(orig_full)
+            duration = meta["duration"]
+            width = meta["width"]
+            height = meta["height"]
+            size = os.path.getsize(orig_full)
 
-        if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
-            logger.info("artifacts already exist, mark processed video_id=%s", video_id)
+            if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
+                logger.info("artifacts already exist, mark processed video_id=%s", video_id)
+
+                complete_video_processing_with_lock(
+                    video_id=video_id,
+                    lock_token=lock_token,
+                    processed_at=datetime.utcnow(),
+                    file_size=size,
+                    duration=duration,
+                    width=width,
+                    height=height,
+                    thumbnail_path=thumb_key,
+                    mime_type="video/mp4",
+                    hls_master_key=hls_master_key_str,
+                    correlation_id=rid,
+                    trace_id=tid,
+                )
+                logger.info("done video_id=%s (already existed)", video_id)
+                return
+
+            make_thumbnail(orig_full, thumb_full, at_seconds=1.0)
+            if not os.path.exists(thumb_full):
+                raise RuntimeError(f"thumbnail was not created: {thumb_full} (key={thumb_key})")
+
+            make_hls(orig_full, hls_dir_full)
+            if not os.path.exists(hls_master_full):
+                raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key_str})")
 
             complete_video_processing_with_lock(
                 video_id=video_id,
@@ -185,33 +211,8 @@ def handle(message: dict, retry_count: int) -> None:
                 correlation_id=rid,
                 trace_id=tid,
             )
-            logger.info("done video_id=%s (already existed)", video_id)
-            return
 
-        make_thumbnail(orig_full, thumb_full, at_seconds=1.0)
-        if not os.path.exists(thumb_full):
-            raise RuntimeError(f"thumbnail was not created: {thumb_full} (key={thumb_key})")
-
-        make_hls(orig_full, hls_dir_full)
-        if not os.path.exists(hls_master_full):
-            raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key_str})")
-
-        complete_video_processing_with_lock(
-            video_id=video_id,
-            lock_token=lock_token,
-            processed_at=datetime.utcnow(),
-            file_size=size,
-            duration=duration,
-            width=width,
-            height=height,
-            thumbnail_path=thumb_key,
-            mime_type="video/mp4",
-            hls_master_key=hls_master_key_str,
-            correlation_id=rid,
-            trace_id=tid,
-        )
-
-        logger.info("done video_id=%s", video_id)
+            logger.info("done video_id=%s", video_id)
 
     except Exception as e:
         # MAX_RETRIES — число ретраев (x-death count), первая попытка = retry_count=0
@@ -256,5 +257,6 @@ def handle(message: dict, retry_count: int) -> None:
 
 
 if __name__ == "__main__":
+    start_background_metrics_server(int(os.getenv("METRICS_PORT", "9100")))
     logger.info("boot: starting consumer")
     consume_forever(handle)

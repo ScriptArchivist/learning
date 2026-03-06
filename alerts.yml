@@ -1,0 +1,47 @@
+groups:
+  - name: video-platform
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Prometheus target is down"
+          description: "Target {{ $labels.instance }} in job {{ $labels.job }} is down."
+
+      - alert: High5xxRate
+        expr: sum(rate(app_http_5xx_total[5m])) by (service) > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP 5xx errors detected"
+          description: "Service {{ $labels.service }} returns 5xx for at least 5 minutes."
+
+      - alert: OutboxBacklogHigh
+        expr: app_outbox_backlog{service="outbox-publisher"} > 100
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Outbox backlog is high"
+          description: "Outbox backlog is above 100 for 10 minutes."
+
+      - alert: WorkerFailuresDetected
+        expr: increase(app_worker_job_failures_total{service="processing-worker"}[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Processing worker failures detected"
+          description: "processing-worker reported job failures in the last 10 minutes."
+
+      - alert: DatabaseErrorsDetected
+        expr: increase(app_db_errors_total[10m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database errors detected"
+          description: "Database errors were detected in the last 10 minutes."

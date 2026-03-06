@@ -89,6 +89,7 @@ services:
     ports:
       - "8001:8000"
     environment:
+      SERVICE_NAME: identity-service
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
@@ -115,6 +116,7 @@ services:
     ports:
       - "8000:8000"
     environment:
+      SERVICE_NAME: web
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
@@ -157,6 +159,7 @@ services:
     ports:
       - "8004:8000"
     environment:
+      SERVICE_NAME: live-api
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
@@ -188,6 +191,7 @@ services:
     ports:
       - "8003:8000"
     environment:
+      SERVICE_NAME: video-api
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-replica:5432/app
       secret_key: changeme
@@ -219,6 +223,7 @@ services:
     ports:
       - "8002:8000"
     environment:
+      SERVICE_NAME: upload-service
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
@@ -246,12 +251,16 @@ services:
       rabbitmq:
         condition: service_started
     environment:
+      SERVICE_NAME: video-events-consumer
+      METRICS_PORT: "9100"
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
       RABBIT_EVENTS_EXCHANGE: ${RABBIT_EVENTS_EXCHANGE:-video.events.x}
       RABBIT_EVENTS_QUEUE: ${RABBIT_EVENTS_QUEUE:-events.q}
       RABBIT_EVENTS_ROUTING_KEY: ${RABBIT_EVENTS_ROUTING_KEY:-video.events}
+    expose:
+      - "9100"
     volumes:
       - ./src:/app/src
       - ./service:/app/service
@@ -290,11 +299,15 @@ services:
       redis:
         condition: service_started
     environment:
+      SERVICE_NAME: processing-worker
+      METRICS_PORT: "9100"
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
+    expose:
+      - "9100"
     volumes:
       - ./logging.ini:/app/logging.ini
       - ./src:/app/src
@@ -314,17 +327,22 @@ services:
       rabbitmq:
         condition: service_started
     environment:
+      SERVICE_NAME: outbox-publisher
+      METRICS_PORT: "9100"
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
       OUTBOX_BATCH_SIZE: "50"
       OUTBOX_POLL_INTERVAL: "0.5"
       OUTBOX_LEADER_LOCK_KEY: "424242"
+    expose:
+      - "9100"
     volumes:
       - ./src:/app/src
       - ./service:/app/service
       - ./db:/app/db
       - ./model:/app/model
+      - ./logging.ini:/app/logging.ini
 
   dlq-replayer:
     build: .
@@ -335,6 +353,7 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
+      SERVICE_NAME: dlq-replayer
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       DLQ_REPLAY_LIMIT: "200"
@@ -344,6 +363,7 @@ services:
       - ./service:/app/service
       - ./db:/app/db
       - ./model:/app/model
+      - ./logging.ini:/app/logging.ini
 
   live-cleaner:
     build: .
@@ -354,16 +374,21 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
+      SERVICE_NAME: live-cleaner
+      METRICS_PORT: "9100"
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       LIVE_TTL_INTERVAL_SECONDS: ${LIVE_TTL_INTERVAL_SECONDS:-10}
       LIVE_TTL_BATCH_SIZE: ${LIVE_TTL_BATCH_SIZE:-100}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    expose:
+      - "9100"
     volumes:
       - ./src:/app/src
       - ./service:/app/service
       - ./db:/app/db
       - uploads_data:/app/uploads
+      - ./logging.ini:/app/logging.ini
 
   origin:
     image: nginx:1.25-alpine
@@ -376,7 +401,45 @@ services:
       web:
         condition: service_started
 
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+    depends_on:
+      web:
+        condition: service_started
+      upload-service:
+        condition: service_started
+      video-api:
+        condition: service_started
+      live-api:
+        condition: service_started
+      processing-worker:
+        condition: service_started
+      outbox-publisher:
+        condition: service_started
+      video-events-consumer:
+        condition: service_started
+      live-cleaner:
+        condition: service_started
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+
 volumes:
   postgres_master_data:
   postgres_replica_data:
   uploads_data:
+  grafana_data:

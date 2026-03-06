@@ -6,6 +6,7 @@ import logging.config
 
 from fastapi import FastAPI
 
+from src.metrics import install_http_metrics
 
 def install_log_record_defaults() -> None:
     old_factory = logging.getLogRecordFactory()
@@ -36,6 +37,8 @@ def create_app() -> FastAPI:
         title="video-api",
         version="1.0",
     )
+
+    install_http_metrics(app, "video-api")
 
     @app.get("/health")
     def health():

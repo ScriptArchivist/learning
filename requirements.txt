@@ -22,11 +22,9 @@ httpie==3.2.2
 pytest==7.4.0
 mypy==1.7.0
 
-
 # Utils
 redis==5.0.1
 python-dotenv==1.0.0
 pika==1.3.2
 pydantic-settings
-
-#test
+prometheus-client

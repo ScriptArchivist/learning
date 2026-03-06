@@ -14,6 +14,13 @@ from sqlalchemy.orm import Session
 from db.database import SessionLocalWrite
 from service.outbox import fetch_pending_batch, mark_failed_retry, mark_published
 
+from db.models import OutboxEvent, OutboxStatus
+from src.metrics import (
+    set_outbox_backlog,
+    set_outbox_failed,
+    start_background_metrics_server,
+)
+
 # publish_domain_event already knows:
 # - video.process.requested -> MAIN queue (worker)
 # - others -> topic exchange
@@ -114,6 +121,22 @@ def _safe_err(e: Exception, limit: int = 800) -> str:
     s = s.replace("\n", " ").replace("\r", " ").strip()
     return s[:limit]
 
+def _refresh_outbox_metrics() -> None:
+    with _session() as db:
+        backlog = (
+            db.query(OutboxEvent)
+            .filter(OutboxEvent.status.in_([OutboxStatus.NEW.value, OutboxStatus.PROCESSING.value]))
+            .count()
+        )
+        failed = (
+            db.query(OutboxEvent)
+            .filter(OutboxEvent.status == OutboxStatus.FAILED.value)
+            .count()
+        )
+
+    set_outbox_backlog("outbox-publisher", int(backlog))
+    set_outbox_failed("outbox-publisher", int(failed))
+
 
 def _publish_one(it: OutboxItem) -> None:
     event_id = it["id"]
@@ -144,6 +167,8 @@ def main() -> None:
         POLL_INTERVAL,
         LEADER_LOCK_KEY,
     )
+    start_background_metrics_server(int(os.getenv("METRICS_PORT", "9100")))
+    _refresh_outbox_metrics()
 
     # Leader keeps this session open to hold pg advisory lock.
     leader_db: Optional[Session] = None
@@ -184,6 +209,7 @@ def main() -> None:
             if not items:
                 time.sleep(POLL_INTERVAL)
                 continue
+            _refresh_outbox_metrics()
 
             # 3) Publish each item and mark result
             for it in items:

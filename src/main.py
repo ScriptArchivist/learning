@@ -5,6 +5,7 @@ import mimetypes
 import uuid
 from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
+from src.metrics import install_http_metrics
 
 from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -38,6 +39,8 @@ logging.setLogRecordFactory(record_factory)
 # ----------------------------------------------------------------------------------------
 
 app = FastAPI()
+
+install_http_metrics(app, "web")
 
 
 # ===================== ERROR HANDLERS (FE-BE2) =====================

@@ -4,6 +4,7 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
+from src.metrics import start_background_metrics_server
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -80,6 +81,7 @@ def main() -> None:
         _batch_size(),
         os.getenv("DATABASE_URL") or os.getenv("DATABASE_WRITE_URL") or "unknown",
     )
+    start_background_metrics_server(int(os.getenv("METRICS_PORT", "9100")))
 
     while True:
         try:

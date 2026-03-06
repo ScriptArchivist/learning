@@ -45,6 +45,7 @@ VALUES (
 
 Запуск автотеста - скрипт полного добавления пользователя:
 ./tests/add_video.sh
+./tests/e2e_video_pipeline.sh
 
 
 Проверяем что он есть:

@@ -7,6 +7,7 @@ import logging.config
 import os
 from datetime import datetime
 from typing import Any, Optional, Tuple
+from src.metrics import start_background_metrics_server
 
 import pika
 from sqlalchemy.orm import Session
@@ -224,6 +225,7 @@ def main() -> None:
     )
 
     logger.info("boot: consuming events exchange=%s queue=%s routing_key=%s", exchange, queue, routing_key)
+    start_background_metrics_server(int(os.getenv("METRICS_PORT", "9100")))
 
     conn = _connect()
     ch = conn.channel()
