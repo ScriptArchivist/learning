@@ -39,7 +39,8 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
     volumes:
       - ./src:/app/src
       - ./db:/app/db
@@ -85,9 +86,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
-      AUTH_STUB: "1"
 
       DELIVERY_MODE: ${DELIVERY_MODE:-local}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
@@ -104,7 +105,35 @@ services:
 
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
       CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-^https?://(localhost|127\.0\.0\.1)(:\d+)?$}
+    volumes:
+      - ./src:/app/src
+      - ./web:/app/web
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./alembic:/app/alembic
+      - ./alembic.ini:/app/alembic.ini
+      - ./logging.ini:/app/logging.ini
+      - uploads_data:/app/uploads
 
+  live-api:
+    build: .
+    command: >
+      sh -c "echo 'Starting live-api...' && uvicorn src.live_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8004:8000"
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      secret_key: changeme
+      access_token_expire_minutes: "30"
+      LIVE_RTMP_URL_TEMPLATE: "rtmp://localhost:1935/live/{stream_key}"
+      LIVE_HLS_URL_TEMPLATE: "http://localhost:8080/live/{stream_key}/master.m3u8"
     volumes:
       - ./src:/app/src
       - ./web:/app/web
@@ -128,7 +157,10 @@ services:
     ports:
       - "8003:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      secret_key: changeme
+      access_token_expire_minutes: "30"
       DELIVERY_MODE: "url"
       DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-http://localhost:8080}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
@@ -156,7 +188,10 @@ services:
     ports:
       - "8002:8000"
     environment:
-      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      secret_key: changeme
+      access_token_expire_minutes: "30"
       STORAGE_PATH: /app/uploads
     volumes:
       - ./src:/app/src
@@ -167,6 +202,136 @@ services:
       - ./alembic:/app/alembic
       - ./alembic.ini:/app/alembic.ini
       - ./logging.ini:/app/logging.ini
+      - uploads_data:/app/uploads
+
+  video-events-consumer:
+    build: .
+    command: python -m src.video_events_consumer
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      RABBIT_EVENTS_EXCHANGE: ${RABBIT_EVENTS_EXCHANGE:-video.events.x}
+      RABBIT_EVENTS_QUEUE: ${RABBIT_EVENTS_QUEUE:-events.q}
+      RABBIT_EVENTS_ROUTING_KEY: ${RABBIT_EVENTS_ROUTING_KEY:-video.events}
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - ./logging.ini:/app/logging.ini
+
+  ingest:
+    build: ./ingest
+    ports:
+      - "1935:1935"
+    environment:
+      LIVE_API_URL: "http://live-api:8000/live/sessions"
+      LIVE_API_URL_BASE: "http://live-api:8000/live/sessions"
+      RTMP_HOST: "ingest"
+      RTMP_PORT: "1935"
+    volumes:
+      - uploads_data:/app/uploads
+      - ./ingest/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ingest/scripts:/opt/scripts:ro
+    command: >
+      sh -lc "mkdir -p /app/uploads/live && chmod -R 0777 /app/uploads && nginx -g 'daemon off;'"
+
+  processing-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    command: python -m src.worker
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+      VIDEO_LOCK_TTL_SECONDS: "3600"
+    volumes:
+      - ./logging.ini:/app/logging.ini
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+      - uploads_data:/app/uploads
+
+  outbox-publisher:
+    build: .
+    command: python -m src.outbox_publisher
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      OUTBOX_BATCH_SIZE: "50"
+      OUTBOX_POLL_INTERVAL: "0.5"
+      OUTBOX_LEADER_LOCK_KEY: "424242"
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+
+  dlq-replayer:
+    build: .
+    command: python -m src.dlq_replayer
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      DLQ_REPLAY_LIMIT: "200"
+      DLQ_RESET_ATTEMPTS: "1"
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
+      - ./model:/app/model
+
+  live-cleaner:
+    build: .
+    command: python -m src.live_ttl_cleaner
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db:5432/app
+      LIVE_TTL_INTERVAL_SECONDS: ${LIVE_TTL_INTERVAL_SECONDS:-10}
+      LIVE_TTL_BATCH_SIZE: ${LIVE_TTL_BATCH_SIZE:-100}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./src:/app/src
+      - ./service:/app/service
+      - ./db:/app/db
       - uploads_data:/app/uploads
 
   origin:
