@@ -1,17 +1,9 @@
 run-tests:
   stage: test
   image: alpine:latest
-  variables:
-    GIT_DEPTH: 1
-  
   script:
-    - echo "✅ Проверка запущена для ветки $CI_COMMIT_BRANCH"
-    - echo "📝 Коммит: $CI_COMMIT_SHORT_SHA"
-    - echo "👤 Автор: $CI_COMMIT_AUTHOR"
-    - echo "📁 Содержимое репозитория:"
-    - ls -la
-    - echo "✅ Все проверки пройдены!"
-    - exit 0
-  
+    - echo "Пайплайн работает!"
+    - echo "Ветка: $CI_COMMIT_BRANCH"
+    - echo "Коммит: $CI_COMMIT_SHORT_SHA"
   rules:
     - if: '$CI_COMMIT_BRANCH !~ /^(main|master)$/'
