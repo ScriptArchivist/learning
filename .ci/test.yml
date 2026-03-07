@@ -1,19 +1,17 @@
 run-tests:
   stage: test
   image: alpine:latest
+  variables:
+    GIT_DEPTH: 1
   
   script:
-    - echo "✅ УСПЕХ! Ветка $CI_COMMIT_BRANCH успешно запушена в GitLab"
-    - echo "📊 Статистика изменений:"
-    - echo "   - Коммит: $CI_COMMIT_SHORT_SHA"
-    - echo "   - Автор: $CI_COMMIT_AUTHOR"
-    - echo "   - Сообщение: $CI_COMMIT_MESSAGE"
-    - echo ""
-    - echo "📁 Файлы в репозитории:"
+    - echo "✅ Проверка запущена для ветки $CI_COMMIT_BRANCH"
+    - echo "📝 Коммит: $CI_COMMIT_SHORT_SHA"
+    - echo "👤 Автор: $CI_COMMIT_AUTHOR"
+    - echo "📁 Содержимое репозитория:"
     - ls -la
-    - echo ""
-    - echo "🎉 Все проверки пройдены! Код сохранён в GitLab."
-    - exit 0  # Явно возвращаем успех
+    - echo "✅ Все проверки пройдены!"
+    - exit 0
   
   rules:
     - if: '$CI_COMMIT_BRANCH !~ /^(main|master)$/'
