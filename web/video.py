@@ -7,6 +7,8 @@ Video API (metadata & playback) + Backward-compatible upload + share endpoints.
 - GET /videos/{id}
 - GET /videos
 - GET /videos/{id}/playback
+- PATCH /videos/{id}
+- DELETE /videos/{id}
 
 Совместимость (пока upload-service не стал единственным входом):
 - POST /videos/upload/prepare
@@ -41,6 +43,7 @@ from model.video import (
     VideoFilter,
     VideoPagination,
     VideoStatus,
+    VideoUpdate,
     VideoUploadComplete,
     VideoUploadCreate,
     VideoUploadURL,
@@ -54,11 +57,13 @@ from service.video_service import (
     complete_video_upload,
     create_share_link,
     create_video,
+    delete_video,
     get_video,
     get_video_by_share_token,
     get_videos,
     prepare_video_upload,
     revoke_share_link,
+    update_video,
 )
 from service.video_status import VideoStatusTransitionError
 
@@ -161,6 +166,48 @@ def get_video_endpoint(
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
         return to_detail(video)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@router.patch("/{video_id}", response_model=VideoDetailDTO)
+def update_video_endpoint(
+    video_id: int,
+    payload: VideoUpdate,
+    current_user: UserInDB = Depends(get_current_user_stub),
+    db: Session = Depends(get_db_write),
+):
+    try:
+        video = update_video(
+            db=db,
+            video_id=video_id,
+            update_data=payload,
+            user_id=current_user["id"],
+        )
+        return to_detail(video)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_video_endpoint(
+    video_id: int,
+    current_user: UserInDB = Depends(get_current_user_stub),
+    db: Session = Depends(get_db_write),
+):
+    try:
+        delete_video(
+            db=db,
+            video_id=video_id,
+            user_id=current_user["id"],
+        )
+        return None
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:

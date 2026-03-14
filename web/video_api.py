@@ -7,6 +7,8 @@ Video API (metadata & playback)
 - GET /videos/{id}
 - GET /videos
 - GET /videos/{id}/playback
+- PATCH /videos/{id}
+- DELETE /videos/{id}
 
 Важно:
 - upload / file / thumbnail / hls / share / watch — НЕ часть video-api
@@ -22,10 +24,10 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db_read, get_db_write
 from errors import ForbiddenError, NotFoundError, ValidationError
-from model.video import VideoCreate, VideoFilter, VideoPagination, VideoStatus, Visibility
+from model.video import VideoCreate, VideoFilter, VideoPagination, VideoStatus, VideoUpdate, Visibility
 from model.video_contract import VideoDetailDTO, VideoListResponse
 from service.video_presenter import to_detail, to_list_item
-from service.video_service import create_video, get_video, get_videos
+from service.video_service import create_video, delete_video, get_video, get_videos, update_video
 from model.user import UserInDB
 
 
@@ -37,6 +39,7 @@ def get_current_user_stub() -> UserInDB:
         "role": "user",
         "is_active": True,
     }
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/videos", tags=["videos"], redirect_slashes=False)
@@ -105,6 +108,48 @@ def get_video_endpoint(
     try:
         video = get_video(db, video_id, user_id=current_user["id"])
         return to_detail(video)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+
+
+@router.patch("/{video_id}", response_model=VideoDetailDTO)
+def update_video_endpoint(
+    video_id: int,
+    payload: VideoUpdate,
+    current_user: UserInDB = Depends(get_current_user_stub),
+    db: Session = Depends(get_db_write),
+):
+    try:
+        video = update_video(
+            db=db,
+            video_id=video_id,
+            update_data=payload,
+            user_id=current_user["id"],
+        )
+        return to_detail(video)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ForbiddenError as e:
+        raise HTTPException(status_code=403, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.delete("/{video_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_video_endpoint(
+    video_id: int,
+    current_user: UserInDB = Depends(get_current_user_stub),
+    db: Session = Depends(get_db_write),
+):
+    try:
+        delete_video(
+            db=db,
+            video_id=video_id,
+            user_id=current_user["id"],
+        )
+        return None
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:
