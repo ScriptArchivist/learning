@@ -132,16 +132,22 @@ curl -s "http://localhost:8000/api/v1/videos/?owner_id=1" | jq
 curl http://localhost:8000/api/v1/videos/1 | jq
 
 
-Обновляем видео:
-curl -X PUT http://localhost:8000/api/v1/videos/1 \
+Обновление и удаление виде:
+VIDEO_API_BASE="http://localhost:8003/api/v1"
+VIDEO_ID=1
+AUTH_HEADER="Authorization: Bearer $TOKEN"
+
+curl -sS -X PATCH "$VIDEO_API_BASE/videos/$VIDEO_ID" \
+  -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
-  -d '{
-    "title": "Новое название",
-    "description": "Обновлённое описание",
-    "visibility": "public",
-    "is_blocked": false
-  }' | jq
+  -d '{"title":"video after patch","description":"patched manually after e2e","visibility":"public"}' | jq .
 
+curl -sS "$VIDEO_API_BASE/videos/$VIDEO_ID?consistent=1" \
+  -H "$AUTH_HEADER" | jq .
 
-Удаляем видео:
-curl -X DELETE "http://localhost:8000/api/v1/videos/1" | jq
+curl -sS -o /dev/null -w '%{http_code}\n' \
+  -X DELETE "$VIDEO_API_BASE/videos/$VIDEO_ID" \
+  -H "$AUTH_HEADER"
+
+curl -sS -i "$VIDEO_API_BASE/videos/$VIDEO_ID?consistent=1" \
+  -H "$AUTH_HEADER"
