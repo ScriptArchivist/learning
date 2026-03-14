@@ -22,6 +22,8 @@ database: app
 Добавляем пользователя:
 docker-compose -f docker-compose.ci.yml exec -e PGPASSWORD=postgres db-master \
 psql -U postgres -d app -c "
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 INSERT INTO users (
     username,
     email,
@@ -34,7 +36,7 @@ INSERT INTO users (
 VALUES (
     'vadim',
     'vadim@example.com',
-    'password_hash',
+    crypt('password', gen_salt('bf')),
     true,
     'user',
     10737418240,
@@ -42,10 +44,14 @@ VALUES (
 );
 "
 
+username: vadim
+password: password
+
 
 Запуск автотеста - скрипт полного добавления пользователя:
 ./tests/add_video.sh
 ./tests/e2e_video_pipeline.sh
+./tests/e2e_upload_service_flow.sh
 
 
 Проверяем что он есть:

@@ -104,14 +104,20 @@ def _apply_upload_completed(db: Session, pl: dict) -> None:
         logger.info("skip upload_completed: video not found video_id=%s", video_id)
         return
 
-    # UPLOADING -> UPLOADED
-    changed = _try_transition(video, VideoStatus.UPLOADED, actor="api")
+    # Синхронизация данных из upload event
+    object_key = pl.get("object_key")
+    if object_key:
+        video.original_path = str(object_key)
 
-    # доп. поля (необязательные)
-    if pl.get("size_bytes") is not None:
-        video.size_bytes = int(pl["size_bytes"])
+    size_value = pl.get("size_bytes", pl.get("size"))
+    if size_value is not None:
+        video.size_bytes = int(size_value)
+
     if pl.get("content_type"):
         video.mime_type = str(pl["content_type"])
+
+    # UPLOADING -> UPLOADED
+    changed = _try_transition(video, VideoStatus.UPLOADED, actor="api")
 
     logger.info(
         "applied event=upload_completed video_id=%s status=%s changed=%s",

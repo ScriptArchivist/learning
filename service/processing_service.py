@@ -220,7 +220,7 @@ def fail_video_processing_with_lock(
         # ---- Outbox event ----
         payload = VideoProcessFailedPayload(
             video_id=video.id,
-            error_message=video.error_message,
+            error=video.error_message or "processing failed",
         )
 
         add_event(
