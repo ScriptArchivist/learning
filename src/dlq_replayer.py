@@ -11,8 +11,22 @@ from sqlalchemy.orm import Session
 
 from db.database import SessionLocal
 from db.models import OutboxEvent, OutboxStatus
+from service.correlation import get_request_id, get_trace_id
 
 
+_old_factory = logging.getLogRecordFactory()
+
+
+def record_factory(*args, **kwargs):
+    record = _old_factory(*args, **kwargs)
+    if not hasattr(record, "request_id"):
+        record.request_id = get_request_id() or "-"
+    if not hasattr(record, "trace_id"):
+        record.trace_id = get_trace_id() or "-"
+    return record
+
+
+logging.setLogRecordFactory(record_factory)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("dlq-replayer")
 
@@ -30,7 +44,7 @@ RESET_ATTEMPTS = os.getenv("DLQ_RESET_ATTEMPTS", "1").strip() == "1"
 
 def replay_failed(db: Session, limit: int) -> int:
     """
-    “Разморозка” FAILED → NEW (available_at=now, locked_at=None, last_error остаётся для истории).
+    “Разморозка” FAILED -> NEW (available_at=now, locked_at=None, last_error остаётся для истории).
     Это НЕ публикует сразу — публикацией занимается outbox-publisher.
     """
     now = datetime.utcnow()

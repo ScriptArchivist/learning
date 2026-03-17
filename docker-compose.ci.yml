@@ -121,7 +121,7 @@ services:
 
       DELIVERY_MODE: ${DELIVERY_MODE:-local}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
-      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-http://localhost:8080}
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}}
 
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
@@ -129,8 +129,8 @@ services:
       HLS_TOKEN_SECRET: ${HLS_TOKEN_SECRET:-super-long-random-secret-1234567890}
       HLS_TOKEN_TTL_SECONDS: ${HLS_TOKEN_TTL_SECONDS:-300}
 
-      LIVE_RTMP_URL_TEMPLATE: "rtmp://localhost:1935/live/{stream_key}"
-      LIVE_HLS_URL_TEMPLATE: "http://localhost:8080/live/{stream_key}/master.m3u8"
+      LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-localhost}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
+      LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
 
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
       CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-^https?://(localhost|127\.0\.0\.1)(:\d+)?$}
@@ -162,8 +162,8 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
       access_token_expire_minutes: "30"
-      LIVE_RTMP_URL_TEMPLATE: "rtmp://localhost:1935/live/{stream_key}"
-      LIVE_HLS_URL_TEMPLATE: "http://localhost:8080/live/{stream_key}/master.m3u8"
+      LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-localhost}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
+      LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
     volumes:
       - ./src:/app/src
       - ./web:/app/web
@@ -195,7 +195,7 @@ services:
       secret_key: changeme
       access_token_expire_minutes: "30"
       DELIVERY_MODE: "url"
-      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-http://localhost:8080}
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
     volumes:
       - ./src:/app/src
@@ -271,16 +271,18 @@ services:
     ports:
       - "1935:1935"
     environment:
-      LIVE_API_URL: "http://live-api:8000/live/sessions"
-      LIVE_API_URL_BASE: "http://live-api:8000/live/sessions"
-      RTMP_HOST: "ingest"
+      RTMP_HOST: "127.0.0.1"
       RTMP_PORT: "1935"
+      MAX_ATTEMPTS: "20"
     volumes:
       - uploads_data:/app/uploads
       - ./ingest/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./ingest/scripts:/opt/scripts:ro
-    command: >
-      sh -lc "mkdir -p /app/uploads/live && chmod -R 0777 /app/uploads && nginx -g 'daemon off;'"
+      - ./ingest/transcode.sh:/opt/transcode.sh:ro
+    depends_on:
+      live-api:
+        condition: service_started
+    restart: unless-stopped
 
   processing-worker:
     build:

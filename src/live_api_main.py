@@ -8,9 +8,25 @@ from sqlalchemy import func
 
 from db.database import SessionLocalWrite
 from db.models import LiveSession
+from service.correlation import get_request_id, get_trace_id
 from service.logging_filter import CorrelationFilter
 from src.metrics import install_http_metrics, set_live_active_sessions
 from web.live import router as live_router
+
+
+_old_factory = logging.getLogRecordFactory()
+
+
+def record_factory(*args, **kwargs):
+    record = _old_factory(*args, **kwargs)
+    if not hasattr(record, "request_id"):
+        record.request_id = get_request_id() or "-"
+    if not hasattr(record, "trace_id"):
+        record.trace_id = get_trace_id() or "-"
+    return record
+
+
+logging.setLogRecordFactory(record_factory)
 
 
 def _refresh_live_metrics() -> None:
