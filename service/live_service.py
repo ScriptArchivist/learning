@@ -8,9 +8,10 @@ import secrets
 import shutil
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Tuple
+from typing import Any, Tuple
 
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, joinedload
 
 from db.models import LiveSession
 from errors import ForbiddenError, NotFoundError
@@ -48,6 +49,10 @@ def _live_root_dir() -> Path:
 
 def _live_session_dir(stream_key: str) -> Path:
     return _live_root_dir() / stream_key
+
+
+def _live_master_playlist_path(stream_key: str) -> Path:
+    return _live_session_dir(stream_key) / "master.m3u8"
 
 
 def _build_rtmp_url(stream_key: str) -> str:
@@ -107,6 +112,54 @@ def _hash_create_request(owner_id: int, stream_key: str | None, ttl_seconds: int
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
+def _is_hls_ready(stream_key: str | None) -> bool:
+    if not stream_key:
+        return False
+    return _live_master_playlist_path(stream_key).exists()
+
+
+def _is_viewer_ready_session(session: LiveSession, now: datetime | None = None) -> bool:
+    now = now or _utc_now()
+
+    if not session.stream_key:
+        return False
+
+    if session.status != "started":
+        return False
+
+    if session.stopped_at is not None:
+        return False
+
+    if session.expires_at is not None and session.expires_at <= now:
+        return False
+
+    if not _is_hls_ready(session.stream_key):
+        return False
+
+    return True
+
+
+def _to_active_live_item(session: LiveSession) -> dict[str, Any]:
+    owner_name = None
+    if getattr(session, "owner", None) is not None:
+        owner_name = getattr(session.owner, "username", None)
+
+    started_at = session.started_at or session.created_at
+
+    return {
+        "id": session.id,
+        "stream_key": session.stream_key,
+        "title": f"Live {session.stream_key}",
+        "description": None,
+        "status": session.status,
+        "hls_url": _build_hls_url(session.stream_key),
+        "hls_ready": True,
+        "owner_name": owner_name,
+        "started_at": started_at,
+        "thumbnail_url": None,
+    }
+
+
 def create_live_session(
     db: Session,
     *,
@@ -146,11 +199,10 @@ def create_live_session(
         if existing_by_key:
             if existing_by_key.owner_id != owner_id:
                 raise ForbiddenError("Access denied")
-            # если уже started и не остановлена — идемпотентный ответ
             if existing_by_key.status == "started":
                 return existing_by_key, _build_rtmp_url(stream_key), _build_hls_url(stream_key), False
 
-    # 3) Создаём новую сессию (stream_key может быть сгенерен)
+    # 3) Создаём новую сессию
     last_exc: Exception | None = None
     for _ in range(5):
         key = stream_key or _gen_stream_key()
@@ -165,12 +217,11 @@ def create_live_session(
         )
         db.add(session)
 
-        # outbox (в той же транзакции)
         add_event(
             db,
             event_type=EVENT_LIVE_SESSION_STARTED,
             payload={
-                "session_id": None,  # заполним после flush/commit, см ниже
+                "session_id": None,
                 "stream_key": key,
                 "owner_id": owner_id,
                 "expires_at": expires_at.isoformat(),
@@ -181,17 +232,13 @@ def create_live_session(
         )
 
         try:
-            db.flush()  # получаем session.id до commit
-            # обновим payload session_id у последнего evt (он в session new объектов)
-            # самый простой способ: найти последний OutboxEvent в identity_map не будем — оставим session_id=None
-            # (если тебе нужен строго session_id — скажи, сделаю аккуратно через явное создание OutboxEvent)
+            db.flush()
             db.commit()
             db.refresh(session)
             return session, _build_rtmp_url(key), _build_hls_url(key), True
         except Exception as e:
             db.rollback()
             last_exc = e
-            # если stream_key был задан клиентом — не имеет смысла повторять генерацию
             if stream_key:
                 break
 
@@ -205,6 +252,41 @@ def get_live_session_by_stream_key(db: Session, *, stream_key: str, owner_id: in
     if session.owner_id != owner_id:
         raise ForbiddenError("Access denied")
     return session
+
+
+def get_active_live_sessions(db: Session) -> list[dict[str, Any]]:
+    """
+    Возвращает viewer-ready список активных live-сессий.
+
+    Критерии:
+    - status == "started"
+    - session не stopped
+    - session не expired
+    - есть stream_key
+    - готов HLS master playlist
+    """
+    now = _utc_now()
+
+    sessions = (
+        db.query(LiveSession)
+        .options(joinedload(LiveSession.owner))
+        .filter(
+            LiveSession.status == "started",
+            LiveSession.stream_key.isnot(None),
+            LiveSession.stopped_at.is_(None),
+            or_(LiveSession.expires_at.is_(None), LiveSession.expires_at > now),
+        )
+        .order_by(LiveSession.started_at.desc(), LiveSession.id.desc())
+        .all()
+    )
+
+    items: list[dict[str, Any]] = []
+    for session in sessions:
+        if not _is_viewer_ready_session(session, now=now):
+            continue
+        items.append(_to_active_live_item(session))
+
+    return items
 
 
 def stop_live_session(db: Session, *, session_id: int, owner_id: int) -> LiveSession:
@@ -236,7 +318,6 @@ def stop_live_session(db: Session, *, session_id: int, owner_id: int) -> LiveSes
         db.commit()
         db.refresh(session)
 
-    # cleanup после stop
     _safe_cleanup_stream_dir(session.stream_key)
     return session
 
@@ -248,7 +329,6 @@ def expire_sessions_batch(db: Session, *, limit: int = 100) -> int:
     """
     now = _utc_now()
 
-    # берём пачку для обработки (skip_locked чтобы 2 cleaner не дрались)
     q = (
         db.query(LiveSession)
         .filter(
@@ -284,7 +364,6 @@ def expire_sessions_batch(db: Session, *, limit: int = 100) -> int:
 
     db.commit()
 
-    # cleanup после commit (чтобы не держать транзакцию на I/O)
     for s in sessions:
         _safe_cleanup_stream_dir(s.stream_key)
 

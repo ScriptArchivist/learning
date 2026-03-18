@@ -8,9 +8,19 @@ from sqlalchemy.orm import Session
 
 from db.database import get_db_read, get_db_write
 from errors import ForbiddenError, NotFoundError
-from model.live import LiveSessionCreateRequest, LiveSessionCreateResponse, LiveSessionDTO
+from model.live import (
+    LiveSessionActiveItemDTO,
+    LiveSessionCreateRequest,
+    LiveSessionCreateResponse,
+    LiveSessionDTO,
+)
 from model.user import UserInDB
-from service.live_service import create_live_session, get_live_session_by_stream_key, stop_live_session
+from service.live_service import (
+    create_live_session,
+    get_active_live_sessions,
+    get_live_session_by_stream_key,
+    stop_live_session,
+)
 from service.security import get_current_user as get_current_user_stub
 
 logger = logging.getLogger(__name__)
@@ -34,9 +44,6 @@ def create_live_session_endpoint(
             idempotency_key=idempotency_key,
         )
 
-        # если запрос повторный — корректнее вернуть 200, но FastAPI status_code задан 201.
-        # Чтобы не ломать контракт — оставляем 201, а семантику идемпотентности обеспечиваем логикой.
-        # Если хочешь строго: created ? 201 : 200 — скажи, сделаю.
         return LiveSessionCreateResponse(
             session=LiveSessionDTO.model_validate(session),
             rtmp_url=rtmp_url,
@@ -44,6 +51,26 @@ def create_live_session_endpoint(
         )
     except Exception as e:
         logger.exception("create_live_session_endpoint failed")
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/sessions/active", response_model=list[LiveSessionActiveItemDTO])
+def get_active_live_sessions_endpoint(
+    current_user: UserInDB = Depends(get_current_user_stub),
+    db: Session = Depends(get_db_read),
+):
+    """
+    Viewer-ready список активных live-сессий.
+
+    ВАЖНО:
+    Этот маршрут должен быть объявлен РАНЬШЕ, чем /sessions/{stream_key},
+    иначе FastAPI интерпретирует 'active' как stream_key.
+    """
+    try:
+        items = get_active_live_sessions(db=db)
+        return [LiveSessionActiveItemDTO.model_validate(item) for item in items]
+    except Exception as e:
+        logger.exception("get_active_live_sessions_endpoint failed")
         raise HTTPException(status_code=400, detail=str(e))
 
 

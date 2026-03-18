@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -25,8 +25,23 @@ class LiveSessionDTO(BaseModel):
         from_attributes = True
 
 
+class LiveSessionActiveItemDTO(BaseModel):
+    id: Optional[int] = None
+    stream_key: str
+    title: str
+    description: Optional[str] = None
+    status: str
+    hls_url: Optional[str] = None
+    hls_ready: bool
+    owner_name: Optional[str] = None
+    started_at: Optional[datetime] = None
+    thumbnail_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class LiveSessionCreateRequest(BaseModel):
-    # если не передан — генерируем
     stream_key: Optional[str] = None
     ttl_seconds: int = Field(default=1800, ge=60, le=24 * 3600)
 
