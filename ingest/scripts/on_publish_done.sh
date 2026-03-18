@@ -19,6 +19,7 @@ log "on_publish_done start name='${NAME}'"
 
 PID_FILE="/tmp/ffmpeg-live-${NAME}.pid"
 LOCK_DIR="/tmp/ffmpeg-live-${NAME}.lock"
+OUT_DIR="/app/uploads/live/${NAME}"
 
 if [ -f "$PID_FILE" ]; then
   PID="$(cat "$PID_FILE" 2>/dev/null || true)"
@@ -32,6 +33,51 @@ if [ -f "$PID_FILE" ]; then
 fi
 
 rmdir "$LOCK_DIR" 2>/dev/null || true
+
+# ВАЖНО:
+# удаляем HLS-артефакты сразу при завершении publish,
+# чтобы старый playlist/segments не делали stream ложноположительно "active".
+if [ -d "$OUT_DIR" ]; then
+  log "cleanup live artifacts dir='${OUT_DIR}'"
+  rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts "${OUT_DIR}"/*.tmp 2>/dev/null || true
+fi
+
+# Пытаемся уведомить live-api о disconnect publisher-а,
+# чтобы session в БД тоже перестала быть active.
+LIVE_API_INTERNAL_BASE_URL="${LIVE_API_INTERNAL_BASE_URL:-http://live-api:8004}"
+DISCONNECT_URL="${LIVE_API_INTERNAL_BASE_URL%/}/live/sessions/disconnect/${NAME}"
+INTERNAL_TOKEN="${LIVE_INTERNAL_TOKEN:-}"
+
+notify_disconnect() {
+  if command -v curl >/dev/null 2>&1; then
+    if [ -n "${INTERNAL_TOKEN}" ]; then
+      curl -fsS -X POST -H "X-Live-Internal-Token: ${INTERNAL_TOKEN}" "$DISCONNECT_URL" >/dev/null
+    else
+      curl -fsS -X POST "$DISCONNECT_URL" >/dev/null
+    fi
+    return 0
+  fi
+
+  if command -v wget >/dev/null 2>&1; then
+    if [ -n "${INTERNAL_TOKEN}" ]; then
+      wget -qO /dev/null \
+        --method=POST \
+        --header="X-Live-Internal-Token: ${INTERNAL_TOKEN}" \
+        "$DISCONNECT_URL"
+    else
+      wget -qO /dev/null --method=POST "$DISCONNECT_URL"
+    fi
+    return 0
+  fi
+
+  return 1
+}
+
+if notify_disconnect; then
+  log "live-api disconnect notified url='${DISCONNECT_URL}'"
+else
+  log "WARN failed to notify live-api disconnect url='${DISCONNECT_URL}'"
+fi
 
 log "on_publish_done done"
 exit 0

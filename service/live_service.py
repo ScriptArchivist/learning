@@ -6,6 +6,7 @@ import logging
 import os
 import secrets
 import shutil
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Tuple
@@ -112,10 +113,67 @@ def _hash_create_request(owner_id: int, stream_key: str | None, ttl_seconds: int
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _is_hls_ready(stream_key: str | None) -> bool:
+def _live_active_artifacts_max_age_seconds() -> int:
+    """
+    Максимальный возраст live-артефактов, при котором эфир ещё считаем реально живым.
+    Нужен именно для active list, чтобы старый HLS не считался "live".
+    """
+    try:
+        return max(3, int(os.getenv("LIVE_ACTIVE_ARTIFACT_MAX_AGE_SECONDS", "15")))
+    except Exception:
+        return 15
+
+
+def _latest_live_artifact_mtime(stream_key: str) -> float | None:
+    """
+    Возвращает mtime самого свежего файла в директории live/<stream_key>.
+    Это надёжнее, чем смотреть только master.m3u8, потому что master playlist
+    часто статичен, а реально обновляются сегменты/variant playlists.
+    """
+    session_dir = _live_session_dir(stream_key)
+    if not session_dir.exists() or not session_dir.is_dir():
+        return None
+
+    latest_mtime: float | None = None
+
+    try:
+        for entry in session_dir.iterdir():
+            if not entry.is_file():
+                continue
+            try:
+                mtime = entry.stat().st_mtime
+            except FileNotFoundError:
+                continue
+            if latest_mtime is None or mtime > latest_mtime:
+                latest_mtime = mtime
+    except FileNotFoundError:
+        return None
+    except Exception:
+        logger.exception("failed to inspect live artifacts for stream_key=%s", stream_key)
+        return None
+
+    return latest_mtime
+
+
+def _has_recent_live_artifacts(stream_key: str | None) -> bool:
+    """
+    Active stream должен иметь:
+    - master.m3u8
+    - свежие live-артефакты в каталоге
+    """
     if not stream_key:
         return False
-    return _live_master_playlist_path(stream_key).exists()
+
+    master_path = _live_master_playlist_path(stream_key)
+    if not master_path.exists():
+        return False
+
+    latest_mtime = _latest_live_artifact_mtime(stream_key)
+    if latest_mtime is None:
+        return False
+
+    age_seconds = time.time() - latest_mtime
+    return age_seconds <= _live_active_artifacts_max_age_seconds()
 
 
 def _is_viewer_ready_session(session: LiveSession, now: datetime | None = None) -> bool:
@@ -133,7 +191,7 @@ def _is_viewer_ready_session(session: LiveSession, now: datetime | None = None) 
     if session.expires_at is not None and session.expires_at <= now:
         return False
 
-    if not _is_hls_ready(session.stream_key):
+    if not _has_recent_live_artifacts(session.stream_key):
         return False
 
     return True
@@ -158,6 +216,42 @@ def _to_active_live_item(session: LiveSession) -> dict[str, Any]:
         "started_at": started_at,
         "thumbnail_url": None,
     }
+
+
+def _mark_session_stopped(
+    db: Session,
+    session: LiveSession,
+    *,
+    reason: str | None = None,
+    cleanup_files: bool = True,
+) -> LiveSession:
+    if session.status != "stopped":
+        session.status = "stopped"
+        session.stopped_at = _utc_now()
+        db.add(session)
+
+        add_event(
+            db,
+            event_type=EVENT_LIVE_SESSION_STOPPED,
+            payload={
+                "session_id": session.id,
+                "stream_key": session.stream_key,
+                "owner_id": session.owner_id,
+                "stopped_at": session.stopped_at.isoformat() if session.stopped_at else None,
+                "reason": reason,
+            },
+            producer="live-api",
+            aggregate_type="live_session",
+            aggregate_id=session.stream_key,
+        )
+
+        db.commit()
+        db.refresh(session)
+
+    if cleanup_files:
+        _safe_cleanup_stream_dir(session.stream_key)
+
+    return session
 
 
 def create_live_session(
@@ -263,7 +357,10 @@ def get_active_live_sessions(db: Session) -> list[dict[str, Any]]:
     - session не stopped
     - session не expired
     - есть stream_key
-    - готов HLS master playlist
+    - есть master.m3u8
+    - и live-артефакты свежие (не старше LIVE_ACTIVE_ARTIFACT_MAX_AGE_SECONDS)
+
+    Это важно: наличие старого master.m3u8 само по себе НЕ означает, что эфир живой.
     """
     now = _utc_now()
 
@@ -296,30 +393,51 @@ def stop_live_session(db: Session, *, session_id: int, owner_id: int) -> LiveSes
     if session.owner_id != owner_id:
         raise ForbiddenError("Access denied")
 
-    if session.status != "stopped":
-        session.status = "stopped"
-        session.stopped_at = _utc_now()
-        db.add(session)
+    return _mark_session_stopped(
+        db=db,
+        session=session,
+        reason="manual_stop",
+        cleanup_files=True,
+    )
 
-        add_event(
-            db,
-            event_type=EVENT_LIVE_SESSION_STOPPED,
-            payload={
-                "session_id": session.id,
-                "stream_key": session.stream_key,
-                "owner_id": session.owner_id,
-                "stopped_at": session.stopped_at.isoformat() if session.stopped_at else None,
-            },
-            producer="live-api",
-            aggregate_type="live_session",
-            aggregate_id=session.stream_key,
+
+def disconnect_live_session_by_stream_key(db: Session, *, stream_key: str) -> LiveSession | None:
+    """
+    Используется ingest-ом при publisher disconnect.
+    Делает деактивацию сессии по stream_key без участия клиента.
+    """
+    session = (
+        db.query(LiveSession)
+        .filter(LiveSession.stream_key == stream_key)
+        .order_by(LiveSession.id.desc())
+        .first()
+    )
+    if not session:
+        logger.warning("disconnect ignored: live session not found for stream_key=%s", stream_key)
+        return None
+
+    if session.status in ("stopped", "expired"):
+        logger.info(
+            "disconnect ignored: session already inactive stream_key=%s session_id=%s status=%s",
+            stream_key,
+            session.id,
+            session.status,
         )
+        return session
 
-        db.commit()
-        db.refresh(session)
+    logger.info(
+        "disconnecting live session: stream_key=%s session_id=%s owner_id=%s",
+        stream_key,
+        session.id,
+        session.owner_id,
+    )
 
-    _safe_cleanup_stream_dir(session.stream_key)
-    return session
+    return _mark_session_stopped(
+        db=db,
+        session=session,
+        reason="publisher_disconnected",
+        cleanup_files=True,
+    )
 
 
 def expire_sessions_batch(db: Session, *, limit: int = 100) -> int:
