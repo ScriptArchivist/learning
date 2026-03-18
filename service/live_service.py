@@ -27,7 +27,7 @@ except Exception:
 
     class Settings:
         storage_path = "/app/uploads"
-        ORIGIN_BASE_URL = "http://localhost:8080"  # nginx/origin
+        ORIGIN_BASE_URL = "http://localhost:8080"
         LIVE_RTMP_URL_TEMPLATE = "rtmp://localhost:1935/live/{stream_key}"
         LIVE_HLS_URL_TEMPLATE = "http://localhost:8080/live/{stream_key}/master.m3u8"
 
@@ -113,22 +113,32 @@ def _hash_create_request(owner_id: int, stream_key: str | None, ttl_seconds: int
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
-def _live_active_artifacts_max_age_seconds() -> int:
+def _live_active_artifact_max_age_seconds() -> int:
     """
-    Максимальный возраст live-артефактов, при котором эфир ещё считаем реально живым.
-    Нужен именно для active list, чтобы старый HLS не считался "live".
+    Для active list:
+    stream считаем live, только если артефакты обновлялись недавно.
     """
     try:
-        return max(3, int(os.getenv("LIVE_ACTIVE_ARTIFACT_MAX_AGE_SECONDS", "15")))
+        return max(5, int(os.getenv("LIVE_ACTIVE_ARTIFACT_MAX_AGE_SECONDS", "20")))
     except Exception:
-        return 15
+        return 20
+
+
+def _live_disconnect_grace_seconds() -> int:
+    """
+    Для автоматической деактивации:
+    если артефакты давно не обновлялись, started-session переводим в stopped.
+    """
+    try:
+        return max(5, int(os.getenv("LIVE_DISCONNECT_GRACE_SECONDS", "30")))
+    except Exception:
+        return 30
 
 
 def _latest_live_artifact_mtime(stream_key: str) -> float | None:
     """
-    Возвращает mtime самого свежего файла в директории live/<stream_key>.
-    Это надёжнее, чем смотреть только master.m3u8, потому что master playlist
-    часто статичен, а реально обновляются сегменты/variant playlists.
+    Берём самый свежий mtime из файлов в live/<stream_key>.
+    Это надёжнее, чем смотреть только master.m3u8.
     """
     session_dir = _live_session_dir(stream_key)
     if not session_dir.exists() or not session_dir.is_dir():
@@ -155,11 +165,22 @@ def _latest_live_artifact_mtime(stream_key: str) -> float | None:
     return latest_mtime
 
 
+def _artifact_age_seconds(stream_key: str | None) -> float | None:
+    if not stream_key:
+        return None
+
+    latest_mtime = _latest_live_artifact_mtime(stream_key)
+    if latest_mtime is None:
+        return None
+
+    return max(0.0, time.time() - latest_mtime)
+
+
 def _has_recent_live_artifacts(stream_key: str | None) -> bool:
     """
-    Active stream должен иметь:
-    - master.m3u8
-    - свежие live-артефакты в каталоге
+    Для active list:
+    - master.m3u8 должен существовать
+    - файлы в каталоге должны быть свежими
     """
     if not stream_key:
         return False
@@ -168,12 +189,51 @@ def _has_recent_live_artifacts(stream_key: str | None) -> bool:
     if not master_path.exists():
         return False
 
-    latest_mtime = _latest_live_artifact_mtime(stream_key)
-    if latest_mtime is None:
+    age_seconds = _artifact_age_seconds(stream_key)
+    if age_seconds is None:
         return False
 
-    age_seconds = time.time() - latest_mtime
-    return age_seconds <= _live_active_artifacts_max_age_seconds()
+    return age_seconds <= _live_active_artifact_max_age_seconds()
+
+
+def _reference_timestamp_for_staleness(session: LiveSession) -> float:
+    """
+    Если файлов нет, fallback — started_at/created_at.
+    Нужен для deactivation cleaner.
+    """
+    latest_mtime = _latest_live_artifact_mtime(session.stream_key)
+    if latest_mtime is not None:
+        return latest_mtime
+
+    if session.started_at is not None:
+        return session.started_at.timestamp()
+
+    return session.created_at.timestamp()
+
+
+def _is_stale_started_session(session: LiveSession, now_ts: float | None = None) -> bool:
+    """
+    Session считается stale для принудительной деактивации, если:
+    - status=started
+    - не stopped
+    - не expired
+    - и давно нет свежих артефактов
+    """
+    if session.status != "started":
+        return False
+
+    if session.stopped_at is not None:
+        return False
+
+    now_ts = now_ts or time.time()
+
+    if session.expires_at is not None and session.expires_at <= _utc_now():
+        return False
+
+    ref_ts = _reference_timestamp_for_staleness(session)
+    age_seconds = max(0.0, now_ts - ref_ts)
+
+    return age_seconds > _live_disconnect_grace_seconds()
 
 
 def _is_viewer_ready_session(session: LiveSession, now: datetime | None = None) -> bool:
@@ -264,17 +324,11 @@ def create_live_session(
 ) -> Tuple[LiveSession, str, str, bool]:
     """
     Возвращает: (session, rtmp_url, hls_url, created_bool)
-
-    Идемпотентность:
-      - если передан Idempotency-Key: повтор вернёт ту же сессию
-      - если повтор с тем же ключом, но другим body => 409
-      - если ключ не передан: повтор по stream_key (если передан) вернёт существующую started
     """
     _live_root_dir().mkdir(parents=True, exist_ok=True)
 
     req_hash = _hash_create_request(owner_id, stream_key, ttl_seconds)
 
-    # 1) Idempotency-Key
     if idempotency_key:
         existing = db.query(LiveSession).filter(LiveSession.idempotency_key == idempotency_key).first()
         if existing:
@@ -287,7 +341,6 @@ def create_live_session(
     now = _utc_now()
     expires_at = now + timedelta(seconds=int(ttl_seconds))
 
-    # 2) Если клиент передал stream_key — повторяемость по нему
     if stream_key:
         existing_by_key = db.query(LiveSession).filter(LiveSession.stream_key == stream_key).first()
         if existing_by_key:
@@ -296,7 +349,6 @@ def create_live_session(
             if existing_by_key.status == "started":
                 return existing_by_key, _build_rtmp_url(stream_key), _build_hls_url(stream_key), False
 
-    # 3) Создаём новую сессию
     last_exc: Exception | None = None
     for _ in range(5):
         key = stream_key or _gen_stream_key()
@@ -350,17 +402,8 @@ def get_live_session_by_stream_key(db: Session, *, stream_key: str, owner_id: in
 
 def get_active_live_sessions(db: Session) -> list[dict[str, Any]]:
     """
-    Возвращает viewer-ready список активных live-сессий.
-
-    Критерии:
-    - status == "started"
-    - session не stopped
-    - session не expired
-    - есть stream_key
-    - есть master.m3u8
-    - и live-артефакты свежие (не старше LIVE_ACTIVE_ARTIFACT_MAX_AGE_SECONDS)
-
-    Это важно: наличие старого master.m3u8 само по себе НЕ означает, что эфир живой.
+    Active list должен отражать реально идущие эфиры,
+    а не просто started-session с остаточным HLS.
     """
     now = _utc_now()
 
@@ -403,8 +446,11 @@ def stop_live_session(db: Session, *, session_id: int, owner_id: int) -> LiveSes
 
 def disconnect_live_session_by_stream_key(db: Session, *, stream_key: str) -> LiveSession | None:
     """
-    Используется ingest-ом при publisher disconnect.
-    Делает деактивацию сессии по stream_key без участия клиента.
+    Вызывается ingest-ом при disconnect publisher-а.
+
+    Важно:
+    если stream уже переподключился и артефакты снова свежие,
+    callback не должен убить новую live-сессию тем же stream_key.
     """
     session = (
         db.query(LiveSession)
@@ -425,6 +471,14 @@ def disconnect_live_session_by_stream_key(db: Session, *, stream_key: str) -> Li
         )
         return session
 
+    if _has_recent_live_artifacts(stream_key):
+        logger.info(
+            "disconnect ignored: stream has fresh artifacts, likely reconnected stream_key=%s session_id=%s",
+            stream_key,
+            session.id,
+        )
+        return session
+
     logger.info(
         "disconnecting live session: stream_key=%s session_id=%s owner_id=%s",
         stream_key,
@@ -440,10 +494,55 @@ def disconnect_live_session_by_stream_key(db: Session, *, stream_key: str) -> Li
     )
 
 
+def deactivate_stale_live_sessions_batch(db: Session, *, limit: int = 100) -> int:
+    """
+    Страховочный механизм:
+    если started-session повисла, а disconnect callback не дошёл,
+    автоматически переводим её в stopped по признаку отсутствия активности.
+    """
+    now = _utc_now()
+
+    sessions = (
+        db.query(LiveSession)
+        .filter(
+            LiveSession.status == "started",
+            LiveSession.stopped_at.is_(None),
+            LiveSession.stream_key.isnot(None),
+            or_(LiveSession.expires_at.is_(None), LiveSession.expires_at > now),
+        )
+        .order_by(LiveSession.started_at.asc(), LiveSession.id.asc())
+        .limit(limit)
+        .all()
+    )
+
+    stopped_count = 0
+    now_ts = time.time()
+
+    for session in sessions:
+        if not _is_stale_started_session(session, now_ts=now_ts):
+            continue
+
+        logger.info(
+            "auto-stopping stale live session: stream_key=%s session_id=%s owner_id=%s",
+            session.stream_key,
+            session.id,
+            session.owner_id,
+        )
+
+        _mark_session_stopped(
+            db=db,
+            session=session,
+            reason="stale_no_activity",
+            cleanup_files=True,
+        )
+        stopped_count += 1
+
+    return stopped_count
+
+
 def expire_sessions_batch(db: Session, *, limit: int = 100) -> int:
     """
-    Для TTL cleaner: переводит протухшие started -> expired, пишет outbox, чистит каталоги.
-    Возвращает количество обработанных.
+    TTL cleaner: started -> expired, cleanup files.
     """
     now = _utc_now()
 

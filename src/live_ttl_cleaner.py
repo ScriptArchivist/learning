@@ -4,14 +4,17 @@ import logging
 import os
 import time
 from datetime import datetime, timezone
-from src.metrics import start_background_metrics_server
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from db.database import get_db_write
 from db.models import LiveSession
-from service.live_service import _safe_cleanup_stream_dir  # noqa: SLF001
+from service.live_service import (
+    _safe_cleanup_stream_dir,  # noqa: SLF001
+    deactivate_stale_live_sessions_batch,
+)
+from src.metrics import start_background_metrics_server
 
 logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
 logger = logging.getLogger("live_ttl_cleaner")
@@ -32,12 +35,11 @@ def _utc_now() -> datetime:
 def expire_once(db: Session) -> int:
     """
     Ищем live_sessions, у которых истёк expires_at, и:
-      1) переводим статус -> expired (если ещё не stopped/expired)
+      1) переводим статус -> expired
       2) чистим /app/uploads/live/<stream_key>
     """
     now = _utc_now()
 
-    # Берём только активные сессии, у которых истёк expires_at
     stmt = (
         select(LiveSession)
         .where(
@@ -57,13 +59,10 @@ def expire_once(db: Session) -> int:
     expired_count = 0
     for s in sessions:
         stream_key = s.stream_key
-
-        # 1) mark expired in DB
         s.status = "expired"
         db.add(s)
         expired_count += 1
 
-        # 2) cleanup files
         try:
             _safe_cleanup_stream_dir(stream_key)
             logger.info("expired cleanup done: stream_key=%s session_id=%s", stream_key, s.id)
@@ -85,12 +84,15 @@ def main() -> None:
 
     while True:
         try:
-            # db write session
             db = next(get_db_write())
             try:
-                n = expire_once(db)
-                if n:
-                    logger.info("expired sessions: %s", n)
+                expired_n = expire_once(db)
+                if expired_n:
+                    logger.info("expired sessions: %s", expired_n)
+
+                stale_n = deactivate_stale_live_sessions_batch(db, limit=_batch_size())
+                if stale_n:
+                    logger.info("stale stopped sessions: %s", stale_n)
             finally:
                 db.close()
         except Exception:

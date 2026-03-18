@@ -1,5 +1,6 @@
 # src/config.py
 import os
+
 from pydantic_settings import BaseSettings
 
 
@@ -27,6 +28,16 @@ class Settings(BaseSettings):
     DELIVERY_MODE: str = "local"  # local | url
     DELIVERY_BASE_URL: str = "http://origin"  # internal (containers)
     DELIVERY_PUBLIC_BASE_URL: str = "http://localhost:8080"  # external (for clients)
+
+    # ===== live settings =====
+    # Максимальный возраст live-артефактов, при котором stream ещё считается активным
+    live_active_artifact_max_age_seconds: int = 20
+
+    # Grace period после disconnect перед окончательной деактивацией
+    live_disconnect_grace_seconds: int = 30
+
+    # Интервал работы live cleaner
+    live_ttl_interval_seconds: int = 10
 
     class Config:
         env_file = ".env"

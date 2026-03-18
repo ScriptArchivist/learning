@@ -31,14 +31,9 @@ router = APIRouter(prefix="/live", tags=["live"], redirect_slashes=False)
 
 
 def _check_internal_token_or_raise(token: str | None) -> None:
-    """
-    Внутренний endpoint для ingest может быть защищён shared-secret токеном.
-    Если LIVE_INTERNAL_TOKEN не задан, проверка не требуется.
-    """
     expected = os.getenv("LIVE_INTERNAL_TOKEN")
     if not expected:
         return
-
     if token != expected:
         raise HTTPException(status_code=403, detail="Invalid internal token")
 
@@ -74,13 +69,6 @@ def get_active_live_sessions_endpoint(
     current_user: UserInDB = Depends(get_current_user_stub),
     db: Session = Depends(get_db_read),
 ):
-    """
-    Viewer-ready список активных live-сессий.
-
-    ВАЖНО:
-    Маршрут должен быть объявлен РАНЬШЕ, чем /sessions/{stream_key},
-    иначе FastAPI интерпретирует 'active' как stream_key.
-    """
     try:
         items = get_active_live_sessions(db=db)
         return [LiveSessionActiveItemDTO.model_validate(item) for item in items]
@@ -95,10 +83,6 @@ def disconnect_live_session_endpoint(
     db: Session = Depends(get_db_write),
     internal_token: str | None = Header(default=None, alias="X-Live-Internal-Token"),
 ):
-    """
-    Внутренний endpoint для ingest:
-    вызывается при exec_publish_done / потере publisher-а.
-    """
     try:
         _check_internal_token_or_raise(internal_token)
         disconnect_live_session_by_stream_key(db=db, stream_key=stream_key)
@@ -107,8 +91,6 @@ def disconnect_live_session_endpoint(
         raise
     except Exception:
         logger.exception("disconnect_live_session_endpoint failed: stream_key=%s", stream_key)
-        # Для ingest лучше сделать endpoint идемпотентным и безопасным:
-        # даже если сессия уже не найдена/уже остановлена, наружу не роняем обработчик.
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
