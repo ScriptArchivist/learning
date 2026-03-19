@@ -119,9 +119,14 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
 
+      PUBLIC_HOST: ${PUBLIC_HOST:-192.168.1.12}
+      PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
+      PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
+      PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
+
       DELIVERY_MODE: ${DELIVERY_MODE:-local}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
-      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}}
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}}
 
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
@@ -129,11 +134,11 @@ services:
       HLS_TOKEN_SECRET: ${HLS_TOKEN_SECRET:-super-long-random-secret-1234567890}
       HLS_TOKEN_TTL_SECONDS: ${HLS_TOKEN_TTL_SECONDS:-300}
 
-      LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-localhost}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
-      LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
+      LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
+      LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
 
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
-      CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-^https?://(localhost|127\.0\.0\.1)(:\d+)?$}
+      CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-^https?://(localhost|127\.0\.0\.1|192\.168\.1\.12)(:\d+)?$}
     volumes:
       - ./src:/app/src
       - ./web:/app/web
@@ -162,8 +167,14 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
       access_token_expire_minutes: "30"
-      LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-localhost}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
-      LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
+
+      PUBLIC_HOST: ${PUBLIC_HOST:-192.168.1.12}
+      PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
+      PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
+      PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
+
+      LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
+      LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
     volumes:
       - ./src:/app/src
       - ./web:/app/web
@@ -194,8 +205,14 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-replica:5432/app
       secret_key: changeme
       access_token_expire_minutes: "30"
+
+      PUBLIC_HOST: ${PUBLIC_HOST:-192.168.1.12}
+      PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
+      PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
+      PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
+
       DELIVERY_MODE: "url"
-      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${PUBLIC_HTTP_PORT:-8080}}
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
     volumes:
       - ./src:/app/src

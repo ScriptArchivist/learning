@@ -21,6 +21,7 @@ class LiveSessionDTO(BaseModel):
     stopped_at: Optional[datetime] = None
     expires_at: Optional[datetime] = None
     error: Optional[str] = None
+    thumbnail_url: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -52,3 +53,4 @@ class LiveSessionCreateResponse(BaseModel):
     session: LiveSessionDTO
     rtmp_url: str
     hls_url: str
+    thumbnail_url: Optional[str] = None

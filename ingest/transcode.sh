@@ -72,8 +72,6 @@ while [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; do
   RC=$?
   FFMPEG_PID=""
 
-  # если playlist уже появился, считаем, что transcoder отработал корректно
-  # дальше stream обычно завершится через on_publish_done / kill
   if [ -f "${MASTER}" ]; then
     echo "transcode: master playlist created for ${STREAM_KEY}" >&2
     exit 0

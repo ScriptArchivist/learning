@@ -23,6 +23,7 @@ echo "$NAME" | grep -Eq '^[A-Za-z0-9_.-]+$' || { log "ERROR invalid name='$NAME'
 OUT_DIR="/app/uploads/live/${NAME}"
 PID_FILE="/tmp/ffmpeg-live-${NAME}.pid"
 LOCK_DIR="/tmp/ffmpeg-live-${NAME}.lock"
+THUMB_FILE="${OUT_DIR}/thumb.jpg"
 
 # атомарный lock — чтобы не поднять второй transcoder на тот же stream_key
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
@@ -48,8 +49,8 @@ if [ -f "$PID_FILE" ]; then
   rm -f "$PID_FILE" 2>/dev/null || true
 fi
 
-# чистим старые HLS-артефакты на случай повторного старта того же stream_key
-rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts 2>/dev/null || true
+# чистим старые HLS-артефакты и старый thumbnail на случай повторного старта того же stream_key
+rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts "${OUT_DIR}"/*.jpg 2>/dev/null || true
 
 log "starting transcoder via /opt/transcode.sh for stream='${NAME}'"
 
@@ -61,4 +62,50 @@ FFPID="$!"
 echo "$FFPID" > "$PID_FILE" 2>/dev/null || true
 
 log "transcoder started pid=${FFPID} pid_file=${PID_FILE}"
+
+# ---- отдельная попытка снять один snapshot ----
+(
+  RTMP_HOST="${RTMP_HOST:-127.0.0.1}"
+  RTMP_PORT="${RTMP_PORT:-1935}"
+  INPUT_URL="rtmp://${RTMP_HOST}:${RTMP_PORT}/live/${NAME}"
+
+  SNAP_MAX_ATTEMPTS="${SNAP_MAX_ATTEMPTS:-20}"
+  SNAP_SLEEP_SECONDS="${SNAP_SLEEP_SECONDS:-1}"
+
+  i=1
+  while [ "$i" -le "$SNAP_MAX_ATTEMPTS" ]; do
+    if [ -f "$THUMB_FILE" ] && [ -s "$THUMB_FILE" ]; then
+      log "snapshot already exists file=${THUMB_FILE}"
+      exit 0
+    fi
+
+    log "snapshot attempt=${i} input=${INPUT_URL} output=${THUMB_FILE}"
+
+    TMP_THUMB="${THUMB_FILE}.tmp"
+
+    if /usr/bin/ffmpeg -hide_banner -loglevel error -y \
+      -rtmp_live live \
+      -i "${INPUT_URL}" \
+      -map 0:v:0 \
+      -frames:v 1 \
+      -q:v 2 \
+      -f image2 \
+      "${TMP_THUMB}" >> "$SLOG" 2>&1; then
+      if [ -f "${TMP_THUMB}" ] && [ -s "${TMP_THUMB}" ]; then
+        mv -f "${TMP_THUMB}" "${THUMB_FILE}"
+        log "snapshot created file=${THUMB_FILE}"
+        exit 0
+      fi
+    fi
+
+    rm -f "${TMP_THUMB}" 2>/dev/null || true
+    sleep "$SNAP_SLEEP_SECONDS"
+    i=$((i + 1))
+  done
+
+  log "WARN snapshot not created for stream='${NAME}'"
+  exit 0
+) >> "$SLOG" 2>&1 &
+
+log "snapshot worker started for stream='${NAME}'"
 exit 0

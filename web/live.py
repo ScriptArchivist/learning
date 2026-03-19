@@ -21,6 +21,7 @@ from service.live_service import (
     disconnect_live_session_by_stream_key,
     get_active_live_sessions,
     get_live_session_by_stream_key,
+    get_live_thumbnail_url,
     stop_live_session,
 )
 from service.security import get_current_user as get_current_user_stub
@@ -36,6 +37,11 @@ def _check_internal_token_or_raise(token: str | None) -> None:
         return
     if token != expected:
         raise HTTPException(status_code=403, detail="Invalid internal token")
+
+
+def _to_live_session_dto(session) -> LiveSessionDTO:
+    base = LiveSessionDTO.model_validate(session)
+    return base.model_copy(update={"thumbnail_url": get_live_thumbnail_url(session.stream_key)})
 
 
 @router.post("/sessions", response_model=LiveSessionCreateResponse, status_code=status.HTTP_201_CREATED)
@@ -55,10 +61,13 @@ def create_live_session_endpoint(
             idempotency_key=idempotency_key,
         )
 
+        thumbnail_url = get_live_thumbnail_url(session.stream_key)
+
         return LiveSessionCreateResponse(
-            session=LiveSessionDTO.model_validate(session),
+            session=_to_live_session_dto(session),
             rtmp_url=rtmp_url,
             hls_url=hls_url,
+            thumbnail_url=thumbnail_url,
         )
     except Exception as e:
         logger.exception("create_live_session_endpoint failed")
@@ -121,7 +130,7 @@ def get_live_session_endpoint(
 ):
     try:
         session = get_live_session_by_stream_key(db=db, stream_key=stream_key, owner_id=current_user["id"])
-        return LiveSessionDTO.model_validate(session)
+        return _to_live_session_dto(session)
     except NotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except ForbiddenError as e:

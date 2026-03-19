@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from db.models import LiveSession
 from errors import ForbiddenError, NotFoundError
+from service.content_urls import live_thumb_url
 from service.outbox import add_event
 
 logger = logging.getLogger(__name__)
@@ -43,9 +44,26 @@ def _utc_now() -> datetime:
     return datetime.now(timezone.utc)
 
 
+def _storage_base_path() -> Path:
+    configured = getattr(settings, "storage_path", None)
+
+    if configured:
+        configured_path = Path(configured)
+        if configured_path.is_absolute():
+            return configured_path
+
+    app_uploads = Path("/app/uploads")
+    if app_uploads.exists():
+        return app_uploads
+
+    if configured:
+        return Path(configured)
+
+    return Path("uploads")
+
+
 def _live_root_dir() -> Path:
-    base = getattr(settings, "storage_path", "/app/uploads") or "/app/uploads"
-    return Path(base) / "live"
+    return _storage_base_path() / "live"
 
 
 def _live_session_dir(stream_key: str) -> Path:
@@ -54,6 +72,10 @@ def _live_session_dir(stream_key: str) -> Path:
 
 def _live_master_playlist_path(stream_key: str) -> Path:
     return _live_session_dir(stream_key) / "master.m3u8"
+
+
+def _live_thumbnail_path(stream_key: str) -> Path:
+    return _live_session_dir(stream_key) / "thumb.jpg"
 
 
 def _build_rtmp_url(stream_key: str) -> str:
@@ -74,6 +96,17 @@ def _build_hls_url(stream_key: str) -> str:
 
     origin = (getattr(settings, "ORIGIN_BASE_URL", "") or "http://localhost:8080").rstrip("/")
     return f"{origin}/live/{stream_key}/master.m3u8"
+
+
+def get_live_thumbnail_url(stream_key: str | None) -> str | None:
+    if not stream_key:
+        return None
+
+    thumb_path = _live_thumbnail_path(stream_key)
+    if not thumb_path.exists():
+        return None
+
+    return live_thumb_url(stream_key)
 
 
 def _gen_stream_key() -> str:
@@ -286,7 +319,7 @@ def _to_active_live_item(session: LiveSession) -> dict[str, Any]:
         "hls_ready": True,
         "owner_name": owner_name,
         "started_at": started_at,
-        "thumbnail_url": None,
+        "thumbnail_url": get_live_thumbnail_url(session.stream_key),
     }
 
 
