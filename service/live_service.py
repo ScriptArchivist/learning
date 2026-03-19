@@ -80,6 +80,17 @@ def _gen_stream_key() -> str:
     return secrets.token_urlsafe(18).rstrip("=")
 
 
+def _normalize_live_title(title: str | None) -> str:
+    if title is None:
+        return "Live"
+
+    normalized = title.strip()
+    if not normalized:
+        return "Live"
+
+    return normalized[:255]
+
+
 def _safe_cleanup_stream_dir(stream_key: str) -> None:
     if not stream_key:
         logger.warning("live cleanup skipped: empty stream_key")
@@ -108,8 +119,9 @@ def _safe_cleanup_stream_dir(stream_key: str) -> None:
         logger.exception("live cleanup failed for %s", target)
 
 
-def _hash_create_request(owner_id: int, stream_key: str | None, ttl_seconds: int) -> str:
-    raw = f"owner={owner_id}|stream_key={stream_key or ''}|ttl={ttl_seconds}"
+def _hash_create_request(owner_id: int, stream_key: str | None, ttl_seconds: int, title: str | None) -> str:
+    normalized_title = _normalize_live_title(title)
+    raw = f"owner={owner_id}|stream_key={stream_key or ''}|ttl={ttl_seconds}|title={normalized_title}"
     return hashlib.sha256(raw.encode("utf-8")).hexdigest()
 
 
@@ -267,7 +279,7 @@ def _to_active_live_item(session: LiveSession) -> dict[str, Any]:
     return {
         "id": session.id,
         "stream_key": session.stream_key,
-        "title": f"Live {session.stream_key}",
+        "title": _normalize_live_title(getattr(session, "title", None)),
         "description": None,
         "status": session.status,
         "hls_url": _build_hls_url(session.stream_key),
@@ -320,6 +332,7 @@ def create_live_session(
     owner_id: int,
     stream_key: str | None,
     ttl_seconds: int,
+    title: str | None,
     idempotency_key: str | None,
 ) -> Tuple[LiveSession, str, str, bool]:
     """
@@ -327,7 +340,8 @@ def create_live_session(
     """
     _live_root_dir().mkdir(parents=True, exist_ok=True)
 
-    req_hash = _hash_create_request(owner_id, stream_key, ttl_seconds)
+    normalized_title = _normalize_live_title(title)
+    req_hash = _hash_create_request(owner_id, stream_key, ttl_seconds, normalized_title)
 
     if idempotency_key:
         existing = db.query(LiveSession).filter(LiveSession.idempotency_key == idempotency_key).first()
@@ -355,6 +369,7 @@ def create_live_session(
         session = LiveSession(
             owner_id=owner_id,
             stream_key=key,
+            title=normalized_title,
             status="started",
             started_at=now,
             expires_at=expires_at,
@@ -370,6 +385,7 @@ def create_live_session(
                 "session_id": None,
                 "stream_key": key,
                 "owner_id": owner_id,
+                "title": normalized_title,
                 "expires_at": expires_at.isoformat(),
             },
             producer="live-api",

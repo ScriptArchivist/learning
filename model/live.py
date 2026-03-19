@@ -14,6 +14,7 @@ class LiveSessionDTO(BaseModel):
     id: int
     owner_id: int
     stream_key: str
+    title: str
     status: LiveSessionStatus
     created_at: datetime
     started_at: Optional[datetime] = None
@@ -44,6 +45,7 @@ class LiveSessionActiveItemDTO(BaseModel):
 class LiveSessionCreateRequest(BaseModel):
     stream_key: Optional[str] = None
     ttl_seconds: int = Field(default=1800, ge=60, le=24 * 3600)
+    title: Optional[str] = Field(default=None, max_length=255)
 
 
 class LiveSessionCreateResponse(BaseModel):

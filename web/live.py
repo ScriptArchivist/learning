@@ -51,6 +51,7 @@ def create_live_session_endpoint(
             owner_id=current_user["id"],
             stream_key=body.stream_key,
             ttl_seconds=body.ttl_seconds,
+            title=body.title,
             idempotency_key=idempotency_key,
         )
 

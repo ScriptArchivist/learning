@@ -266,6 +266,8 @@ class LiveSession(Base):
     # stream key выдаём клиенту, ingest использует его
     stream_key: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
 
+    title: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
     # status: "created" | "started" | "stopped" | "expired" | "error"
     status: Mapped[str] = mapped_column(String(20), default="created", index=True, nullable=False)
 
@@ -285,7 +287,7 @@ class LiveSession(Base):
     owner: Mapped["User"] = relationship("User")
 
 
-    # ========== UPLOAD ==========
+# ========== UPLOAD ==========
 class UploadStatus(str, enum.Enum):
     INITIATED = "initiated"
     COMPLETED = "completed"
