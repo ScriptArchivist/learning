@@ -12,6 +12,9 @@ STATUS_BASE="${STATUS_BASE:-http://localhost:8003/api/v1}"
 
 FILE="${FILE:-/home/vadim/Downloads/video5204062485010747752.mp4}"
 
+# public origin for direct file links if needed
+ORIGIN_BASE="${ORIGIN_BASE:-http://localhost:8080}"
+
 # docker-compose service names
 WEB_SVC="${WEB_SVC:-web}"
 OUTBOX_SVC="${OUTBOX_SVC:-outbox-publisher}"
@@ -23,7 +26,7 @@ LOG_SINCE_DEFAULT="${LOG_SINCE_DEFAULT:-15m}"
 ATTEMPTS="${ATTEMPTS:-120}"
 SLEEP="${SLEEP:-1}"
 
-# при ожидании статуса читаем из master
+# when waiting status, read from master
 CONSISTENT_QUERY="${CONSISTENT_QUERY:-?consistent=1}"
 
 # JWT config
@@ -96,6 +99,12 @@ check_api_error() {
     echo "$body" | jq .
     exit 1
   fi
+}
+
+json_get() {
+  local json="$1"
+  local expr="$2"
+  echo "$json" | jq -r "$expr // empty" 2>/dev/null || true
 }
 
 # ============ LOG COLLECTION ============
@@ -206,6 +215,7 @@ echo "FILENAME=$FILENAME"
 echo "FILESIZE=$FILESIZE"
 echo "BASE=$BASE"
 echo "STATUS_BASE=$STATUS_BASE"
+echo "ORIGIN_BASE=$ORIGIN_BASE"
 
 # ---------------- 1) PREPARE ----------------
 echo
@@ -290,6 +300,8 @@ echo "$COMPLETE_2" | jq . || echo "$COMPLETE_2"
 # ---------------- 4) WAIT READY ----------------
 echo
 echo "4) wait READY..."
+INFO=""
+STATUS=""
 for i in $(seq 1 "$ATTEMPTS"); do
   INFO="$(curl -sS -X GET "${STATUS_BASE}/videos/${VIDEO_ID}${CONSISTENT_QUERY}" -H "$AUTH_HEADER")"
   STATUS="$(echo "$INFO" | jq -r '.status // empty' 2>/dev/null || true)"
@@ -321,15 +333,19 @@ fi
 
 collect_logs "after_ready" "${RID:-}" "$VIDEO_ID" "$LOG_SINCE_DEFAULT" "$LOG_DIR"
 
-HLS_URL="$(echo "$INFO" | jq -r '.hls_url // empty')"
+HLS_URL="$(json_get "$INFO" '.hls_url')"
+THUMBNAIL_URL="$(json_get "$INFO" '.thumbnail_url')"
+WATCH_URL_REL="$(json_get "$INFO" '.watch_url')"
+FILE_URL_REL="$(json_get "$INFO" '.file_url')"
+SHARE_URL_REL="$(json_get "$INFO" '.share_url')"
 
 echo
 echo "==== LINKS (AUTH) ===="
-echo "watch:      http://localhost:8000/api/v1/videos/${VIDEO_ID}/watch"
+echo "watch:      ${WATCH_URL_REL:-http://localhost:8000/api/v1/videos/${VIDEO_ID}/watch}"
 echo "json:       ${STATUS_BASE}/videos/${VIDEO_ID}${CONSISTENT_QUERY}"
-echo "mp4:        http://localhost:8000/api/v1/videos/${VIDEO_ID}/file"
-echo "thumb:      http://localhost:8000/api/v1/videos/${VIDEO_ID}/thumbnail"
-echo "hls:        ${HLS_URL:-http://localhost:8000/api/v1/videos/${VIDEO_ID}/hls/master.m3u8}"
+echo "mp4:        ${FILE_URL_REL:-http://localhost:8000/api/v1/videos/${VIDEO_ID}/file}"
+echo "thumb:      ${THUMBNAIL_URL:-}"
+echo "hls:        ${HLS_URL:-}"
 echo
 
 # ---------------- 5) SHARE ----------------
@@ -341,12 +357,16 @@ SHARE_URL="$(echo "$SHARE_RESP" | jq -r '.share_url // empty')"
 SHARE_TOKEN="$(echo "$SHARE_URL" | sed -E 's#.*/shared/##')"
 
 if [[ -n "$SHARE_TOKEN" && "$SHARE_TOKEN" != "null" ]]; then
+  SHARED_JSON_URL="http://localhost:8000/api/v1/videos/shared/${SHARE_TOKEN}"
+  SHARED_INFO="$(curl -sS -X GET "$SHARED_JSON_URL" || true)"
+  SHARED_THUMBNAIL_URL="$(json_get "$SHARED_INFO" '.thumbnail_url')"
+
   echo
   echo "==== LINKS (SHARED) ===="
   echo "shared watch:  http://localhost:8000/api/v1/videos/shared/${SHARE_TOKEN}/watch"
-  echo "shared json:   http://localhost:8000/api/v1/videos/shared/${SHARE_TOKEN}"
+  echo "shared json:   ${SHARED_JSON_URL}"
   echo "shared mp4:    http://localhost:8000/api/v1/videos/shared/${SHARE_TOKEN}/file"
-  echo "shared thumb:  http://localhost:8000/api/v1/videos/shared/${SHARE_TOKEN}/thumbnail"
+  echo "shared thumb:  ${SHARED_THUMBNAIL_URL:-$THUMBNAIL_URL}"
   echo "shared hls:    http://localhost:8000/api/v1/videos/shared/${SHARE_TOKEN}/hls/master.m3u8"
   echo
 else
