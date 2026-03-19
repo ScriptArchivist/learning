@@ -34,7 +34,7 @@ INSERT INTO users (
     used_storage
 )
 VALUES (
-    'vadim',
+    'Vadim',
     'vadim@example.com',
     crypt('password', gen_salt('bf')),
     true,
