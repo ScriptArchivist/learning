@@ -59,7 +59,9 @@ services:
       - "6379:6379"
 
   migrate:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: >
       sh -c "echo 'Waiting for database...' && alembic upgrade head"
     depends_on:
@@ -68,15 +70,11 @@ services:
     environment:
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-    volumes:
-      - ./src:/app/src
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
 
   identity-service:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: >
       sh -c "echo 'Starting identity-service...' && uvicorn identity.src.main:app --host 0.0.0.0 --port 8000"
     depends_on:
@@ -92,14 +90,11 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
       access_token_expire_minutes: "30"
-    volumes:
-      - ./identity:/app/identity
-      - ./src:/app/src
-      - ./db:/app/db
-      - ./model:/app/model
 
   web:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: >
       sh -c "echo 'Starting API...' && uvicorn src.main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
     depends_on:
@@ -118,40 +113,28 @@ services:
       database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
-
       PUBLIC_HOST: ${PUBLIC_HOST:-192.168.1.12}
       PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
       PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
       PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
-
       DELIVERY_MODE: ${DELIVERY_MODE:-local}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
       DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}}
-
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
-
       HLS_TOKEN_SECRET: ${HLS_TOKEN_SECRET:-super-long-random-secret-1234567890}
       HLS_TOKEN_TTL_SECONDS: ${HLS_TOKEN_TTL_SECONDS:-300}
-
       LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
       LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
-
       CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
       CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-^https?://(localhost|127\.0\.0\.1|192\.168\.1\.12)(:\d+)?$}
     volumes:
-      - ./src:/app/src
-      - ./web:/app/web
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
-      - ./logging.ini:/app/logging.ini
       - uploads_data:/app/uploads
 
   live-api:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: >
       sh -c "echo 'Starting live-api...' && uvicorn src.live_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
     depends_on:
@@ -167,27 +150,19 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       secret_key: changeme
       access_token_expire_minutes: "30"
-
       PUBLIC_HOST: ${PUBLIC_HOST:-192.168.1.12}
       PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
       PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
       PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
-
       LIVE_RTMP_URL_TEMPLATE: "rtmp://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_RTMP_PORT:-1935}/live/{stream_key}"
       LIVE_HLS_URL_TEMPLATE: "${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}/live/{stream_key}/master.m3u8"
     volumes:
-      - ./src:/app/src
-      - ./web:/app/web
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
-      - ./logging.ini:/app/logging.ini
       - uploads_data:/app/uploads
 
   video-api:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: >
       sh -c "echo 'Starting video-api...' && uvicorn src.video_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
     depends_on:
@@ -205,29 +180,18 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-replica:5432/app
       secret_key: changeme
       access_token_expire_minutes: "30"
-
       PUBLIC_HOST: ${PUBLIC_HOST:-192.168.1.12}
       PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
       PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
       PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
-
       DELIVERY_MODE: "url"
       DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL:-${PUBLIC_HTTP_SCHEME:-http}://${PUBLIC_HOST:-192.168.1.12}:${PUBLIC_HTTP_PORT:-8080}}
       DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
-    volumes:
-      - ./src:/app/src
-      - ./web:/app/web
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
-      - ./logging.ini:/app/logging.ini
 
   upload-service:
     build:
-      context: .
-      dockerfile: Dockerfile.upload
+      context: ../../
+      dockerfile: app/backend/Dockerfile.upload
     command: >
       sh -c "echo 'Starting upload-service...' && uvicorn src.upload_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
     depends_on:
@@ -245,18 +209,12 @@ services:
       access_token_expire_minutes: "30"
       STORAGE_PATH: /app/uploads
     volumes:
-      - ./src:/app/src
-      - ./web:/app/web
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./alembic:/app/alembic
-      - ./alembic.ini:/app/alembic.ini
-      - ./logging.ini:/app/logging.ini
       - uploads_data:/app/uploads
 
   video-events-consumer:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: python -m src.video_events_consumer
     depends_on:
       db-master:
@@ -276,15 +234,11 @@ services:
       RABBIT_EVENTS_ROUTING_KEY: ${RABBIT_EVENTS_ROUTING_KEY:-video.events}
     expose:
       - "9100"
-    volumes:
-      - ./src:/app/src
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./logging.ini:/app/logging.ini
 
   ingest:
-    build: ./ingest
+    build:
+      context: ../../app/backend/ingest
+      dockerfile: Dockerfile
     ports:
       - "1935:1935"
     environment:
@@ -293,9 +247,9 @@ services:
       MAX_ATTEMPTS: "20"
     volumes:
       - uploads_data:/app/uploads
-      - ./ingest/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ingest/scripts:/opt/scripts:ro
-      - ./ingest/transcode.sh:/opt/transcode.sh:ro
+      - ../../app/backend/ingest/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../app/backend/ingest/scripts:/opt/scripts:ro
+      - ../../app/backend/ingest/transcode.sh:/opt/transcode.sh:ro
     depends_on:
       live-api:
         condition: service_started
@@ -303,8 +257,8 @@ services:
 
   processing-worker:
     build:
-      context: .
-      dockerfile: Dockerfile.worker
+      context: ../../
+      dockerfile: app/backend/Dockerfile.worker
     command: python -m src.worker
     depends_on:
       db-master:
@@ -326,15 +280,12 @@ services:
     expose:
       - "9100"
     volumes:
-      - ./logging.ini:/app/logging.ini
-      - ./src:/app/src
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
       - uploads_data:/app/uploads
 
   outbox-publisher:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: python -m src.outbox_publisher
     depends_on:
       db-master:
@@ -354,15 +305,11 @@ services:
       OUTBOX_LEADER_LOCK_KEY: "424242"
     expose:
       - "9100"
-    volumes:
-      - ./src:/app/src
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./logging.ini:/app/logging.ini
 
   dlq-replayer:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: python -m src.dlq_replayer
     depends_on:
       db-master:
@@ -375,15 +322,11 @@ services:
       database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
       DLQ_REPLAY_LIMIT: "200"
       DLQ_RESET_ATTEMPTS: "1"
-    volumes:
-      - ./src:/app/src
-      - ./service:/app/service
-      - ./db:/app/db
-      - ./model:/app/model
-      - ./logging.ini:/app/logging.ini
 
   live-cleaner:
-    build: .
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
     command: python -m src.live_ttl_cleaner
     depends_on:
       db-master:
@@ -401,18 +344,14 @@ services:
     expose:
       - "9100"
     volumes:
-      - ./src:/app/src
-      - ./service:/app/service
-      - ./db:/app/db
       - uploads_data:/app/uploads
-      - ./logging.ini:/app/logging.ini
 
   origin:
     image: nginx:1.25-alpine
     ports:
       - "8080:80"
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ../../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - uploads_data:/app/uploads:ro
     depends_on:
       web:
@@ -423,8 +362,8 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - ../../monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
     depends_on:
       web:
         condition: service_started
