@@ -25,4 +25,18 @@ upload → queue → processing → storage → delivery
 ## Локальный запуск
 
 ```bash
-docker compose -f deploy/docker/docker-compose.local-full.yml up -d --build
+docker-compose -f deploy/docker/docker-compose.local-full.yml up -d --build
+
+## Local full-profile
+
+На текущем этапе полный локальный стек запускается через:
+
+`deploy/docker/docker-compose.ci.yml`
+
+### Run
+
+```bash
+docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.ci.yml up -d --build
+Stop
+docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.ci.yml down -v
+
