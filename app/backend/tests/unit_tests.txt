@@ -20,7 +20,7 @@ database: app
 
 
 Добавляем пользователя:
-docker-compose -f docker-compose.ci.yml exec -e PGPASSWORD=postgres db-master \
+docker-compose -f deploy/docker/docker-compose.ci.yml exec -e PGPASSWORD=postgres db-master \
 psql -U postgres -d app -c "
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -34,7 +34,7 @@ INSERT INTO users (
     used_storage
 )
 VALUES (
-    'Vadim',
+    'vadim',
     'vadim@example.com',
     crypt('password', gen_salt('bf')),
     true,
