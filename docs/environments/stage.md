@@ -1,90 +1,3 @@
-# Dev environment
-
-## Назначение
-
-Локальное окружение для активной разработки, отладки и прогона полного контура системы.
-
-## Где используется
-
-- локальная машина разработчика
-- docker-compose
-- при необходимости локальный Kubernetes/k3d/minikube
-
-## Цель
-
-Запуск всех основных сервисов платформы, чтобы можно было:
-- разрабатывать backend/frontend
-- проверять взаимодействие микросервисов
-- тестировать очередь, БД, processing и live-сценарии
-- удобно дебажить ошибки
-
-## Состав
-
-Dev = полный контур.
-
-Примеры сервисов:
-- api / backend
-- upload service
-- video service
-- worker
-- RabbitMQ
-- PostgreSQL
-- origin / nginx / ingest
-- вспомогательные фоновые сервисы
-- monitoring
-- дополнительные debug/utility-сервисы
-
-## Основные настройки
-
-- профиль: full
-- логирование: debug
-- live: enabled
-- hot reload / bind mounts: допустимы
-- тестовые данные: допустимы
-- упрощённые секреты: допустимы только для локальной среды
-
-## Что важно
-
-Dev-окружение может быть тяжёлым и не обязано быть дешёвым или минимальным.
-Его задача — помогать разрабатывать и проверять всю систему целиком.
-
-## Команды запуска
-
-```bash
-docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.demo.yml up -d
-
-Если будет отдельный compose под полный контур, лучше использовать его:
-
-docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.dev.yml up -d
-Проверки
-
-Проверка контейнеров:
-
-docker-compose -f deploy/docker/docker-compose.demo.yml ps
-
-Проверка логов backend:
-
-docker-compose -f deploy/docker/docker-compose.demo.yml logs -f backend
-
-Проверка RabbitMQ:
-
-docker-compose -f deploy/docker/docker-compose.demo.yml logs -f rabbitmq
-Ограничения
-
-Dev не предназначен для демонстрации в облаке:
-
-слишком много сервисов
-выше стоимость
-сложнее сопровождать
-труднее объяснять как demo-сценарий
-
----
-
-# 4. Готовое содержимое `docs/environments/stage.md`
-
-Создай файл с таким содержимым:
-
-```md
 # Stage environment
 
 ## Назначение
@@ -145,6 +58,8 @@ Stage должен быть:
 
 ```bash
 docker-compose --env-file deploy/docker/.env.stage -f deploy/docker/docker-compose.demo.yml up -d
+
+
 Проверки
 
 Проверка контейнеров:
@@ -176,12 +91,7 @@ Stage не равен production:
 
 ---
 
-# 5. Таблица различий
-
-Лучше зафиксировать её в отдельном файле `docs/environments/README.md` или добавить в оба файла.  
-Рекомендую сделать отдельный файл.
-
-Создай `docs/environments/README.md`:
+## `docs/environments/README.md`
 
 ```md
 # Environments overview

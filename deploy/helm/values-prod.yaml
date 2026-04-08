@@ -1,0 +1,29 @@
+# Production values placeholder.
+# Реальный production пока не реализован.
+# Файл нужен для правильной структуры окружений и дальнейшего масштабирования.
+
+global:
+  environment: prod
+
+replicaCount: 2
+
+image:
+  pullPolicy: IfNotPresent
+
+app:
+  logLevel: info
+  liveEnabled: false
+
+ingress:
+  enabled: false
+
+resources: {}
+
+autoscaling:
+  enabled: false
+
+postgresql:
+  enabled: false
+
+rabbitmq:
+  enabled: false
