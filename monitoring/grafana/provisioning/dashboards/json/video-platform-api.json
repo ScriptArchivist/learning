@@ -60,7 +60,6 @@
       "title": "API 5xx Ratio by Service",
       "type": "timeseries"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
@@ -108,14 +107,13 @@
       "title": "API Latency P50 / P95 by Service",
       "type": "timeseries"
     },
-
     {
       "datasource": { "type": "loki", "uid": "loki" },
       "gridPos": { "h": 12, "w": 24, "x": 0, "y": 16 },
       "id": 7,
       "targets": [
         {
-          "expr": "{job=\"docker\", container=~\".*web.*|.*upload.*|.*video.*|.*live.*\"}",
+          "expr": "{job=\"docker\"}",
           "queryType": "range",
           "refId": "A"
         }
