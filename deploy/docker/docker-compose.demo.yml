@@ -18,9 +18,12 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
+    command: >
+      sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server"
     ports:
       - "5672:5672"
       - "15672:15672"
+      - "15692:15692"
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
@@ -191,9 +194,81 @@ services:
       web:
         condition: service_started
 
+  alertmanager:
+    image: prom/alertmanager:latest
+    ports:
+      - "9093:9093"
+    volumes:
+      - ../../monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../monitoring/prometheus/prometheus-demo.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    depends_on:
+      web:
+        condition: service_started
+      upload-service:
+        condition: service_started
+      video-api:
+        condition: service_started
+      processing-worker:
+        condition: service_started
+      alertmanager:
+        condition: service_started
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+      - loki
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+
+  loki:
+    image: grafana/loki:2.9.8
+    ports:
+      - "3100:3100"
+    command:
+      - "-config.file=/etc/loki/local-config.yaml"
+    volumes:
+      - ../../monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+
+  promtail:
+    image: grafana/promtail:2.9.8
+    command:
+      - "-config.file=/etc/promtail/config.yml"
+    volumes:
+      - ../../monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    depends_on:
+      - loki
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    expose:
+      - "9100"
+
 volumes:
   postgres_master_data:
   uploads_data:
+  grafana_data:
+  loki_data:
 
 networks:
   default:

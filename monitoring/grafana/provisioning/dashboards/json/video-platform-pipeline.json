@@ -1,0 +1,128 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum by (status) (app_worker_jobs_total{service=\"processing-worker\",status=\"success\"})",
+          "legendFormat": "success",
+          "refId": "A"
+        },
+        {
+          "expr": "sum by (status) (app_worker_jobs_total{service=\"processing-worker\",status=\"failed\"})",
+          "legendFormat": "failed",
+          "refId": "B"
+        }
+      ],
+      "title": "Worker Jobs",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (job_type, le) (rate(app_worker_job_duration_seconds_bucket{service=\"processing-worker\"}[1h]))) or on() vector(0)",
+          "legendFormat": "{{job_type}} p95",
+          "refId": "A"
+        }
+      ],
+      "title": "Worker Duration P95",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "sum(app_worker_job_failures_total{service=\"processing-worker\"}) or on() vector(0)",
+          "legendFormat": "failures",
+          "refId": "A"
+        }
+      ],
+      "title": "Worker Failures",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "sum(app_worker_jobs_in_progress{service=\"processing-worker\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Jobs In Progress",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum(app_outbox_backlog{service=\"outbox-publisher\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Outbox Backlog",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 12, "y": 8 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "sum(app_outbox_failed{service=\"outbox-publisher\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Outbox Failed",
+      "type": "stat"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 5, "w": 6, "x": 18, "y": 8 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "sum(rabbitmq_queue_messages_ready)",
+          "refId": "A"
+        }
+      ],
+      "title": "Queue Size",
+      "type": "stat"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "title": "Video Platform Pipeline",
+  "uid": "video-platform-pipeline"
+}

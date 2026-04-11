@@ -21,6 +21,13 @@ from service.correlation import (
     get_trace_id,
     set_correlation,
 )
+from src.metrics import (
+    get_service_name,
+    inc_broker_consumer_error,
+    inc_broker_consumed,
+    inc_broker_published,
+    inc_broker_retry,
+)
 
 # --- logging: гарантируем rid/tid в любых логах ---
 _old_factory = logging.getLogRecordFactory()
@@ -36,7 +43,7 @@ def record_factory(*args, **kwargs):
 logging.setLogRecordFactory(record_factory)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("broker")
-# Pika логирует очень шумно на сетевых/DNS фейлах — для outbox это ожидаемо
+
 for name in (
     "pika",
     "pika.adapters",
@@ -45,19 +52,18 @@ for name in (
     "pika.adapters.utils.selector_ioloop_adapter",
 ):
     logging.getLogger(name).setLevel(logging.WARNING)
-# Pika может очень шумно писать ERROR при сетевых проблемах/DNS — для outbox это ожидаемо
 logging.getLogger("pika").setLevel(logging.WARNING)
 
 # ---- retry settings ----
-MAX_RETRIES = int(os.getenv("VIDEO_MAX_RETRIES", "5"))          # количество RETRY (не считая первую попытку)
+MAX_RETRIES = int(os.getenv("VIDEO_MAX_RETRIES", "5"))            # количество RETRY (не считая первую попытку)
 RETRY_DELAY_MS = int(os.getenv("VIDEO_RETRY_DELAY_MS", "30000"))  # база экспоненциальной задержки
 
-QUEUE_MAIN = RABBIT_QUEUE                      # обычно "video.process"
-QUEUE_RETRY = f"{RABBIT_QUEUE}.retry"          # "video.process.retry"
-QUEUE_DLQ = f"{RABBIT_QUEUE}.dlq"              # "video.process.dlq"
+QUEUE_MAIN = RABBIT_QUEUE
+QUEUE_RETRY = f"{RABBIT_QUEUE}.retry"
+QUEUE_DLQ = f"{RABBIT_QUEUE}.dlq"
 
-EXCHANGE_RETRY = f"{RABBIT_QUEUE}.retry.x"     # direct
-EXCHANGE_DLX = f"{RABBIT_QUEUE}.dlx.x"         # direct
+EXCHANGE_RETRY = f"{RABBIT_QUEUE}.retry.x"
+EXCHANGE_DLX = f"{RABBIT_QUEUE}.dlx.x"
 
 
 def _connect() -> pika.BlockingConnection:
@@ -161,6 +167,8 @@ def publish_worker_envelope(
                 headers=headers or None,
             ),
         )
+
+        inc_broker_published(get_service_name("broker"), envelope.get("event_type", "unknown"), "worker-main")
     finally:
         conn.close()
 
@@ -174,10 +182,8 @@ def publish_domain_event(
 ) -> None:
     """
     1) video.process.requested — отправляем напрямую в worker queue (MAIN) как envelope.
-       (иначе можно легко получить "published в outbox, но worker не видит")
     2) все остальные доменные события — в topic exchange как раньше
     """
-    # импорт локально, чтобы не сделать круговой импорт
     from service.outbox import EVENT_VIDEO_PROCESS_REQUESTED
 
     if event_type == EVENT_VIDEO_PROCESS_REQUESTED:
@@ -185,17 +191,10 @@ def publish_domain_event(
             "schema_version": "1.0",
             "event_id": str(os.getenv("HOSTNAME", "web-producer")) + ":" + str(time.time_ns()),
             "event_type": event_type,
-
-            # ✅ ВАЖНО: worker ожидает producer как обязательное поле EventEnvelope
             "producer": os.getenv("SERVICE_NAME", "web"),
-
             "correlation_id": correlation_id,
             "trace_id": trace_id,
-
-            # payload — доменный payload (job_id, video_id, input_key, output_prefix, attempt)
             "payload": payload,
-
-            # оставляем как было (у тебя модель это принимает)
             "occurred_at": time.time(),
         }
 
@@ -220,6 +219,8 @@ def publish_domain_event(
             ),
             mandatory=True,
         )
+
+        inc_broker_published(get_service_name("broker"), event_type, "events-exchange")
     finally:
         conn.close()
 
@@ -266,6 +267,8 @@ def publish_outbox_envelope(envelope: dict) -> None:
                     headers=headers or None,
                 ),
             )
+
+            inc_broker_published(get_service_name("broker"), event_type, "worker-main")
         finally:
             conn.close()
         return
@@ -276,7 +279,6 @@ def publish_outbox_envelope(envelope: dict) -> None:
         ch = conn.channel()
         _declare_events_topology(ch)
 
-        # кладём envelope целиком, чтобы downstream видел event_id/correlation/trace/schema_version/etc
         ch.basic_publish(
             exchange=RABBIT_EVENTS_EXCHANGE,
             routing_key=RABBIT_EVENTS_ROUTING_KEY,
@@ -290,6 +292,8 @@ def publish_outbox_envelope(envelope: dict) -> None:
             ),
             mandatory=True,
         )
+
+        inc_broker_published(get_service_name("broker"), event_type, "events-exchange")
     finally:
         conn.close()
 
@@ -312,12 +316,7 @@ def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
     """
     Consumer на MAIN:
       - на успех -> ack
-      - на исключение -> reject(requeue=False) => уходит в RETRY (через DLX из MAIN)
-      - по достижении MAX_RETRIES handler может сам решить "последняя попытка" и
-        сгенерировать fail-событие/запись, а мы всё равно отправим сообщение в retry/dlq?
-        Здесь мы делаем так:
-          * если handler выбросил -> мы reject(requeue=False) (Rabbit сам перегонит в RETRY)
-        А DLQ мы используем в handler (явной публикацией), чтобы не зависеть от policy.
+      - на исключение -> reject(requeue=False) => уходит в RETRY
     """
     params = pika.URLParameters(RABBIT_URL)
 
@@ -332,7 +331,6 @@ def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
                 headers = (properties.headers or {}) if properties else {}
                 retry_count = _get_retry_count_from_headers(headers)
 
-                # correlation для логов / контекста
                 set_correlation(
                     request_id=headers.get("x-request-id") or getattr(properties, "correlation_id", None),
                     trace_id=headers.get("x-trace-id"),
@@ -341,16 +339,19 @@ def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
                 try:
                     payload = json.loads(body.decode())
 
-                    # прокинем headers, если handler захочет
                     if isinstance(payload, dict):
                         payload["__headers__"] = headers
+
+                    event_type = payload.get("event_type", "unknown") if isinstance(payload, dict) else "unknown"
+                    inc_broker_consumed(get_service_name("processing-worker"), QUEUE_MAIN, event_type)
 
                     handler(payload, retry_count)
                     channel.basic_ack(delivery_tag=method.delivery_tag)
 
-                except Exception:
+                except Exception as exc:
+                    inc_broker_consumer_error(get_service_name("processing-worker"), QUEUE_MAIN, type(exc).__name__)
+                    inc_broker_retry(get_service_name("processing-worker"), QUEUE_MAIN)
                     logger.exception("handler failed, reject to retry (retry_count=%s)", retry_count)
-                    # отправит в EXCHANGE_RETRY -> QUEUE_RETRY (из аргументов MAIN)
                     channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
 
             ch.basic_consume(queue=QUEUE_MAIN, on_message_callback=on_message)
@@ -364,15 +365,3 @@ def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
         finally:
             if conn and conn.is_open:
                 conn.close()
-
-
-def _declare_events_topology(ch) -> None:
-    # Только exchange + ОДНА очередь events.q
-    ch.exchange_declare(exchange=RABBIT_EVENTS_EXCHANGE, exchange_type="topic", durable=True)
-
-    ch.queue_declare(queue=RABBIT_EVENTS_QUEUE, durable=True)
-    ch.queue_bind(
-        queue=RABBIT_EVENTS_QUEUE,
-        exchange=RABBIT_EVENTS_EXCHANGE,
-        routing_key=RABBIT_EVENTS_ROUTING_KEY,
-    )

@@ -5,27 +5,111 @@ global:
 rule_files:
   - /etc/prometheus/alerts.yml
 
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
 scrape_configs:
   - job_name: prometheus
     static_configs:
       - targets:
           - prometheus:9090
 
-  - job_name: fastapi-services
+  - job_name: web
     metrics_path: /metrics
     static_configs:
       - targets:
           - web:8000
-          - upload-service:8000
-          - video-api:8000
-          - live-api:8000
-          - identity-service:8000
 
-  - job_name: background-services
+  - job_name: upload-service
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - upload-service:8000
+
+  - job_name: video-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - video-api:8000
+
+  - job_name: live-api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - live-api:8000
+
+  - job_name: processing-worker
     metrics_path: /metrics
     static_configs:
       - targets:
           - processing-worker:9100
+
+  - job_name: outbox-publisher
+    metrics_path: /metrics
+    static_configs:
+      - targets:
           - outbox-publisher:9100
+
+  - job_name: video-events-consumer
+    metrics_path: /metrics
+    static_configs:
+      - targets:
           - video-events-consumer:9100
+
+  - job_name: live-cleaner
+    metrics_path: /metrics
+    static_configs:
+      - targets:
           - live-cleaner:9100
+
+  - job_name: rabbitmq
+    static_configs:
+      - targets:
+          - rabbitmq:15692
+
+  - job_name: node-exporter
+    static_configs:
+      - targets:
+          - node-exporter:9100
+
+  - job_name: cadvisor
+    static_configs:
+      - targets:
+          - cadvisor:8080
+
+  - job_name: postgres-exporter-master
+    static_configs:
+      - targets:
+          - postgres-exporter-master:9187
+
+  - job_name: postgres-exporter-replica
+    static_configs:
+      - targets:
+          - postgres-exporter-replica:9187
+
+  - job_name: grafana
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - grafana:3000
+
+  - job_name: loki
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - loki:3100
+
+  - job_name: alertmanager
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - alertmanager:9093
+
+  - job_name: promtail
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - promtail:9080

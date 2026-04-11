@@ -7,7 +7,6 @@ import logging.config
 import os
 from datetime import datetime
 from typing import Any, Optional, Tuple
-from src.metrics import start_background_metrics_server
 
 import pika
 from sqlalchemy.orm import Session
@@ -16,7 +15,12 @@ from db.database import SessionLocal
 from db.models import Video, VideoStatus
 from service.correlation import get_request_id, get_trace_id, set_correlation
 from service.video_status import transition_video_status, VideoStatusTransitionError
-
+from src.metrics import (
+    get_service_name,
+    inc_broker_consumer_error,
+    inc_broker_consumed,
+    start_background_metrics_server,
+)
 from src.config import (
     RABBIT_URL,
     RABBIT_EVENTS_EXCHANGE,
@@ -104,7 +108,6 @@ def _apply_upload_completed(db: Session, pl: dict) -> None:
         logger.info("skip upload_completed: video not found video_id=%s", video_id)
         return
 
-    # Синхронизация данных из upload event
     object_key = pl.get("object_key")
     if object_key:
         video.original_path = str(object_key)
@@ -116,7 +119,6 @@ def _apply_upload_completed(db: Session, pl: dict) -> None:
     if pl.get("content_type"):
         video.mime_type = str(pl["content_type"])
 
-    # UPLOADING -> UPLOADED
     changed = _try_transition(video, VideoStatus.UPLOADED, actor="api")
 
     logger.info(
@@ -134,7 +136,6 @@ def _apply_processing_started(db: Session, pl: dict) -> None:
         logger.info("skip processing_started: video not found video_id=%s", video_id)
         return
 
-    # UPLOADED -> PROCESSING (или уже PROCESSING/READY — no-op)
     changed = _try_transition(video, VideoStatus.PROCESSING, actor="worker")
     logger.info(
         "applied event=processing_started video_id=%s status=%s changed=%s",
@@ -153,7 +154,6 @@ def _apply_processing_done(db: Session, pl: dict) -> None:
 
     before = video.status
 
-    # catch-up (на случай если "started" потеряли):
     if video.status == VideoStatus.UPLOADED:
         _try_transition(video, VideoStatus.PROCESSING, actor="worker")
 
@@ -248,10 +248,10 @@ def main() -> None:
         msg = _safe_json_loads(body)
         if msg is None:
             logger.warning("invalid json body, ack (drop)")
+            inc_broker_consumer_error(get_service_name("video-events-consumer"), queue, "InvalidJSON")
             channel.basic_ack(delivery_tag=method.delivery_tag)
             return
 
-        # rid/tid: headers -> body envelope -> pika properties
         rid = headers.get("x-request-id") or (msg.get("correlation_id") if isinstance(msg, dict) else None) or getattr(
             properties, "correlation_id", None
         )
@@ -259,12 +259,18 @@ def main() -> None:
 
         set_correlation(request_id=rid, trace_id=tid)
 
+        event_type, _ = _extract_event(msg)
+        event_name = event_type or "unknown"
+
         db = SessionLocal()
         try:
             with db.begin():
                 _handle_event(db, msg)
+
+            inc_broker_consumed(get_service_name("video-events-consumer"), queue, event_name)
             channel.basic_ack(delivery_tag=method.delivery_tag)
-        except Exception:
+        except Exception as exc:
+            inc_broker_consumer_error(get_service_name("video-events-consumer"), queue, type(exc).__name__)
             logger.exception("events consumer failed, nack(requeue=true)")
             channel.basic_nack(delivery_tag=method.delivery_tag, requeue=True)
         finally:

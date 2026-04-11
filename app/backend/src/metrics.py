@@ -1,10 +1,10 @@
-# src/metrics.py
 from __future__ import annotations
 
+import inspect
 import os
 import time
 from contextlib import contextmanager
-from typing import Callable
+from typing import Awaitable, Callable
 
 from fastapi import FastAPI, Request, Response
 from prometheus_client import (
@@ -16,6 +16,13 @@ from prometheus_client import (
     start_http_server,
 )
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.routing import BaseRoute
+
+try:
+    from fastapi.routing import APIRoute
+except Exception:  # pragma: no cover
+    APIRoute = None
+
 
 # ---------------------------
 # HTTP
@@ -33,10 +40,22 @@ HTTP_REQUEST_DURATION = Histogram(
     ["service", "method", "path"],
 )
 
+HTTP_REQUESTS_IN_PROGRESS = Gauge(
+    "app_http_requests_in_progress",
+    "HTTP requests currently in progress",
+    ["service", "method", "path"],
+)
+
 HTTP_5XX = Counter(
     "app_http_5xx",
     "Total HTTP 5xx responses",
     ["service", "method", "path", "status"],
+)
+
+HTTP_EXCEPTIONS = Counter(
+    "app_http_exceptions",
+    "Unhandled HTTP exceptions",
+    ["service", "method", "path", "error_type"],
 )
 
 # ---------------------------
@@ -61,8 +80,42 @@ WORKER_JOB_FAILURES = Counter(
     ["service", "job_type", "error_type"],
 )
 
+WORKER_JOBS_TOTAL = Counter(
+    "app_worker_jobs",
+    "Total worker jobs",
+    ["service", "job_type", "status"],
+)
+
 # ---------------------------
-# Domain gauges
+# Broker / queues
+# ---------------------------
+
+BROKER_MESSAGES_PUBLISHED = Counter(
+    "app_broker_messages_published",
+    "Total published broker messages",
+    ["service", "event_type", "destination"],
+)
+
+BROKER_MESSAGES_CONSUMED = Counter(
+    "app_broker_messages_consumed",
+    "Total consumed broker messages",
+    ["service", "queue", "event_type"],
+)
+
+BROKER_CONSUMER_ERRORS = Counter(
+    "app_broker_consumer_errors",
+    "Broker consumer errors",
+    ["service", "queue", "error_type"],
+)
+
+BROKER_RETRIES = Counter(
+    "app_broker_retries",
+    "Broker retries triggered by consumers",
+    ["service", "queue"],
+)
+
+# ---------------------------
+# Outbox / domain
 # ---------------------------
 
 OUTBOX_BACKLOG = Gauge(
@@ -77,9 +130,39 @@ OUTBOX_FAILED = Gauge(
     ["service"],
 )
 
+OUTBOX_PUBLISH_ATTEMPTS = Counter(
+    "app_outbox_publish_attempts",
+    "Outbox publish attempts",
+    ["service", "event_type"],
+)
+
+OUTBOX_PUBLISHED_TOTAL = Counter(
+    "app_outbox_published",
+    "Outbox published events",
+    ["service", "event_type"],
+)
+
 LIVE_ACTIVE_SESSIONS = Gauge(
     "app_live_active_sessions",
     "Currently active live sessions",
+    ["service"],
+)
+
+VIDEO_UPLOADS_TOTAL = Counter(
+    "app_video_uploads",
+    "Video upload completions",
+    ["service", "status"],
+)
+
+VIDEO_PROCESSING_TOTAL = Counter(
+    "app_video_processing",
+    "Video processing pipeline events",
+    ["service", "stage"],
+)
+
+DLQ_REPLAY_TOTAL = Counter(
+    "app_dlq_replayed",
+    "Total replayed DLQ/outbox failed records",
     ["service"],
 )
 
@@ -105,14 +188,107 @@ DB_ERRORS = Counter(
     ["service", "role", "error_type"],
 )
 
+DB_REPLICA_ROW_COUNT = Gauge(
+    "app_db_replica_row_count",
+    "Row count sampled from DB role for replica drift checks",
+    ["service", "role", "entity"],
+)
+
+DB_REPLICA_ROW_COUNT_DIFFERENCE = Gauge(
+    "app_db_replica_row_count_difference",
+    "Absolute row-count difference between master and replica",
+    ["service", "entity"],
+)
+
+
+def _normalize_path(path: str | None) -> str:
+    if not path:
+        return "/"
+    if not path.startswith("/"):
+        return f"/{path}"
+    return path
+
 
 def _route_path(request: Request) -> str:
     route = request.scope.get("route")
     if route is not None:
         path = getattr(route, "path", None)
         if path:
-            return path
-    return request.url.path
+            return _normalize_path(path)
+    return _normalize_path(request.url.path)
+
+
+def _iter_api_route_templates(app: FastAPI) -> list[tuple[str, list[str]]]:
+    result: list[tuple[str, list[str]]] = []
+
+    for route in app.routes:
+        if APIRoute is not None and isinstance(route, APIRoute):
+            path = _normalize_path(getattr(route, "path", "/"))
+            methods = sorted(
+                method
+                for method in (route.methods or set())
+                if method not in {"HEAD", "OPTIONS"}
+            )
+            if methods:
+                result.append((path, methods))
+            continue
+
+        if isinstance(route, BaseRoute):
+            path = _normalize_path(getattr(route, "path", "/"))
+            methods = sorted(
+                method
+                for method in (getattr(route, "methods", None) or set())
+                if method not in {"HEAD", "OPTIONS"}
+            )
+            if methods:
+                result.append((path, methods))
+
+    return result
+
+
+def _prewarm_http_metrics(app: FastAPI, service_name: str) -> None:
+    for path, methods in _iter_api_route_templates(app):
+        if path == "/metrics":
+            continue
+
+        for method in methods:
+            HTTP_REQUESTS.labels(
+                service=service_name,
+                method=method,
+                path=path,
+                status="200",
+            ).inc(0)
+
+            HTTP_5XX.labels(
+                service=service_name,
+                method=method,
+                path=path,
+                status="500",
+            ).inc(0)
+
+            HTTP_REQUESTS_IN_PROGRESS.labels(
+                service=service_name,
+                method=method,
+                path=path,
+            ).set(0)
+
+            # Для Histogram одного labels() достаточно, чтобы child был создан
+            HTTP_REQUEST_DURATION.labels(
+                service=service_name,
+                method=method,
+                path=path,
+            )
+
+
+async def _run_refresh_callback(
+    refresh_callback: Callable[[], None] | Callable[[], Awaitable[None]] | None,
+) -> None:
+    if refresh_callback is None:
+        return
+
+    result = refresh_callback()
+    if inspect.isawaitable(result):
+        await result
 
 
 class PrometheusMiddleware(BaseHTTPMiddleware):
@@ -122,14 +298,26 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         path = _route_path(request)
-        method = request.method
+        method = request.method.upper()
+
+        if path == "/metrics":
+            return await call_next(request)
+
+        in_progress = HTTP_REQUESTS_IN_PROGRESS.labels(
+            service=self.service_name,
+            method=method,
+            path=path,
+        )
+        in_progress.inc()
 
         start = time.perf_counter()
+
         try:
             response = await call_next(request)
             status_code = response.status_code
-        except Exception:
+        except Exception as exc:
             duration = time.perf_counter() - start
+
             HTTP_REQUEST_DURATION.labels(
                 service=self.service_name,
                 method=method,
@@ -149,7 +337,16 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
                 path=path,
                 status="500",
             ).inc()
+
+            HTTP_EXCEPTIONS.labels(
+                service=self.service_name,
+                method=method,
+                path=path,
+                error_type=type(exc).__name__,
+            ).inc()
             raise
+        finally:
+            in_progress.dec()
 
         duration = time.perf_counter() - start
 
@@ -180,18 +377,21 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 def install_http_metrics(
     app: FastAPI,
     service_name: str,
-    refresh_callback: Callable[[], None] | None = None,
+    refresh_callback: Callable[[], None] | Callable[[], Awaitable[None]] | None = None,
 ) -> None:
     app.add_middleware(PrometheusMiddleware, service_name=service_name)
 
+    @app.on_event("startup")
+    async def _metrics_startup() -> None:
+        _prewarm_http_metrics(app, service_name)
+
     @app.get("/metrics", include_in_schema=False)
     async def metrics():
-        if refresh_callback is not None:
-            try:
-                refresh_callback()
-            except Exception:
-                # /metrics не должен падать из-за refresh callback
-                pass
+        try:
+            await _run_refresh_callback(refresh_callback)
+        except Exception:
+            # /metrics не должен падать из-за refresh callback
+            pass
         return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
@@ -221,14 +421,27 @@ def track_job(service_name: str, job_type: str):
             status="failed",
         ).observe(duration)
 
+        WORKER_JOBS_TOTAL.labels(
+            service=service_name,
+            job_type=job_type,
+            status="failed",
+        ).inc()
+
         raise
     else:
         duration = time.perf_counter() - start
+
         WORKER_JOB_DURATION.labels(
             service=service_name,
             job_type=job_type,
             status="success",
         ).observe(duration)
+
+        WORKER_JOBS_TOTAL.labels(
+            service=service_name,
+            job_type=job_type,
+            status="success",
+        ).inc()
     finally:
         WORKER_JOBS_IN_PROGRESS.labels(service=service_name, job_type=job_type).dec()
 
@@ -241,8 +454,24 @@ def set_outbox_failed(service_name: str, value: int) -> None:
     OUTBOX_FAILED.labels(service=service_name).set(value)
 
 
+def inc_outbox_publish_attempt(service_name: str, event_type: str) -> None:
+    OUTBOX_PUBLISH_ATTEMPTS.labels(service=service_name, event_type=event_type).inc()
+
+
+def inc_outbox_published(service_name: str, event_type: str) -> None:
+    OUTBOX_PUBLISHED_TOTAL.labels(service=service_name, event_type=event_type).inc()
+
+
 def set_live_active_sessions(service_name: str, value: int) -> None:
     LIVE_ACTIVE_SESSIONS.labels(service=service_name).set(value)
+
+
+def inc_video_upload(service_name: str, status: str) -> None:
+    VIDEO_UPLOADS_TOTAL.labels(service=service_name, status=status).inc()
+
+
+def inc_video_processing(service_name: str, stage: str) -> None:
+    VIDEO_PROCESSING_TOTAL.labels(service=service_name, stage=stage).inc()
 
 
 def inc_db_connect(service_name: str, role: str) -> None:
@@ -259,6 +488,46 @@ def dec_db_checked_out(service_name: str, role: str) -> None:
 
 def inc_db_error(service_name: str, role: str, error_type: str) -> None:
     DB_ERRORS.labels(service=service_name, role=role, error_type=error_type).inc()
+
+
+def set_replica_row_count(service_name: str, role: str, entity: str, value: int) -> None:
+    DB_REPLICA_ROW_COUNT.labels(service=service_name, role=role, entity=entity).set(value)
+
+
+def set_replica_row_diff(service_name: str, entity: str, value: int) -> None:
+    DB_REPLICA_ROW_COUNT_DIFFERENCE.labels(service=service_name, entity=entity).set(value)
+
+
+def inc_broker_published(service_name: str, event_type: str, destination: str) -> None:
+    BROKER_MESSAGES_PUBLISHED.labels(
+        service=service_name,
+        event_type=event_type,
+        destination=destination,
+    ).inc()
+
+
+def inc_broker_consumed(service_name: str, queue: str, event_type: str) -> None:
+    BROKER_MESSAGES_CONSUMED.labels(
+        service=service_name,
+        queue=queue,
+        event_type=event_type,
+    ).inc()
+
+
+def inc_broker_consumer_error(service_name: str, queue: str, error_type: str) -> None:
+    BROKER_CONSUMER_ERRORS.labels(
+        service=service_name,
+        queue=queue,
+        error_type=error_type,
+    ).inc()
+
+
+def inc_broker_retry(service_name: str, queue: str) -> None:
+    BROKER_RETRIES.labels(service=service_name, queue=queue).inc()
+
+
+def inc_dlq_replayed(service_name: str, count: int = 1) -> None:
+    DLQ_REPLAY_TOTAL.labels(service=service_name).inc(count)
 
 
 def get_service_name(default: str) -> str:

@@ -1,0 +1,131 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])) or vector(0)",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "API Request Rate by Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
+      "id": 2,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (service, path, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api\"}[5m]))) or vector(0)",
+          "legendFormat": "{{service}} {{path}}",
+          "refId": "A"
+        }
+      ],
+      "title": "API Latency P95 by Service + Path",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
+      "id": 3,
+      "targets": [
+        {
+          "expr": "((sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\",status=~\"5..\"}[5m]))) / clamp_min(sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])), 0.001)) or vector(0)",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "API 5xx Ratio by Service",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "id": 4,
+      "targets": [
+        {
+          "expr": "increase(app_http_exceptions_total{service=~\"web|upload-service|video-api|live-api\"}[10m]) or vector(0)",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Unhandled Exceptions / 10m",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "id": 5,
+      "targets": [
+        {
+          "expr": "sum by (service, status) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])) or vector(0)",
+          "legendFormat": "{{service}} {{status}}",
+          "refId": "A"
+        }
+      ],
+      "title": "HTTP Status Rate by Service",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "id": 6,
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api\"}[5m]))) or vector(0)",
+          "legendFormat": "{{service}} p50",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api\"}[5m]))) or vector(0)",
+          "legendFormat": "{{service}} p95",
+          "refId": "B"
+        }
+      ],
+      "title": "API Latency P50 / P95 by Service",
+      "type": "timeseries"
+    },
+
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 16 },
+      "id": 7,
+      "targets": [
+        {
+          "expr": "{job=\"docker\", container=~\".*web.*|.*upload.*|.*video.*|.*live.*\"}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "API Service Logs",
+      "type": "logs"
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "title": "Video Platform API",
+  "uid": "video-platform-api"
+}

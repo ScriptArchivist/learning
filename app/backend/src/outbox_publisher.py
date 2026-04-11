@@ -16,6 +16,9 @@ from service.outbox import fetch_pending_batch, mark_failed_retry, mark_publishe
 
 from db.models import OutboxEvent, OutboxStatus
 from src.metrics import (
+    get_service_name,
+    inc_outbox_publish_attempt,
+    inc_outbox_published,
     set_outbox_backlog,
     set_outbox_failed,
     start_background_metrics_server,
@@ -33,6 +36,8 @@ logger = logging.getLogger("outbox-publisher")
 # Pika can be very noisy on network failures (which are expected for outbox retry).
 # Make it quiet to avoid megabytes of stacktraces in logs.
 logging.getLogger("pika").setLevel(logging.CRITICAL)
+
+SERVICE_NAME = get_service_name("outbox-publisher")
 
 
 class OutboxItem(TypedDict):
@@ -96,7 +101,6 @@ def _snapshot_events(events: list) -> List[OutboxItem]:
         if envelope is None:
             envelope = {}
         if not isinstance(envelope, dict):
-            # keep as empty dict; will fail validation downstream and go to retry
             envelope = {"_raw_payload": str(envelope)}
 
         snapped.append(
@@ -121,6 +125,7 @@ def _safe_err(e: Exception, limit: int = 800) -> str:
     s = s.replace("\n", " ").replace("\r", " ").strip()
     return s[:limit]
 
+
 def _refresh_outbox_metrics() -> None:
     with _session() as db:
         backlog = (
@@ -134,8 +139,8 @@ def _refresh_outbox_metrics() -> None:
             .count()
         )
 
-    set_outbox_backlog("outbox-publisher", int(backlog))
-    set_outbox_failed("outbox-publisher", int(failed))
+    set_outbox_backlog(SERVICE_NAME, int(backlog))
+    set_outbox_failed(SERVICE_NAME, int(failed))
 
 
 def _publish_one(it: OutboxItem) -> None:
@@ -204,11 +209,12 @@ def main() -> None:
                     events = fetch_pending_batch(db, limit=BATCH_SIZE)
                     if events:
                         items = _snapshot_events(events)
-                # commit happens on exiting begin()
 
             if not items:
+                _refresh_outbox_metrics()
                 time.sleep(POLL_INTERVAL)
                 continue
+
             _refresh_outbox_metrics()
 
             # 3) Publish each item and mark result
@@ -217,6 +223,8 @@ def main() -> None:
                 event_type = it["event_type"]
                 attempts_next = it["attempts"] + 1
 
+                inc_outbox_publish_attempt(SERVICE_NAME, event_type)
+
                 try:
                     _publish_one(it)
 
@@ -224,17 +232,16 @@ def main() -> None:
                         with db.begin():
                             mark_published(db, event_id)
 
+                    inc_outbox_published(SERVICE_NAME, event_type)
                     logger.info("published event_id=%s type=%s", event_id, event_type)
 
                 except Exception as e:
                     err = _safe_err(e)
 
-                    # Store retry/backoff in DB
                     with _session() as db:
                         with db.begin():
                             mark_failed_retry(db, event_id, err, attempts_next)
 
-                    # No traceback: this is expected when broker is down
                     logger.warning(
                         "publish failed event_id=%s type=%s attempts=%s err=%s",
                         event_id,
@@ -244,11 +251,10 @@ def main() -> None:
                         exc_info=False,
                     )
 
-            # small pause to avoid tight loop
+            _refresh_outbox_metrics()
             time.sleep(0.01)
 
         except Exception as e:
-            # If something unexpected happened at loop-level, drop leadership and re-elect.
             logger.warning("loop error, reset leader err=%s", _safe_err(e), exc_info=False)
 
             if leader_db is not None:

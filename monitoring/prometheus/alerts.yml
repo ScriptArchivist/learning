@@ -1,47 +1,202 @@
 groups:
-  - name: video-platform
+  - name: service-health
     rules:
-      - alert: ServiceDown
-        expr: up == 0
+      - alert: ServiceDownCritical
+        expr: up{job=~"web|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq|prometheus|grafana|loki|alertmanager"} == 0
         for: 1m
         labels:
           severity: critical
+          category: availability
         annotations:
-          summary: "Prometheus target is down"
-          description: "Target {{ $labels.instance }} in job {{ $labels.job }} is down."
+          summary: "Critical service down: {{ $labels.job }}"
+          description: "Critical target {{ $labels.instance }} for job {{ $labels.job }} has been down for 1 minute."
 
-      - alert: High5xxRate
-        expr: sum(rate(app_http_5xx_total[5m])) by (service) > 0
+      - alert: ServiceDownWarning
+        expr: up{job=~"live-cleaner|promtail|node-exporter|cadvisor|postgres-exporter-master|postgres-exporter-replica"} == 0
+        for: 2m
+        labels:
+          severity: warning
+          category: availability
+        annotations:
+          summary: "Supporting service down: {{ $labels.job }}"
+          description: "Supporting target {{ $labels.instance }} for job {{ $labels.job }} has been down for 2 minutes."
+
+  - name: api-symptoms
+    rules:
+      - alert: ApiHigh5xxRate
+        expr: |
+          (
+            sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api",status=~"5.."}[5m]))
+            /
+            clamp_min(sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api"}[5m])), 0.001)
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: api
+        annotations:
+          summary: "High 5xx rate: {{ $labels.service }}"
+          description: "5xx ratio is above 5% for 5 minutes."
+
+      - alert: ApiHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (service, path, le) (
+              rate(app_http_request_duration_seconds_bucket{service=~"web|upload-service|video-api|live-api"}[5m])
+            )
+          ) > 1.0
         for: 5m
         labels:
           severity: warning
+          category: api
         annotations:
-          summary: "HTTP 5xx errors detected"
-          description: "Service {{ $labels.service }} returns 5xx for at least 5 minutes."
+          summary: "High API latency: {{ $labels.service }}"
+          description: "p95 latency on {{ $labels.path }} is above 1s for 5 minutes."
 
-      - alert: OutboxBacklogHigh
-        expr: app_outbox_backlog{service="outbox-publisher"} > 100
-        for: 10m
+      - alert: ApiUnhandledExceptions
+        expr: increase(app_http_exceptions_total{service=~"web|upload-service|video-api|live-api"}[10m]) > 0
+        for: 0m
         labels:
           severity: warning
+          category: api
         annotations:
-          summary: "Outbox backlog is high"
-          description: "Outbox backlog is above 100 for 10 minutes."
+          summary: "Unhandled API exceptions: {{ $labels.service }}"
+          description: "Unhandled exceptions detected in the last 10 minutes."
 
+  - name: worker-pipeline
+    rules:
       - alert: WorkerFailuresDetected
         expr: increase(app_worker_job_failures_total{service="processing-worker"}[10m]) > 0
         for: 0m
         labels:
           severity: warning
+          category: worker
         annotations:
-          summary: "Processing worker failures detected"
-          description: "processing-worker reported job failures in the last 10 minutes."
+          summary: "Worker failures detected"
+          description: "processing-worker had one or more failed jobs in the last 10 minutes."
 
-      - alert: DatabaseErrorsDetected
-        expr: increase(app_db_errors_total[10m]) > 0
+      - alert: WorkerNoSuccessfulJobs
+        expr: |
+          increase(app_video_processing_total{service="processing-worker",stage="started"}[10m]) > 0
+          and
+          increase(app_worker_jobs_total{service="processing-worker",job_type="video.process",status="success"}[10m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          category: worker
+        annotations:
+          summary: "Worker starts jobs but does not finish them"
+          description: "Jobs are starting, but no successful completions were recorded."
+
+      - alert: WorkerHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum by (service, job_type, le) (
+              rate(app_worker_job_duration_seconds_bucket{service="processing-worker"}[10m])
+            )
+          ) > 120
+        for: 10m
+        labels:
+          severity: warning
+          category: worker
+        annotations:
+          summary: "Worker processing latency is high"
+          description: "p95 worker job duration is above 120s."
+
+  - name: queue-and-outbox
+    rules:
+      - alert: RabbitQueueBacklog
+        expr: rabbitmq_queue_messages_ready > 10
+        for: 3m
+        labels:
+          severity: warning
+          category: queue
+        annotations:
+          summary: "RabbitMQ backlog"
+          description: "Queue {{ $labels.queue }} has more than 10 ready messages for 3 minutes."
+
+      - alert: BrokerConsumerErrors
+        expr: increase(app_broker_consumer_errors_total[10m]) > 0
         for: 0m
         labels:
           severity: warning
+          category: queue
+        annotations:
+          summary: "Broker consumer errors detected"
+          description: "Consumer errors occurred in the last 10 minutes."
+
+      - alert: OutboxBacklogHigh
+        expr: app_outbox_backlog{service="outbox-publisher"} > 0
+        for: 2m
+        labels:
+          severity: warning
+          category: outbox
+        annotations:
+          summary: "Outbox backlog is growing"
+          description: "outbox-publisher has pending/processing outbox events for more than 2 minutes."
+
+      - alert: OutboxFailedPresent
+        expr: app_outbox_failed{service="outbox-publisher"} > 0
+        for: 1m
+        labels:
+          severity: critical
+          category: outbox
+        annotations:
+          summary: "Outbox has failed events"
+          description: "There are FAILED records in outbox for more than 1 minute."
+
+  - name: database
+    rules:
+      - alert: ReplicaReadDrift
+        expr: app_db_replica_row_count_difference{service="video-api",entity="videos"} > 0
+        for: 3m
+        labels:
+          severity: warning
+          category: database
+        annotations:
+          summary: "Replica drift detected"
+          description: "Master/replica row-count drift for videos persists for 3 minutes."
+
+      - alert: DatabaseErrorsDetected
+        expr: increase(app_db_errors_total[15m]) > 0
+        for: 0m
+        labels:
+          severity: warning
+          category: database
         annotations:
           summary: "Database errors detected"
-          description: "Database errors were detected in the last 10 minutes."
+          description: "Application-side DB errors occurred in the last 15 minutes."
+
+  - name: infra
+    rules:
+      - alert: HighNodeCpu
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 85
+        for: 10m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is above 85% for 10 minutes on {{ $labels.instance }}."
+
+      - alert: HighNodeMemory
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) * 100 > 85
+        for: 10m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is above 85% for 10 minutes on {{ $labels.instance }}."
+
+      - alert: HighDiskUsage
+        expr: (1 - (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"})) * 100 > 85
+        for: 15m
+        labels:
+          severity: warning
+          category: infra
+        annotations:
+          summary: "High disk usage"
+          description: "Disk usage is above 85% for 15 minutes on {{ $labels.instance }}."

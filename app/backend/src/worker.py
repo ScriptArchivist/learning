@@ -3,10 +3,14 @@ import os
 import logging
 import logging.config
 from datetime import datetime
-from src.metrics import start_background_metrics_server, track_job
 
 from pydantic import ValidationError
 
+from src.metrics import (
+    inc_video_processing,
+    start_background_metrics_server,
+    track_job,
+)
 from service.correlation import (
     get_request_id,
     get_trace_id,
@@ -42,7 +46,7 @@ from service.storage_service import get_storage_provider  # noqa: E402
 from src.config import VIDEO_LOCK_TTL_SECONDS  # noqa: E402
 from service.video_service import try_claim_video_processing  # noqa: E402
 from service.events import EventEnvelope, VideoProcessRequestedPayload  # noqa: E402
-from service.paths import thumbnail_path, hls_dir, hls_master  # noqa: E402
+from service.paths import thumbnail_path  # noqa: E402
 from service.outbox import (  # noqa: E402
     EVENT_VIDEO_PROCESS_REQUESTED,
     EVENT_VIDEO_PROCESS_FAILED,
@@ -62,7 +66,7 @@ def _major_version(schema_version) -> int | None:
     if schema_version is None:
         return None
     if isinstance(schema_version, int):
-        return schema_version
+        return None if schema_version is None else int(schema_version)
     if isinstance(schema_version, str):
         s = schema_version.strip()
         if not s:
@@ -144,7 +148,10 @@ def handle(message: dict, retry_count: int) -> None:
 
     if not claimed:
         logger.info("idempotency: skip video_id=%s event_id=%s", video_id, event_id)
+        inc_video_processing("processing-worker", "idempotent_skip")
         return
+
+    inc_video_processing("processing-worker", "started")
 
     try:
         with track_job("processing-worker", "video.process"):
@@ -186,6 +193,7 @@ def handle(message: dict, retry_count: int) -> None:
                     correlation_id=rid,
                     trace_id=tid,
                 )
+                inc_video_processing("processing-worker", "completed")
                 logger.info("done video_id=%s (already existed)", video_id)
                 return
 
@@ -212,6 +220,7 @@ def handle(message: dict, retry_count: int) -> None:
                 trace_id=tid,
             )
 
+            inc_video_processing("processing-worker", "completed")
             logger.info("done video_id=%s", video_id)
 
     except Exception as e:
@@ -253,6 +262,7 @@ def handle(message: dict, retry_count: int) -> None:
         finally:
             db.close()
 
+        inc_video_processing("processing-worker", "failed")
         raise
 
 

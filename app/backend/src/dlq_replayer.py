@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from db.database import SessionLocal
 from db.models import OutboxEvent, OutboxStatus
 from service.correlation import get_request_id, get_trace_id
+from src.metrics import get_service_name, inc_dlq_replayed
 
 
 _old_factory = logging.getLogRecordFactory()
@@ -29,6 +30,8 @@ def record_factory(*args, **kwargs):
 logging.setLogRecordFactory(record_factory)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("dlq-replayer")
+
+SERVICE_NAME = get_service_name("dlq-replayer")
 
 
 def _env_int(name: str, default: int) -> int:
@@ -81,6 +84,10 @@ def main() -> None:
     try:
         with db.begin():
             n = replay_failed(db, LIMIT)
+
+        if n > 0:
+            inc_dlq_replayed(SERVICE_NAME, n)
+
         logger.info("replayed=%s", n)
     finally:
         db.close()
