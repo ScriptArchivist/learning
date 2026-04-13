@@ -63,15 +63,15 @@
       "description": "Critical services currently up",
       "fieldConfig": {
         "defaults": {
-          "max": 8,
+          "max": 10,
           "min": 0,
           "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "red", "value": null },
-              { "color": "orange", "value": 6 },
-              { "color": "green", "value": 8 }
+              { "color": "orange", "value": 8 },
+              { "color": "green", "value": 10 }
             ]
           }
         },
@@ -89,7 +89,7 @@
       },
       "targets": [
         {
-          "expr": "sum(max by (job) (up{job=~\"web|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq\"}))",
+          "expr": "sum(max by (job) (up{job=~\"web|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq|redis|frontend\"}))",
           "instant": true,
           "refId": "A"
         }
@@ -238,7 +238,6 @@
       "title": "Queue Ready",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
@@ -487,7 +486,6 @@
       "title": "rabbitmq",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
@@ -506,6 +504,37 @@
         "overrides": []
       },
       "gridPos": { "h": 3, "w": 3, "x": 0, "y": 7 },
+      "id": 101,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false },
+        "textMode": "value"
+      },
+      "targets": [{ "expr": "max(up{job=\"frontend\"})", "refId": "A" }],
+      "title": "frontend",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "green", "value": 1 }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 3, "w": 3, "x": 3, "y": 7 },
       "id": 15,
       "options": {
         "colorMode": "background",
@@ -536,7 +565,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 3, "y": 7 },
+      "gridPos": { "h": 3, "w": 3, "x": 6, "y": 7 },
       "id": 16,
       "options": {
         "colorMode": "background",
@@ -567,7 +596,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 6, "y": 7 },
+      "gridPos": { "h": 3, "w": 3, "x": 9, "y": 7 },
       "id": 17,
       "options": {
         "colorMode": "background",
@@ -598,7 +627,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 9, "y": 7 },
+      "gridPos": { "h": 3, "w": 3, "x": 12, "y": 7 },
       "id": 18,
       "options": {
         "colorMode": "background",
@@ -629,7 +658,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 12, "y": 7 },
+      "gridPos": { "h": 3, "w": 3, "x": 15, "y": 7 },
       "id": 19,
       "options": {
         "colorMode": "background",
@@ -660,7 +689,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 15, "y": 7 },
+      "gridPos": { "h": 3, "w": 3, "x": 18, "y": 7 },
       "id": 20,
       "options": {
         "colorMode": "background",
@@ -691,7 +720,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 18, "y": 7 },
+      "gridPos": { "h": 3, "w": 3, "x": 21, "y": 7 },
       "id": 21,
       "options": {
         "colorMode": "background",
@@ -722,7 +751,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 3, "x": 21, "y": 7 },
+      "gridPos": { "h": 3, "w": 4, "x": 0, "y": 10 },
       "id": 22,
       "options": {
         "colorMode": "background",
@@ -736,7 +765,6 @@
       "title": "cadvisor",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {
@@ -754,7 +782,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 12, "x": 0, "y": 10 },
+      "gridPos": { "h": 3, "w": 10, "x": 4, "y": 10 },
       "id": 23,
       "options": {
         "colorMode": "background",
@@ -785,7 +813,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 3, "w": 12, "x": 12, "y": 10 },
+      "gridPos": { "h": 3, "w": 10, "x": 14, "y": 10 },
       "id": 24,
       "options": {
         "colorMode": "background",
@@ -799,7 +827,6 @@
       "title": "postgres-exporter-replica",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "fieldConfig": {

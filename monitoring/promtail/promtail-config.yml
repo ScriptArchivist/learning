@@ -9,12 +9,47 @@ clients:
 
 scrape_configs:
   - job_name: docker
-    static_configs:
-      - targets:
-          - localhost
-        labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*-json.log
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 10s
+
+    relabel_configs:
+      - source_labels: ['__meta_docker_container_name']
+        target_label: 'container'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_service']
+        target_label: 'compose_service'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        target_label: 'compose_project'
+
+      - source_labels: ['__meta_docker_container_log_stream']
+        target_label: 'stream'
+
+      - source_labels: ['__meta_docker_container_label_com_docker_compose_project']
+        regex: 'docker'
+        action: keep
 
     pipeline_stages:
       - docker: {}
+
+      - regex:
+          expression: '^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}) (?P<level>DEBUG|INFO|WARNING|ERROR|CRITICAL) \[(?P<logger>[^\]]+)\] rid=(?P<request_id>[^\s]+) tid=(?P<trace_id>[^\s]+) (?P<message>.*)$'
+
+      - labels:
+          level:
+          logger:
+
+      - output:
+          source: message
+
+
+  - job_name: frontend
+    static_configs:
+      - targets:
+          - frontend:3001
+
+  - job_name: redis
+    static_configs:
+      - targets:
+          - redis:6379

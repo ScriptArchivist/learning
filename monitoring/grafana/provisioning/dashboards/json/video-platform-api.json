@@ -113,7 +113,7 @@
       "id": 7,
       "targets": [
         {
-          "expr": "{job=\"docker\"}",
+          "expr": "{compose_project=\"docker\", compose_service=~\"web|upload-service|video-api|live-api\"}",
           "queryType": "range",
           "refId": "A"
         }

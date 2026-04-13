@@ -34,7 +34,6 @@
       "title": "Worker Jobs",
       "type": "timeseries"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 8, "x": 8, "y": 0 },
@@ -49,7 +48,6 @@
       "title": "Worker Duration P95",
       "type": "timeseries"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 8, "w": 8, "x": 16, "y": 0 },
@@ -64,21 +62,19 @@
       "title": "Worker Failures",
       "type": "timeseries"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 5, "w": 6, "x": 0, "y": 8 },
       "id": 4,
       "targets": [
         {
-          "expr": "sum(app_worker_jobs_in_progress{service=\"processing-worker\"})",
+          "expr": "sum(app_worker_jobs_in_progress{service=\"processing-worker\"}) or vector(0)",
           "refId": "A"
         }
       ],
       "title": "Jobs In Progress",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 5, "w": 6, "x": 6, "y": 8 },
@@ -92,7 +88,6 @@
       "title": "Outbox Backlog",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 5, "w": 6, "x": 12, "y": 8 },
@@ -106,7 +101,6 @@
       "title": "Outbox Failed",
       "type": "stat"
     },
-
     {
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "gridPos": { "h": 5, "w": 6, "x": 18, "y": 8 },
@@ -119,6 +113,20 @@
       ],
       "title": "Queue Size",
       "type": "stat"
+    },
+    {
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 20, "w": 24, "x": 0, "y": 13 },
+      "id": 8,
+      "targets": [
+        {
+          "expr": "{compose_project=\"docker\", compose_service=~\"processing-worker|outbox-publisher|video-events-consumer|live-cleaner\"}",
+          "queryType": "range",
+          "refId": "A"
+        }
+      ],
+      "title": "Pipeline Service Logs",
+      "type": "logs"
     }
   ],
   "refresh": "10s",
