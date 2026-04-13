@@ -2,82 +2,117 @@
   "title": "Video Platform SLO",
   "uid": "video-platform-slo",
   "schemaVersion": 39,
-  "version": 1,
+  "version": 2,
   "refresh": "10s",
   "panels": [
     {
-      "type": "stat",
-      "title": "API Availability (Success Rate)",
+      "type": "timeseries",
+      "title": "Upload Success vs Failed",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 0 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
       "targets": [
         {
-          "expr": "(sum(rate(app_http_requests_total{status!~\"5..\"}[5m])) / sum(rate(app_http_requests_total[5m])))",
+          "expr": "sum(rate(app_video_uploads{status=\"success\"}[5m])) or vector(0)",
+          "legendFormat": "success",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(rate(app_video_uploads{status=\"failed\"}[5m])) or vector(0)",
+          "legendFormat": "failed",
+          "refId": "B"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Upload Completions",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_video_uploads[5m])) or vector(0)",
+          "legendFormat": "uploads",
           "refId": "A"
         }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percentunit",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "red", "value": null },
-              { "color": "orange", "value": 0.95 },
-              { "color": "green", "value": 0.99 }
-            ]
-          }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Video Processing Pipeline Events",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_video_processing[5m])) by (stage) or vector(0)",
+          "legendFormat": "{{stage}}",
+          "refId": "A"
         }
-      }
+      ]
     },
     {
       "type": "stat",
-      "title": "API Latency P95",
+      "title": "Worker Failures (5m)",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 0 },
+      "gridPos": { "h": 8, "w": 6, "x": 12, "y": 8 },
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum(rate(app_http_request_duration_seconds_bucket[5m])) by (le))",
+          "expr": "increase(app_worker_job_failures[5m]) or vector(0)",
           "refId": "A"
         }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 0.5 },
-              { "color": "red", "value": 1 }
-            ]
-          }
-        }
-      }
+      ]
     },
     {
       "type": "stat",
-      "title": "Exceptions (5m)",
+      "title": "Jobs In Progress",
       "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 0 },
+      "gridPos": { "h": 8, "w": 6, "x": 18, "y": 8 },
       "targets": [
         {
-          "expr": "increase(app_http_exceptions_total[5m]) or vector(0)",
+          "expr": "sum(app_worker_jobs_in_progress) or vector(0)",
           "refId": "A"
         }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "orange", "value": 1 },
-              { "color": "red", "value": 5 }
-            ]
-          }
+      ]
+    },
+
+    {
+      "type": "stat",
+      "title": "Active Live Sessions",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(app_live_active_sessions) or vector(0)",
+          "refId": "A"
         }
-      }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Live API Errors",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 8, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_http_requests_total{service=\"live-api\",status=~\"5..\"}[5m])) or vector(0)",
+          "legendFormat": "5xx",
+          "refId": "A"
+        }
+      ]
+    },
+
+    {
+      "type": "timeseries",
+      "title": "Playback Errors (video-api 5xx)",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "gridPos": { "h": 6, "w": 8, "x": 16, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(rate(app_http_requests_total{service=\"video-api\",status=~\"5..\"}[5m])) or vector(0)",
+          "legendFormat": "5xx",
+          "refId": "A"
+        }
+      ]
     }
   ]
 }
