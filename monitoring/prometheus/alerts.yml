@@ -2,7 +2,7 @@ groups:
   - name: service-health
     rules:
       - alert: ServiceDownCritical
-        expr: up{job=~"web|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq|prometheus|grafana|loki|alertmanager"} == 0
+        expr: up{job=~"web|upload-service|video-api|live-api|identity-service|processing-worker|outbox-publisher|video-events-consumer|rabbitmq|prometheus|grafana|loki|alertmanager"} == 0
         for: 1m
         labels:
           severity: critical
@@ -26,9 +26,9 @@ groups:
       - alert: ApiHigh5xxRate
         expr: |
           (
-            sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api",status=~"5.."}[5m]))
+            sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api|identity-service",status=~"5.."}[5m]))
             /
-            clamp_min(sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api"}[5m])), 0.001)
+            clamp_min(sum by (service) (rate(app_http_requests_total{service=~"wweb|upload-service|video-api|live-api|identity-service"}[5m])), 0.001)
           ) > 0.05
         for: 5m
         labels:
@@ -43,7 +43,7 @@ groups:
           histogram_quantile(
             0.95,
             sum by (service, path, le) (
-              rate(app_http_request_duration_seconds_bucket{service=~"web|upload-service|video-api|live-api"}[5m])
+              rate(app_http_request_duration_seconds_bucket{service=~"web|upload-service|video-api|live-api|identity-service"}[5m])
             )
           ) > 1.0
         for: 5m
@@ -55,7 +55,7 @@ groups:
           description: "p95 latency on {{ $labels.path }} is above 1s for 5 minutes."
 
       - alert: ApiUnhandledExceptions
-        expr: increase(app_http_exceptions_total{service=~"web|upload-service|video-api|live-api"}[10m]) > 0
+        expr: increase(app_http_exceptions_total{service=~"web|upload-service|video-api|live-api|identity-service"}[10m]) > 0
         for: 0m
         labels:
           severity: warning

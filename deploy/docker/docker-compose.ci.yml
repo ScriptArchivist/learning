@@ -79,7 +79,7 @@ services:
       context: ../../
       dockerfile: app/backend/Dockerfile
     command: >
-      sh -c "echo 'Starting identity-service...' && uvicorn identity.src.main:app --host 0.0.0.0 --port 8000"
+      sh -c "echo 'Starting identity-service...' && uvicorn identity.src.main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
     depends_on:
       db-master:
         condition: service_healthy

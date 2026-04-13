@@ -21,12 +21,12 @@
       "id": 1,
       "targets": [
         {
-          "expr": "sum by (status) (app_worker_jobs_total{service=\"processing-worker\",status=\"success\"})",
+          "expr": "sum(app_worker_jobs_total{service=\"processing-worker\",status=\"success\"}) or on() vector(0)",
           "legendFormat": "success",
           "refId": "A"
         },
         {
-          "expr": "sum by (status) (app_worker_jobs_total{service=\"processing-worker\",status=\"failed\"})",
+          "expr": "sum(app_worker_jobs_total{service=\"processing-worker\",status=\"failed\"}) or on() vector(0)",
           "legendFormat": "failed",
           "refId": "B"
         }

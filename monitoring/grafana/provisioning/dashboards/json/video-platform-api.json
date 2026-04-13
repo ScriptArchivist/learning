@@ -24,7 +24,7 @@
       "id": 1,
       "targets": [
         {
-          "expr": "sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])) or vector(0)",
+          "expr": "sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api|identity-service\"}[5m])) or vector(0)",
           "legendFormat": "{{service}}",
           "refId": "A"
         }
@@ -38,7 +38,7 @@
       "id": 2,
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, sum by (service, path, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api\"}[5m]))) or vector(0)",
+          "expr": "histogram_quantile(0.95, sum by (service, path, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api|identity-service\"}[5m]))) or vector(0)",
           "legendFormat": "{{service}} {{path}}",
           "refId": "A"
         }
@@ -52,7 +52,7 @@
       "id": 3,
       "targets": [
         {
-          "expr": "((sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\",status=~\"5..\"}[5m]))) / clamp_min(sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])), 0.001)) or vector(0)",
+          "expr": "((sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api|identity-service\",status=~\"5..\"}[5m]))) / clamp_min(sum by (service) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])), 0.001)) or vector(0)",
           "legendFormat": "{{service}}",
           "refId": "A"
         }
@@ -66,7 +66,7 @@
       "id": 4,
       "targets": [
         {
-          "expr": "increase(app_http_exceptions_total{service=~\"web|upload-service|video-api|live-api\"}[10m]) or vector(0)",
+          "expr": "increase(app_http_exceptions_total{service=~\"web|upload-service|video-api|live-api|identity-service\"}[10m]) or vector(0)",
           "legendFormat": "{{service}}",
           "refId": "A"
         }
@@ -80,7 +80,7 @@
       "id": 5,
       "targets": [
         {
-          "expr": "sum by (service, status) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api\"}[5m])) or vector(0)",
+          "expr": "sum by (service, status) (rate(app_http_requests_total{service=~\"web|upload-service|video-api|live-api|identity-service\"}[5m])) or vector(0)",
           "legendFormat": "{{service}} {{status}}",
           "refId": "A"
         }
@@ -94,12 +94,12 @@
       "id": 6,
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api\"}[5m]))) or vector(0)",
+          "expr": "histogram_quantile(0.50, sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api|identity-service\"}[5m]))) or vector(0)",
           "legendFormat": "{{service}} p50",
           "refId": "A"
         },
         {
-          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api\"}[5m]))) or vector(0)",
+          "expr": "histogram_quantile(0.95, sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\"web|upload-service|video-api|live-api|identity-service\"}[5m]))) or vector(0)",
           "legendFormat": "{{service}} p95",
           "refId": "B"
         }
@@ -113,7 +113,7 @@
       "id": 7,
       "targets": [
         {
-          "expr": "{compose_project=\"docker\", compose_service=~\"web|upload-service|video-api|live-api\"}",
+          "expr": "{compose_project=\"docker\", compose_service=~\"web|upload-service|video-api|live-api|identity-service\"}",
           "queryType": "range",
           "refId": "A"
         }

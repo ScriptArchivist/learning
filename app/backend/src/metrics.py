@@ -160,6 +160,18 @@ VIDEO_PROCESSING_TOTAL = Counter(
     ["service", "stage"],
 )
 
+AUTH_LOGIN_TOTAL = Counter(
+    "app_auth_login_total",
+    "Total login attempts",
+    ["service", "status"],
+)
+
+AUTH_LOGIN_DURATION = Histogram(
+    "app_auth_login_duration_seconds",
+    "Login request duration",
+    ["service", "status"],
+)
+
 DLQ_REPLAY_TOTAL = Counter(
     "app_dlq_replayed",
     "Total replayed DLQ/outbox failed records",
@@ -532,3 +544,11 @@ def inc_dlq_replayed(service_name: str, count: int = 1) -> None:
 
 def get_service_name(default: str) -> str:
     return os.getenv("SERVICE_NAME", default)
+
+
+def inc_auth_login(service_name: str, status: str) -> None:
+    AUTH_LOGIN_TOTAL.labels(service=service_name, status=status).inc()
+
+
+def observe_auth_login_duration(service_name: str, status: str, duration: float) -> None:
+    AUTH_LOGIN_DURATION.labels(service=service_name, status=status).observe(duration)
