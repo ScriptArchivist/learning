@@ -60,15 +60,15 @@ def _make_engine(url: str, app_name: str):
 def _attach_engine_metrics(engine, *, role: str) -> None:
     service_name = get_service_name("app")
 
-    @event.listens_for(engine, "connect")
+    @event.listens_for(engine.pool, "connect")
     def on_connect(dbapi_connection, connection_record):
         inc_db_connect(service_name, role)
 
-    @event.listens_for(engine, "checkout")
+    @event.listens_for(engine.pool, "checkout")
     def on_checkout(dbapi_connection, connection_record, connection_proxy):
         inc_db_checked_out(service_name, role)
 
-    @event.listens_for(engine, "checkin")
+    @event.listens_for(engine.pool, "checkin")
     def on_checkin(dbapi_connection, connection_record):
         dec_db_checked_out(service_name, role)
 
