@@ -28,7 +28,7 @@ groups:
           (
             sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api|identity-service",status=~"5.."}[5m]))
             /
-            clamp_min(sum by (service) (rate(app_http_requests_total{service=~"wweb|upload-service|video-api|live-api|identity-service"}[5m])), 0.001)
+            clamp_min(sum by (service) (rate(app_http_requests_total{service=~"web|upload-service|video-api|live-api|identity-service"}[5m])), 0.001)
           ) > 0.05
         for: 5m
         labels:
