@@ -63,15 +63,15 @@
       "description": "Critical services currently up",
       "fieldConfig": {
         "defaults": {
-          "max": 11,
+          "max": 9,
           "min": 0,
           "decimals": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
               { "color": "red", "value": null },
-              { "color": "orange", "value": 9 },
-              { "color": "green", "value": 11 }
+              { "color": "orange", "value": 7 },
+              { "color": "green", "value": 9 }
             ]
           }
         },
@@ -89,7 +89,7 @@
       },
       "targets": [
         {
-          "expr": "sum(max by (job) (up{job=~\"web|upload-service|video-api|live-api|identity-service|processing-worker|outbox-publisher|video-events-consumer|rabbitmq|redis|frontend\"}))",
+          "expr": "sum(max by (job) (up{job=~\"web|upload-service|video-api|live-api|identity-service|processing-worker|outbox-publisher|video-events-consumer|rabbitmq\"}))",
           "instant": true,
           "refId": "A"
         }
