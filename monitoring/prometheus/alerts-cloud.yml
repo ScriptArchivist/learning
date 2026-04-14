@@ -1,0 +1,88 @@
+groups:
+  - name: cloud-service-health
+    rules:
+      - alert: ServiceDown
+        expr: up{job=~"identity-service|upload-service|video-api|processing-worker|outbox-publisher|video-events-consumer"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: availability
+        annotations:
+          summary: "Service down: {{ $labels.job }}"
+          description: "Target {{ $labels.instance }} for job {{ $labels.job }} has been down for more than 1 minute."
+
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: queue
+        annotations:
+          summary: "RabbitMQ is down"
+          description: "RabbitMQ metrics endpoint has been unavailable for more than 1 minute."
+
+      - alert: PostgresDown
+        expr: pg_up == 0
+        for: 1m
+        labels:
+          severity: critical
+          category: database
+        annotations:
+          summary: "PostgreSQL is down"
+          description: "postgres-exporter reports pg_up=0 for more than 1 minute."
+
+  - name: cloud-api
+    rules:
+      - alert: High5xxRate
+        expr: |
+          (
+            sum by (service) (
+              rate(app_http_requests_total{service=~"identity-service|upload-service|video-api",status=~"5.."}[5m])
+            )
+            /
+            clamp_min(
+              sum by (service) (
+                rate(app_http_requests_total{service=~"identity-service|upload-service|video-api"}[5m])
+              ),
+              0.001
+            )
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          category: api
+        annotations:
+          summary: "High 5xx rate: {{ $labels.service }}"
+          description: "5xx ratio is above 5% for {{ $labels.service }} during the last 5 minutes."
+
+  - name: cloud-pipeline
+    rules:
+      - alert: QueueBacklogHigh
+        expr: sum(rabbitmq_queue_messages_ready) > 20
+        for: 5m
+        labels:
+          severity: warning
+          category: queue
+        annotations:
+          summary: "RabbitMQ backlog is high"
+          description: "Total ready messages across RabbitMQ queues are above 20 for more than 5 minutes."
+
+      - alert: ProcessingFailuresHigh
+        expr: increase(app_worker_job_failures_total{service="processing-worker"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          category: worker
+        annotations:
+          summary: "Processing failures detected"
+          description: "processing-worker produced one or more failed jobs during the last 5 minutes."
+
+      - alert: OutboxFailedPresent
+        expr: app_outbox_failed{service="outbox-publisher"} > 0
+        for: 2m
+        labels:
+          severity: critical
+          category: outbox
+        annotations:
+          summary: "Outbox has failed records"
+          description: "outbox-publisher reports FAILED outbox records for more than 2 minutes."

@@ -1,0 +1,305 @@
+services:
+  db-master:
+    image: bitnami/postgresql:latest
+    environment:
+      POSTGRESQL_POSTGRES_PASSWORD: postgres
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_DATABASE: app
+    volumes:
+      - postgres_master_data:/bitnami/postgresql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    command: >
+      sh -c "rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+      - "15692:15692"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  migrate:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
+    command: >
+      sh -c "echo 'Waiting for database...' && alembic upgrade head"
+    depends_on:
+      db-master:
+        condition: service_healthy
+    environment:
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+
+  identity-service:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
+    command: >
+      sh -c "echo 'Starting identity-service...' && uvicorn identity.src.main:app --host 0.0.0.0 --port 8000"
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8001:8000"
+    environment:
+      SERVICE_NAME: identity-service
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      secret_key: changeme
+      access_token_expire_minutes: "30"
+
+  web:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
+    command: >
+      sh -c "echo 'Starting API...' && uvicorn src.main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    environment:
+      SERVICE_NAME: web
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      PUBLIC_HOST: ${PUBLIC_HOST}
+      PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
+      PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
+      PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
+      DELIVERY_MODE: ${DELIVERY_MODE:-local}
+      DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL}
+      REDIS_URL: redis://redis:6379/0
+      VIDEO_LOCK_TTL_SECONDS: "3600"
+      HLS_TOKEN_SECRET: ${HLS_TOKEN_SECRET}
+      HLS_TOKEN_TTL_SECONDS: ${HLS_TOKEN_TTL_SECONDS:-300}
+      LIVE_RTMP_URL_TEMPLATE: ${LIVE_RTMP_URL_TEMPLATE}
+      LIVE_HLS_URL_TEMPLATE: ${LIVE_HLS_URL_TEMPLATE}
+      CORS_ALLOW_ORIGINS: ${CORS_ALLOW_ORIGINS:-}
+      CORS_ALLOW_ORIGIN_REGEX: ${CORS_ALLOW_ORIGIN_REGEX:-}
+    volumes:
+      - uploads_data:/app/uploads
+
+  video-api:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile
+    command: >
+      sh -c "echo 'Starting video-api...' && uvicorn src.video_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8003:8000"
+    environment:
+      SERVICE_NAME: video-api
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      secret_key: changeme
+      access_token_expire_minutes: "30"
+      PUBLIC_HOST: ${PUBLIC_HOST}
+      PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
+      PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
+      PUBLIC_RTMP_PORT: ${PUBLIC_RTMP_PORT:-1935}
+      DELIVERY_MODE: "url"
+      DELIVERY_PUBLIC_BASE_URL: ${DELIVERY_PUBLIC_BASE_URL}
+      DELIVERY_BASE_URL: ${DELIVERY_BASE_URL:-http://origin}
+
+  upload-service:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile.upload
+    command: >
+      sh -c "echo 'Starting upload-service...' && uvicorn src.upload_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log"
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    ports:
+      - "8002:8000"
+    environment:
+      SERVICE_NAME: upload-service
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      secret_key: changeme
+      access_token_expire_minutes: "30"
+      STORAGE_PATH: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+
+  processing-worker:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile.worker
+    command: python -m src.worker
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+      redis:
+        condition: service_started
+    environment:
+      SERVICE_NAME: processing-worker
+      METRICS_PORT: "9100"
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
+      VIDEO_LOCK_TTL_SECONDS: "3600"
+    expose:
+      - "9100"
+    volumes:
+      - uploads_data:/app/uploads
+
+  outbox-publisher:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile.worker
+    command: python -m src.outbox_publisher
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+    environment:
+      SERVICE_NAME: outbox-publisher
+      METRICS_PORT: "9100"
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      OUTBOX_BATCH_SIZE: "50"
+      OUTBOX_POLL_INTERVAL: "0.5"
+      OUTBOX_LEADER_LOCK_KEY: "424242"
+      OUTBOX_LEADER_REFRESH_SECONDS: "2.0"
+    expose:
+      - "9100"
+
+  video-events-consumer:
+    build:
+      context: ../../
+      dockerfile: app/backend/Dockerfile.worker
+    command: python -m src.video_events_consumer
+    depends_on:
+      db-master:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      rabbitmq:
+        condition: service_started
+    environment:
+      SERVICE_NAME: video-events-consumer
+      METRICS_PORT: "9100"
+      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+    expose:
+      - "9100"
+
+  origin:
+    image: nginx:1.25-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ../../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - uploads_data:/app/uploads:ro
+    depends_on:
+      web:
+        condition: service_started
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@db-master:5432/app?sslmode=disable"
+    expose:
+      - "9187"
+    depends_on:
+      db-master:
+        condition: service_healthy
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../monitoring/prometheus/prometheus-cloud.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/prometheus/alerts-cloud.yml:/etc/prometheus/alerts-cloud.yml:ro
+    depends_on:
+      identity-service:
+        condition: service_started
+      upload-service:
+        condition: service_started
+      video-api:
+        condition: service_started
+      processing-worker:
+        condition: service_started
+      outbox-publisher:
+        condition: service_started
+      video-events-consumer:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+      postgres-exporter:
+        condition: service_started
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../../monitoring/grafana/provisioning/datasources/datasources-cloud.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../../monitoring/grafana/provisioning/dashboards/dashboards-cloud.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ../../monitoring/grafana/provisioning/dashboards/json/video-platform-cloud-overview.json:/etc/grafana/dashboards/video-platform-cloud-overview.json:ro
+
+volumes:
+  postgres_master_data:
+  uploads_data:
+  grafana_data:
+
+networks:
+  default:
+    ipam:
+      config:
+        - subnet: 172.18.0.0/16
+          gateway: 172.18.0.1
