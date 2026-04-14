@@ -1,6 +1,10 @@
 FROM alfg/nginx-rtmp:latest
 
-RUN apk add --no-cache ffmpeg curl
+RUN printf '%s\n%s\n' \
+    'http://mirror.yandex.ru/mirrors/alpine/v3.16/main' \
+    'http://mirror.yandex.ru/mirrors/alpine/v3.16/community' \
+    > /etc/apk/repositories \
+    && apk add --no-cache ffmpeg curl
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY scripts /opt/scripts

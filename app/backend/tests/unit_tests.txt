@@ -1,8 +1,21 @@
-docker-compose -f docker-compose.ci.yml down -v
-docker-compose -f docker-compose.ci.yml build --no-cache
-docker-compose -f docker-compose.ci.yml up -d
+Для локального стенда
+docker-compose -f deploy/docker/docker-compose.ci.yml down -v
+docker system prune -a --volumes
+docker-compose --env-file .env -f deploy/docker/docker-compose.ci.yml build --no-cache
+docker-compose --env-file .env -f deploy/docker/docker-compose.ci.yml up -d
 
-docker logs -n 200 learning_app-web-1
+docker-compose --env-file .env -f deploy/docker/docker-compose.ci.yml ps
+
+docker-compose --env-file .env -f deploy/docker/docker-compose.ci.yml logs web --tail=50
+docker exec -it docker-web-1 id
+
+
+Для облачного стенда:
+docker-compose -f deploy/docker/docker-compose.cloud.yml down -v
+docker system prune -a --volumes
+docker-compose -f deploy/docker/docker-compose.cloud.yml up -d --build
+docker-compose -f deploy/docker/docker-compose.cloud.yml ps
+
 
 
 Подключаемся к контейнеру БД:

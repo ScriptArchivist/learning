@@ -240,6 +240,25 @@ services:
       web:
         condition: service_started
 
+  frontend:
+    build:
+      context: /home/vadim/projects/web_app
+      dockerfile: Dockerfile
+    container_name: web-frontend
+    working_dir: /app
+    command: sh -c "npm ci && npm run dev -- -p 3001"
+    ports:
+      - "3001:3001"
+    volumes:
+      - /home/vadim/projects/web_app:/app
+      - /app/node_modules
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      web:
+        condition: service_started
+    restart: unless-stopped
+
   postgres-exporter:
     image: prometheuscommunity/postgres-exporter:latest
     environment:
@@ -258,6 +277,8 @@ services:
       - ../../monitoring/prometheus/prometheus-cloud.yml:/etc/prometheus/prometheus.yml:ro
       - ../../monitoring/prometheus/alerts-cloud.yml:/etc/prometheus/alerts-cloud.yml:ro
     depends_on:
+      frontend:
+        condition: service_started
       identity-service:
         condition: service_started
       upload-service:

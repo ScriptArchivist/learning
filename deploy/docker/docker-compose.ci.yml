@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRESQL_POSTGRES_PASSWORD: postgres
       POSTGRESQL_USERNAME: postgres
-      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRESQL_DATABASE: app
       POSTGRESQL_REPLICATION_MODE: master
       POSTGRESQL_REPLICATION_USER: repl_user
@@ -27,7 +27,7 @@ services:
     environment:
       POSTGRESQL_POSTGRES_PASSWORD: postgres
       POSTGRESQL_USERNAME: postgres
-      POSTGRESQL_PASSWORD: postgres
+      POSTGRESQL_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRESQL_DATABASE: app
       POSTGRESQL_REPLICATION_MODE: slave
       POSTGRESQL_MASTER_HOST: db-master
@@ -53,8 +53,8 @@ services:
       - "15672:15672"
       - "15692:15692"
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBIT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
 
   redis:
     image: redis:7-alpine
@@ -71,8 +71,8 @@ services:
       db-master:
         condition: service_healthy
     environment:
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
 
   identity-service:
     build:
@@ -89,9 +89,9 @@ services:
       - "8001:8000"
     environment:
       SERVICE_NAME: identity-service
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      secret_key: changeme
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      secret_key: ${SECRET_KEY}
       access_token_expire_minutes: "30"
 
   web:
@@ -113,9 +113,9 @@ services:
       - "8000:8000"
     environment:
       SERVICE_NAME: web
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      RABBIT_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/
       PUBLIC_HOST: ${PUBLIC_HOST:-127.0.0.1}
       PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
       PUBLIC_HTTP_PORT: ${PUBLIC_HTTP_PORT:-8080}
@@ -149,9 +149,9 @@ services:
       - "8004:8000"
     environment:
       SERVICE_NAME: live-api
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      secret_key: changeme
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      secret_key: ${SECRET_KEY}
       access_token_expire_minutes: "30"
       PUBLIC_HOST: ${PUBLIC_HOST:-127.0.0.1}
       PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
@@ -179,9 +179,9 @@ services:
       - "8003:8000"
     environment:
       SERVICE_NAME: video-api
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-replica:5432/app
-      secret_key: changeme
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      secret_key: ${SECRET_KEY}
       access_token_expire_minutes: "30"
       PUBLIC_HOST: ${PUBLIC_HOST:-127.0.0.1}
       PUBLIC_HTTP_SCHEME: ${PUBLIC_HTTP_SCHEME:-http}
@@ -206,9 +206,9 @@ services:
       - "8002:8000"
     environment:
       SERVICE_NAME: upload-service
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      secret_key: changeme
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      secret_key: ${SECRET_KEY}
       access_token_expire_minutes: "30"
       STORAGE_PATH: /app/uploads
     volumes:
@@ -229,9 +229,9 @@ services:
     environment:
       SERVICE_NAME: video-events-consumer
       METRICS_PORT: "9100"
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      RABBIT_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/
       RABBIT_EVENTS_EXCHANGE: ${RABBIT_EVENTS_EXCHANGE:-video.events.x}
       RABBIT_EVENTS_QUEUE: ${RABBIT_EVENTS_QUEUE:-events.q}
       RABBIT_EVENTS_ROUTING_KEY: ${RABBIT_EVENTS_ROUTING_KEY:-video.events}
@@ -275,9 +275,9 @@ services:
     environment:
       SERVICE_NAME: processing-worker
       METRICS_PORT: "9100"
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      RABBIT_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/
       REDIS_URL: redis://redis:6379/0
       VIDEO_LOCK_TTL_SECONDS: "3600"
     expose:
@@ -300,9 +300,9 @@ services:
     environment:
       SERVICE_NAME: outbox-publisher
       METRICS_PORT: "9100"
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      RABBIT_URL: amqp://guest:guest@rabbitmq:5672/
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      RABBIT_URL: amqp://${RABBIT_USER}:${RABBIT_PASSWORD}@rabbitmq:5672/
       OUTBOX_BATCH_SIZE: "50"
       OUTBOX_POLL_INTERVAL: "0.5"
       OUTBOX_LEADER_LOCK_KEY: "424242"
@@ -321,8 +321,8 @@ services:
         condition: service_completed_successfully
     environment:
       SERVICE_NAME: dlq-replayer
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
       DLQ_REPLAY_LIMIT: "200"
       DLQ_RESET_ATTEMPTS: "1"
 
@@ -339,8 +339,8 @@ services:
     environment:
       SERVICE_NAME: live-cleaner
       METRICS_PORT: "9100"
-      database_write_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
-      database_read_url: postgresql+psycopg://postgres:postgres@db-master:5432/app
+      database_write_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
+      database_read_url: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db-master:5432/${POSTGRES_DB}
       LIVE_TTL_INTERVAL_SECONDS: ${LIVE_TTL_INTERVAL_SECONDS:-10}
       LIVE_TTL_BATCH_SIZE: ${LIVE_TTL_BATCH_SIZE:-100}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -410,7 +410,10 @@ services:
       - loki
     volumes:
       - grafana_data:/var/lib/grafana
-      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../monitoring/grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+      - ../../monitoring/grafana/provisioning/dashboards/dashboards.yml:/etc/grafana/provisioning/dashboards/dashboards.yml:ro
+      - ../../monitoring/grafana/provisioning/dashboards/json:/etc/grafana/provisioning/dashboards/json:ro
+      - ../../monitoring/grafana/provisioning/dashboards/json:/etc/grafana/dashboards:ro
 
   loki:
     image: grafana/loki:2.9.8

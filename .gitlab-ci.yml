@@ -1,7 +1,14 @@
 stages:
   - test
   - build
+  - security
 
 include:
   - local: .ci/test.yml
   - local: .ci/build.yml
+
+trivy_scan:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL .

@@ -7,7 +7,8 @@ touch /var/log/nginx/error.log || true
 mkdir -p /app/uploads
 mkdir -p /app/uploads/live
 
-chmod 0777 /app/uploads || true
-chmod 0777 /app/uploads/live || true
+# безопаснее чем 0777
+chmod 0755 /app/uploads || true
+chmod 0755 /app/uploads/live || true
 
 exec nginx -g "daemon off;"
