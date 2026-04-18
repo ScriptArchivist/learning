@@ -3,12 +3,13 @@ kind: Service
 metadata:
   name: upload-service
 spec:
+  type: NodePort
   selector:
     app: upload-service
   ports:
     - port: 8000
       targetPort: 8000
-  type: ClusterIP
+      nodePort: 30003
 
 ---
 apiVersion: apps/v1
@@ -40,25 +41,19 @@ spec:
           env:
             - name: SERVICE_NAME
               value: upload-service
-
             - name: database_write_url
               value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
             - name: database_read_url
               value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
             - name: secret_key
               value: changeme
-
             - name: access_token_expire_minutes
               value: "30"
-
             - name: STORAGE_PATH
               value: /app/uploads
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
-
       volumes:
         - name: uploads
           persistentVolumeClaim:

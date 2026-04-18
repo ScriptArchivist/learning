@@ -3,12 +3,13 @@ kind: Service
 metadata:
   name: identity-service
 spec:
+  type: NodePort
   selector:
     app: identity-service
   ports:
     - port: 8000
       targetPort: 8000
-  type: ClusterIP
+      nodePort: 30002
 
 ---
 apiVersion: apps/v1
@@ -40,15 +41,11 @@ spec:
           env:
             - name: SERVICE_NAME
               value: identity-service
-
             - name: database_write_url
               value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
             - name: database_read_url
               value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
             - name: secret_key
               value: changeme
-
             - name: access_token_expire_minutes
               value: "30"

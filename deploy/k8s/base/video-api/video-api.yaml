@@ -3,12 +3,13 @@ kind: Service
 metadata:
   name: video-api
 spec:
+  type: NodePort
   selector:
     app: video-api
   ports:
     - port: 8000
       targetPort: 8000
-  type: ClusterIP
+      nodePort: 30004
 
 ---
 apiVersion: apps/v1
@@ -40,36 +41,25 @@ spec:
           env:
             - name: SERVICE_NAME
               value: video-api
-
             - name: database_write_url
               value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
             - name: database_read_url
               value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
             - name: secret_key
               value: changeme
-
             - name: access_token_expire_minutes
               value: "30"
-
             - name: PUBLIC_HOST
               value: "127.0.0.1"
-
             - name: PUBLIC_HTTP_SCHEME
               value: "http"
-
             - name: PUBLIC_HTTP_PORT
               value: "8080"
-
             - name: PUBLIC_RTMP_PORT
               value: "1935"
-
             - name: DELIVERY_MODE
               value: "url"
-
             - name: DELIVERY_PUBLIC_BASE_URL
               value: "http://127.0.0.1:8080"
-
             - name: DELIVERY_BASE_URL
               value: "http://origin"

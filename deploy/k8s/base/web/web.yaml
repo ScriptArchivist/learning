@@ -3,12 +3,13 @@ kind: Service
 metadata:
   name: web
 spec:
+  type: NodePort
   selector:
     app: web
   ports:
     - port: 8000
       targetPort: 8000
-  type: ClusterIP
+      nodePort: 30000
 
 ---
 apiVersion: apps/v1
