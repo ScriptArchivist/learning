@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: processing-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: processing-worker
+  template:
+    metadata:
+      labels:
+        app: processing-worker
+    spec:
+      containers:
+        - name: processing-worker
+          image: learning-app-backend:local
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting processing-worker..." &&
+              python -m src.worker
+          env:
+            - name: SERVICE_NAME
+              value: processing-worker
+
+            - name: METRICS_PORT
+              value: "9100"
+
+            - name: database_write_url
+              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
+
+            - name: database_read_url
+              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
+
+            - name: RABBIT_URL
+              value: amqp://guest:guest@rabbitmq:5672/
+
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+
+            - name: VIDEO_LOCK_TTL_SECONDS
+              value: "3600"
+
+            - name: STORAGE_PATH
+              value: /app/uploads
+          ports:
+            - containerPort: 9100
+              name: metrics
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: uploads-pvc

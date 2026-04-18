@@ -1,0 +1,81 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: live-api
+spec:
+  selector:
+    app: live-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+  type: ClusterIP
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: live-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: live-api
+  template:
+    metadata:
+      labels:
+        app: live-api
+    spec:
+      containers:
+        - name: live-api
+          image: learning-app-backend:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Starting live-api..." &&
+              uvicorn src.live_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log
+          env:
+            - name: SERVICE_NAME
+              value: live-api
+
+            - name: database_write_url
+              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
+
+            - name: database_read_url
+              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
+
+            - name: secret_key
+              value: changeme
+
+            - name: access_token_expire_minutes
+              value: "30"
+
+            - name: PUBLIC_HOST
+              value: "127.0.0.1"
+
+            - name: PUBLIC_HTTP_SCHEME
+              value: "http"
+
+            - name: PUBLIC_HTTP_PORT
+              value: "8080"
+
+            - name: PUBLIC_RTMP_PORT
+              value: "1935"
+
+            - name: LIVE_RTMP_URL_TEMPLATE
+              value: "rtmp://127.0.0.1:1935/live/{stream_key}"
+
+            - name: LIVE_HLS_URL_TEMPLATE
+              value: "http://127.0.0.1:8080/live/{stream_key}/master.m3u8"
+
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: uploads-pvc
