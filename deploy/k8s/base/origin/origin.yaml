@@ -4,28 +4,96 @@ metadata:
   name: origin-nginx-config
 data:
   nginx.conf: |
-    worker_processes auto;
+    worker_processes  1;
+
+    error_log  /var/log/nginx/error.log  info;
 
     events {
-      worker_connections 1024;
+      worker_connections  1024;
     }
 
     http {
       include       /etc/nginx/mime.types;
       default_type  application/octet-stream;
+
       sendfile        on;
+      tcp_nopush      on;
+      tcp_nodelay     on;
       keepalive_timeout  65;
 
       server {
         listen 80;
-        server_name _;
 
-        root /app/uploads;
-        client_max_body_size 1024m;
+        location /healthz {
+          return 200 "ok\n";
+          add_header Content-Type text/plain;
+        }
 
-        location / {
-          autoindex on;
-          try_files $uri $uri/ =404;
+        location ^~ /live/ {
+          alias /app/uploads/live/;
+
+          types {
+            application/vnd.apple.mpegurl  m3u8;
+            video/mp2t                     ts;
+            image/jpeg                     jpg jpeg;
+            image/png                      png;
+            image/webp                     webp;
+          }
+
+          add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+          add_header Pragma "no-cache" always;
+          add_header Expires "0" always;
+
+          add_header Access-Control-Allow-Origin "*" always;
+          add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+          add_header Access-Control-Allow-Headers "*" always;
+
+          if ($request_method = OPTIONS) {
+            return 204;
+          }
+
+          try_files $uri =404;
+        }
+
+        location ^~ /hls/ {
+          alias /app/uploads/hls/;
+
+          types {
+            application/vnd.apple.mpegurl  m3u8;
+            video/mp2t                     ts;
+          }
+
+          add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0" always;
+          add_header Access-Control-Allow-Origin "*" always;
+          add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+          add_header Access-Control-Allow-Headers "*" always;
+
+          if ($request_method = OPTIONS) {
+            return 204;
+          }
+
+          try_files $uri =404;
+        }
+
+        location ^~ /thumb/ {
+          alias /app/uploads/thumbnails/;
+
+          types {
+            image/jpeg jpg jpeg;
+            image/png  png;
+            image/webp webp;
+          }
+
+          add_header Cache-Control "public, max-age=3600" always;
+          add_header Access-Control-Allow-Origin "*" always;
+          add_header Access-Control-Allow-Methods "GET, HEAD, OPTIONS" always;
+          add_header Access-Control-Allow-Headers "*" always;
+
+          if ($request_method = OPTIONS) {
+            return 204;
+          }
+
+          try_files $uri =404;
         }
       }
     }
@@ -38,10 +106,12 @@ metadata:
 spec:
   selector:
     app: origin
+  type: NodePort
   ports:
-    - port: 80
+    - name: http
+      port: 80
       targetPort: 80
-  type: ClusterIP
+      nodePort: 30006
 
 ---
 apiVersion: apps/v1
@@ -64,6 +134,7 @@ spec:
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 80
+              name: http
           volumeMounts:
             - name: nginx-config
               mountPath: /etc/nginx/nginx.conf
@@ -71,6 +142,18 @@ spec:
             - name: uploads
               mountPath: /app/uploads
               readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
       volumes:
         - name: nginx-config
           configMap:

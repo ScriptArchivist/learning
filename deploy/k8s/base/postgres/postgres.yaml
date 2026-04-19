@@ -8,15 +8,17 @@ stringData:
   POSTGRESQL_USERNAME: postgres
   POSTGRESQL_PASSWORD: postgres
   POSTGRESQL_DATABASE: app
+  POSTGRESQL_REPLICATION_USER: repl_user
+  POSTGRESQL_REPLICATION_PASSWORD: repl_password
 
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: postgres
+  name: postgres-master
 spec:
   selector:
-    app: postgres
+    app: postgres-master
   ports:
     - name: postgres
       port: 5432
@@ -24,20 +26,62 @@ spec:
   type: ClusterIP
 
 ---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-replica
+spec:
+  selector:
+    app: postgres-replica
+  ports:
+    - name: postgres
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter-master
+spec:
+  selector:
+    app: postgres-exporter-master
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: 9187
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-exporter-replica
+spec:
+  selector:
+    app: postgres-exporter-replica
+  ports:
+    - name: metrics
+      port: 9187
+      targetPort: 9187
+  type: ClusterIP
+
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: postgres
+  name: postgres-master
 spec:
-  serviceName: postgres
+  serviceName: postgres-master
   replicas: 1
   selector:
     matchLabels:
-      app: postgres
+      app: postgres-master
   template:
     metadata:
       labels:
-        app: postgres
+        app: postgres-master
     spec:
       containers:
         - name: postgres
@@ -45,11 +89,41 @@ spec:
           ports:
             - containerPort: 5432
               name: postgres
-          envFrom:
-            - secretRef:
-                name: postgres-secret
+          env:
+            - name: POSTGRESQL_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_POSTGRES_PASSWORD
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_USERNAME
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_PASSWORD
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_DATABASE
+            - name: POSTGRESQL_REPLICATION_MODE
+              value: master
+            - name: POSTGRESQL_REPLICATION_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_REPLICATION_USER
+            - name: POSTGRESQL_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_REPLICATION_PASSWORD
           volumeMounts:
-            - name: postgres-data
+            - name: postgres-master-data
               mountPath: /bitnami/postgresql
           readinessProbe:
             exec:
@@ -73,10 +147,152 @@ spec:
             failureThreshold: 6
   volumeClaimTemplates:
     - metadata:
-        name: postgres-data
+        name: postgres-master-data
       spec:
         accessModes:
           - ReadWriteOnce
         resources:
           requests:
             storage: 5Gi
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres-replica
+spec:
+  serviceName: postgres-replica
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-replica
+  template:
+    metadata:
+      labels:
+        app: postgres-replica
+    spec:
+      containers:
+        - name: postgres
+          image: bitnami/postgresql:latest
+          ports:
+            - containerPort: 5432
+              name: postgres
+          env:
+            - name: POSTGRESQL_POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_POSTGRES_PASSWORD
+            - name: POSTGRESQL_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_USERNAME
+            - name: POSTGRESQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_PASSWORD
+            - name: POSTGRESQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_DATABASE
+            - name: POSTGRESQL_REPLICATION_MODE
+              value: slave
+            - name: POSTGRESQL_MASTER_HOST
+              value: postgres-master
+            - name: POSTGRESQL_MASTER_PORT_NUMBER
+              value: "5432"
+            - name: POSTGRESQL_REPLICATION_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_REPLICATION_USER
+            - name: POSTGRESQL_REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRESQL_REPLICATION_PASSWORD
+          volumeMounts:
+            - name: postgres-replica-data
+              mountPath: /bitnami/postgresql
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U postgres -d app
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
+          livenessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - pg_isready -U postgres -d app
+            initialDelaySeconds: 40
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 6
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-replica-data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 5Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter-master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-exporter-master
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter-master
+    spec:
+      containers:
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:latest
+          ports:
+            - containerPort: 9187
+              name: metrics
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://postgres:postgres@postgres-master:5432/app?sslmode=disable"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter-replica
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-exporter-replica
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter-replica
+    spec:
+      containers:
+        - name: postgres-exporter
+          image: prometheuscommunity/postgres-exporter:latest
+          ports:
+            - containerPort: 9187
+              name: metrics
+          env:
+            - name: DATA_SOURCE_NAME
+              value: "postgresql://postgres:postgres@postgres-replica:5432/app?sslmode=disable"

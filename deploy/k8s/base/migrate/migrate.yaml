@@ -18,13 +18,11 @@ spec:
             - /bin/sh
             - -c
             - |
-              echo "Waiting for postgres..." &&
-              sleep 5 &&
+              echo "Waiting for postgres master..." &&
+              sleep 10 &&
               alembic upgrade head
-
           env:
             - name: database_write_url
-              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
+              value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
             - name: database_read_url
-              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
+              value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app

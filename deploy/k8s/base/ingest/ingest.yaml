@@ -4,14 +4,11 @@ metadata:
   name: ingest-nginx-config
 data:
   nginx.conf: |
-    worker_processes auto;
+    worker_processes  1;
 
-    events {
-      worker_connections 1024;
-    }
+    error_log /var/log/nginx/error.log info;
 
-    rtmp_auto_push on;
-    rtmp_auto_push_reconnect 1s;
+    events { worker_connections  1024; }
 
     rtmp {
       server {
@@ -22,30 +19,16 @@ data:
           live on;
           record off;
 
-          exec_publish /opt/scripts/on_publish.sh $name;
+          exec_publish      /opt/scripts/on_publish.sh $name;
           exec_publish_done /opt/scripts/on_publish_done.sh $name;
         }
       }
     }
 
     http {
-      include       /etc/nginx/mime.types;
-      default_type  application/octet-stream;
-      sendfile        on;
-      keepalive_timeout  65;
-
       server {
-        listen 8080;
-        server_name _;
-
-        location /stat {
-          rtmp_stat all;
-          rtmp_stat_stylesheet stat.xsl;
-        }
-
-        location /stat.xsl {
-          root /usr/local/nginx/html;
-        }
+        listen 8081;
+        location /healthz { return 200 "ok\n"; }
       }
     }
 
@@ -58,29 +41,113 @@ data:
   on_publish.sh: |
     #!/bin/sh
     set -eu
-    exec /opt/transcode.sh "$1"
+
+    STREAM_KEY="${1:-}"
+
+    echo "$(date) on_publish stream_key=${STREAM_KEY:-<empty>}" >> /tmp/ingest-hooks.log
+
+    [ -n "$STREAM_KEY" ] || {
+      echo "$(date) on_publish ERROR: empty stream key" >> /tmp/ingest-hooks.log
+      exit 1
+    }
+
+    exec /opt/transcode.sh "$STREAM_KEY" >> /tmp/transcode.log 2>&1
 
   on_publish_done.sh: |
     #!/bin/sh
     set -eu
+    echo "$(date) on_publish_done stream_key=${1:-<empty>}" >> /tmp/ingest-hooks.log
     exit 0
 
   transcode.sh: |
     #!/bin/sh
     set -eu
 
-    STREAM_KEY="${1:-unknown}"
+    STREAM_KEY="${1:-}"
+    [ -n "${STREAM_KEY:-}" ] || { echo "transcode: empty stream key" >&2; exit 1; }
 
-    mkdir -p "/app/uploads/live/${STREAM_KEY}"
+    export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    umask 000
 
-    ffmpeg -i "rtmp://127.0.0.1:1935/live/${STREAM_KEY}" \
-      -c:v libx264 \
-      -c:a aac \
-      -f hls \
-      -hls_time 2 \
-      -hls_list_size 6 \
-      -hls_flags delete_segments+append_list \
-      "/app/uploads/live/${STREAM_KEY}/master.m3u8"
+    RTMP_HOST="${RTMP_HOST:-127.0.0.1}"
+    RTMP_PORT="${RTMP_PORT:-1935}"
+
+    INPUT_URL="rtmp://${RTMP_HOST}:${RTMP_PORT}/live/${STREAM_KEY}"
+    OUT_DIR="/app/uploads/live/${STREAM_KEY}"
+    MASTER="${OUT_DIR}/master.m3u8"
+
+    echo "transcode: STREAM_KEY=${STREAM_KEY}"
+    echo "transcode: INPUT_URL=${INPUT_URL}"
+    echo "transcode: OUT_DIR=${OUT_DIR}"
+    echo "transcode: MASTER=${MASTER}"
+
+    mkdir -p "${OUT_DIR}"
+    rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts 2>/dev/null || true
+
+    FFMPEG_PID=""
+
+    stop_ffmpeg() {
+      if [ -n "${FFMPEG_PID:-}" ]; then
+        kill "${FFMPEG_PID}" 2>/dev/null || true
+        sleep 1
+        kill -0 "${FFMPEG_PID}" 2>/dev/null && kill -9 "${FFMPEG_PID}" 2>/dev/null || true
+      fi
+    }
+
+    on_term() {
+      stop_ffmpeg
+      exit 0
+    }
+
+    trap on_term INT TERM
+
+    ATTEMPT=0
+    MAX_ATTEMPTS="${MAX_ATTEMPTS:-20}"
+
+    while [ "$ATTEMPT" -lt "$MAX_ATTEMPTS" ]; do
+      ATTEMPT=$((ATTEMPT + 1))
+      echo "transcode: attempt=${ATTEMPT} input=${INPUT_URL} output=${MASTER}" >&2
+
+      /usr/local/bin/ffmpeg -hide_banner -loglevel info -y \
+        -rtmp_live live \
+        -fflags +genpts \
+        -use_wallclock_as_timestamps 1 \
+        -i "${INPUT_URL}" \
+        -map 0:v:0 -map 0:a:0? \
+        -c:v libx264 \
+        -preset veryfast \
+        -tune zerolatency \
+        -pix_fmt yuv420p \
+        -g 48 \
+        -keyint_min 48 \
+        -sc_threshold 0 \
+        -c:a aac \
+        -ar 48000 \
+        -ac 2 \
+        -f hls \
+        -hls_time 2 \
+        -hls_list_size 6 \
+        -hls_flags delete_segments+append_list+independent_segments \
+        -hls_segment_type mpegts \
+        -hls_segment_filename "${OUT_DIR}/seg_%05d.ts" \
+        "${MASTER}" &
+
+      FFMPEG_PID="$!"
+      wait "${FFMPEG_PID}"
+      RC=$?
+      FFMPEG_PID=""
+
+      if [ -f "${MASTER}" ]; then
+        echo "transcode: master playlist created for ${STREAM_KEY}" >&2
+        exit 0
+      fi
+
+      echo "transcode: ffmpeg exited rc=${RC}, retrying..." >&2
+      sleep 1
+    done
+
+    echo "transcode: failed to create HLS for ${STREAM_KEY} after ${MAX_ATTEMPTS} attempts" >&2
+    exit 1
 
 ---
 apiVersion: v1
@@ -90,14 +157,15 @@ metadata:
 spec:
   selector:
     app: ingest
+  type: NodePort
   ports:
     - name: rtmp
       port: 1935
       targetPort: 1935
-    - name: http
-      port: 8080
-      targetPort: 8080
-  type: ClusterIP
+      nodePort: 31935
+    - name: health
+      port: 8081
+      targetPort: 8081
 
 ---
 apiVersion: apps/v1
@@ -114,6 +182,22 @@ spec:
       labels:
         app: ingest
     spec:
+      initContainers:
+        - name: fix-uploads-permissions
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /app/uploads /app/uploads/live /app/uploads/hls /app/uploads/original /app/uploads/thumbs
+              chmod 777 /app/uploads || true
+              chmod 777 /app/uploads/live || true
+              chmod 777 /app/uploads/hls || true
+              chmod 777 /app/uploads/original || true
+              chmod 777 /app/uploads/thumbs || true
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
       containers:
         - name: ingest
           image: learning-app-ingest:local
@@ -121,8 +205,8 @@ spec:
           ports:
             - containerPort: 1935
               name: rtmp
-            - containerPort: 8080
-              name: http
+            - containerPort: 8081
+              name: health
           env:
             - name: RTMP_HOST
               value: "127.0.0.1"
@@ -130,6 +214,19 @@ spec:
               value: "1935"
             - name: MAX_ATTEMPTS
               value: "20"
+          lifecycle:
+            postStart:
+              exec:
+                command:
+                  - /bin/sh
+                  - -c
+                  - |
+                    mkdir -p /app/uploads /app/uploads/live /app/uploads/hls /app/uploads/original /app/uploads/thumbs
+                    chmod 777 /app/uploads || true
+                    chmod 777 /app/uploads/live || true
+                    chmod 777 /app/uploads/hls || true
+                    chmod 777 /app/uploads/original || true
+                    chmod 777 /app/uploads/thumbs || true
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
@@ -145,6 +242,18 @@ spec:
             - name: scripts
               mountPath: /opt/transcode.sh
               subPath: transcode.sh
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 20
+            periodSeconds: 20
       volumes:
         - name: uploads
           persistentVolumeClaim:

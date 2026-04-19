@@ -1,3 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-events-consumer-metrics
+spec:
+  selector:
+    app: video-events-consumer
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: 9100
+  type: ClusterIP
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,28 +39,20 @@ spec:
           env:
             - name: SERVICE_NAME
               value: video-events-consumer
-
             - name: METRICS_PORT
               value: "9100"
-
             - name: database_write_url
-              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
+              value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
             - name: database_read_url
-              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
+              value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
             - name: RABBIT_URL
-              value: amqp://guest:guest@rabbitmq:5672/
-
+              value: amqp://app:app@rabbitmq:5672/
             - name: RABBIT_EVENTS_EXCHANGE
               value: video.events.x
-
             - name: RABBIT_EVENTS_QUEUE
               value: events.q
-
             - name: RABBIT_EVENTS_ROUTING_KEY
               value: video.events
-
           ports:
             - containerPort: 9100
               name: metrics

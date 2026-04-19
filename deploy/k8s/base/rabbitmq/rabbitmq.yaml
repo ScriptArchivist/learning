@@ -4,8 +4,17 @@ metadata:
   name: rabbitmq-secret
 type: Opaque
 stringData:
-  RABBITMQ_DEFAULT_USER: guest
-  RABBITMQ_DEFAULT_PASS: guest
+  RABBITMQ_DEFAULT_USER: app
+  RABBITMQ_DEFAULT_PASS: app
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rabbitmq-plugins
+data:
+  enabled_plugins: |
+    [rabbitmq_management,rabbitmq_prometheus].
 
 ---
 apiVersion: v1
@@ -46,10 +55,6 @@ spec:
       containers:
         - name: rabbitmq
           image: rabbitmq:3-management
-          command:
-            - /bin/sh
-            - -c
-            - rabbitmq-plugins enable --offline rabbitmq_prometheus && rabbitmq-server
           ports:
             - containerPort: 5672
               name: amqp
@@ -60,9 +65,15 @@ spec:
           envFrom:
             - secretRef:
                 name: rabbitmq-secret
+          env:
+            - name: RABBITMQ_ENABLED_PLUGINS_FILE
+              value: /etc/rabbitmq/enabled_plugins
           volumeMounts:
             - name: rabbitmq-data
               mountPath: /var/lib/rabbitmq
+            - name: rabbitmq-plugins
+              mountPath: /etc/rabbitmq/enabled_plugins
+              subPath: enabled_plugins
           readinessProbe:
             tcpSocket:
               port: 5672
@@ -77,6 +88,10 @@ spec:
             periodSeconds: 20
             timeoutSeconds: 5
             failureThreshold: 6
+      volumes:
+        - name: rabbitmq-plugins
+          configMap:
+            name: rabbitmq-plugins
   volumeClaimTemplates:
     - metadata:
         name: rabbitmq-data

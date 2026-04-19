@@ -23,15 +23,11 @@ spec:
           env:
             - name: SERVICE_NAME
               value: dlq-replayer
-
             - name: database_write_url
-              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
+              value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
             - name: database_read_url
-              value: postgresql+psycopg://postgres:postgres@postgres:5432/app
-
+              value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
             - name: DLQ_REPLAY_LIMIT
               value: "200"
-
             - name: DLQ_RESET_ATTEMPTS
               value: "1"

@@ -5,9 +5,50 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: frontend.local
-      http:
+    - http:
         paths:
+          - path: /live
+            pathType: Prefix
+            backend:
+              service:
+                name: origin
+                port:
+                  number: 80
+          - path: /hls
+            pathType: Prefix
+            backend:
+              service:
+                name: origin
+                port:
+                  number: 80
+          - path: /thumb
+            pathType: Prefix
+            backend:
+              service:
+                name: origin
+                port:
+                  number: 80
+          - path: /docs
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8000
+          - path: /openapi.json
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8000
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8000
           - path: /
             pathType: Prefix
             backend:
@@ -15,14 +56,3 @@ spec:
                 name: frontend
                 port:
                   number: 3001
-
-    - host: api.local
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: web
-                port:
-                  number: 8000
