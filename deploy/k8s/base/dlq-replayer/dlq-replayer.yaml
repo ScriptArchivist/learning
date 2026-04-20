@@ -10,6 +10,19 @@ spec:
         app: dlq-replayer
     spec:
       restartPolicy: Never
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.36
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for postgres-master:5432..."
+              until nc -z postgres-master 5432; do
+                echo "postgres-master is unavailable, sleeping..."
+                sleep 2
+              done
+              echo "postgres-master is ready"
       containers:
         - name: dlq-replayer
           image: learning-app-backend:local

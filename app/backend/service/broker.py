@@ -351,16 +351,26 @@ def consume_forever(handler: Callable[[Dict[str, Any], int], None]) -> None:
                 except Exception as exc:
                     inc_broker_consumer_error(get_service_name("processing-worker"), QUEUE_MAIN, type(exc).__name__)
                     inc_broker_retry(get_service_name("processing-worker"), QUEUE_MAIN)
+
+                    # ⛔ ОСТАВЛЯЕМ traceback только для handler-ошибок
                     logger.exception("handler failed, reject to retry (retry_count=%s)", retry_count)
+
                     channel.basic_reject(delivery_tag=method.delivery_tag, requeue=False)
 
             ch.basic_consume(queue=QUEUE_MAIN, on_message_callback=on_message)
             logger.info("consumer started queue=%s retry=%s dlq=%s", QUEUE_MAIN, QUEUE_RETRY, QUEUE_DLQ)
+
             ch.start_consuming()
 
+        except pika.exceptions.AMQPConnectionError as e:
+            # ✅ ВАЖНО: без traceback
+            logger.warning("rabbitmq unavailable, retrying in 3s: %s", e)
+            time.sleep(3)
+
         except Exception as e:
-            logger.exception("consumer crashed: %r", e)
-            time.sleep(2)
+            # ⚠️ реальные неожиданные ошибки
+            logger.exception("consumer crashed (unexpected error): %r", e)
+            time.sleep(3)
 
         finally:
             if conn and conn.is_open:
