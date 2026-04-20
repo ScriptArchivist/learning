@@ -1,0 +1,127 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-overview
+data:
+  video-platform-overview.json: |
+    {
+      "title": "Video Platform K8s Overview",
+      "uid": "video-platform-overview",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "10s",
+      "panels": [
+        {
+          "type": "stat",
+          "title": "web",
+          "gridPos": { "x": 0, "y": 0, "w": 4, "h": 3 },
+          "targets": [
+            {
+              "expr": "up{job=\"web\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "video-api",
+          "gridPos": { "x": 4, "y": 0, "w": 4, "h": 3 },
+          "targets": [
+            {
+              "expr": "up{job=\"video-api\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "upload-service",
+          "gridPos": { "x": 8, "y": 0, "w": 4, "h": 3 },
+          "targets": [
+            {
+              "expr": "up{job=\"upload-service\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "processing-worker",
+          "gridPos": { "x": 12, "y": 0, "w": 4, "h": 3 },
+          "targets": [
+            {
+              "expr": "up{job=\"processing-worker\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "outbox-publisher",
+          "gridPos": { "x": 16, "y": 0, "w": 4, "h": 3 },
+          "targets": [
+            {
+              "expr": "up{job=\"outbox-publisher\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "stat",
+          "title": "video-events-consumer",
+          "gridPos": { "x": 20, "y": 0, "w": 4, "h": 3 },
+          "targets": [
+            {
+              "expr": "up{job=\"video-events-consumer\"}",
+              "refId": "A"
+            }
+          ]
+        },
+
+        {
+          "type": "timeseries",
+          "title": "CPU Usage (Node)",
+          "gridPos": { "x": 0, "y": 3, "w": 12, "h": 5 },
+          "targets": [
+            {
+              "expr": "rate(container_cpu_usage_seconds_total[1m])",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory Usage (Node)",
+          "gridPos": { "x": 12, "y": 3, "w": 12, "h": 5 },
+          "targets": [
+            {
+              "expr": "container_memory_usage_bytes",
+              "refId": "A"
+            }
+          ]
+        },
+
+        {
+          "type": "timeseries",
+          "title": "Network Receive",
+          "gridPos": { "x": 0, "y": 8, "w": 12, "h": 5 },
+          "targets": [
+            {
+              "expr": "rate(container_network_receive_bytes_total[1m])",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Network Transmit",
+          "gridPos": { "x": 12, "y": 8, "w": 12, "h": 5 },
+          "targets": [
+            {
+              "expr": "rate(container_network_transmit_bytes_total[1m])",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }

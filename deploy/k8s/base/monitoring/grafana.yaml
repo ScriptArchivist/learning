@@ -1,0 +1,1222 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  labels:
+    app: grafana
+data:
+  datasources.yml: "apiVersion: 1\ndatasources:\n- name: Prometheus\n  uid: prometheus\n\
+    \  type: prometheus\n  access: proxy\n  url: http://prometheus:9090\n  isDefault:\
+    \ true\n  editable: true\n- name: Loki\n  uid: loki\n  type: loki\n  access: proxy\n\
+    \  url: http://loki:3100\n  editable: true\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  labels:
+    app: grafana
+data:
+  dashboards.yml: "apiVersion: 1\nproviders:\n- name: Video Platform K8s\n  orgId:\
+    \ 1\n  folder: Video Platform K8s\n  type: file\n  disableDeletion: false\n  editable:\
+    \ true\n  updateIntervalSeconds: 30\n  options:\n    path: /etc/grafana/provisioning/dashboards/json\n"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-overview
+  labels:
+    app: grafana
+    grafana_dashboard: '1'
+data:
+  video-platform-k8s-overview.json: "{\n  \"title\": \"Video Platform K8s Overview\"\
+    ,\n  \"uid\": \"video-platform-k8s-overview\",\n  \"schemaVersion\": 39,\n  \"\
+    version\": 1,\n  \"refresh\": \"10s\",\n  \"panels\": [\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 1,\n      \"title\": \"Firing Alerts\",\n      \"type\":\
+    \ \"stat\",\n      \"gridPos\": {\n        \"h\": 3,\n        \"w\": 4,\n    \
+    \    \"x\": 0,\n        \"y\": 0\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"count(ALERTS{alertstate=\\\"firing\\\"}) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"background\",\n        \"graphMode\": \"area\",\n     \
+    \   \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n \
+    \       \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0,\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"green\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"orange\",\n \
+    \               \"value\": 1\n              },\n              {\n            \
+    \    \"color\": \"red\",\n                \"value\": 3\n              }\n    \
+    \        ]\n          }\n        },\n        \"overrides\": []\n      }\n    },\n\
+    \    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
+    uid\": \"prometheus\"\n      },\n      \"id\": 2,\n      \"title\": \"Critical\
+    \ UP\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 3,\n\
+    \        \"w\": 4,\n        \"x\": 4,\n        \"y\": 0\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"sum(max by (job) (up{job=~\\\"web|frontend|identity-service|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq\\\
+    \"}))\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\":\
+    \ {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"area\",\n\
+    \        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0,\n          \"max\": 10,\n\
+    \          \"thresholds\": {\n            \"mode\": \"absolute\",\n          \
+    \  \"steps\": [\n              {\n                \"color\": \"red\",\n      \
+    \          \"value\": null\n              },\n              {\n              \
+    \  \"color\": \"orange\",\n                \"value\": 8\n              },\n  \
+    \            {\n                \"color\": \"green\",\n                \"value\"\
+    : 10\n              }\n            ]\n          }\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 3,\n      \"title\"\
+    : \"API RPS\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 3,\n        \"w\": 4,\n        \"x\": 8,\n        \"y\": 0\n      },\n     \
+    \ \"targets\": [\n        {\n          \"expr\": \"sum(rate(app_http_requests_total{service=~\\\
+    \"web|upload-service|video-api|live-api|identity-service\\\"}[5m])) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"value\",\n        \"graphMode\": \"area\",\n        \"\
+    justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n       \
+    \ \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\n\
+    \          ],\n          \"fields\": \"\",\n          \"values\": false\n    \
+    \    },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"unit\": \"reqps\",\n          \"decimals\"\
+    : 2\n        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 4,\n      \"title\": \"API 5xx Ratio\",\n      \"type\":\
+    \ \"stat\",\n      \"gridPos\": {\n        \"h\": 3,\n        \"w\": 4,\n    \
+    \    \"x\": 12,\n        \"y\": 0\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"(sum(rate(app_http_requests_total{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
+    \",status=~\\\"5..\\\"}[5m])) / clamp_min(sum(rate(app_http_requests_total{service=~\\\
+    \"web|upload-service|video-api|live-api|identity-service\\\"}[5m])), 0.001)) or\
+    \ vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"area\",\n\
+    \        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"unit\": \"percentunit\",\n         \
+    \ \"decimals\": 4,\n          \"thresholds\": {\n            \"mode\": \"absolute\"\
+    ,\n            \"steps\": [\n              {\n                \"color\": \"green\"\
+    ,\n                \"value\": null\n              },\n              {\n      \
+    \          \"color\": \"orange\",\n                \"value\": 0.01\n         \
+    \     },\n              {\n                \"color\": \"red\",\n             \
+    \   \"value\": 0.05\n              }\n            ]\n          }\n        },\n\
+    \        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n\
+    \        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 5,\n      \"title\": \"Queue Ready\",\n      \"type\": \"stat\"\
+    ,\n      \"gridPos\": {\n        \"h\": 3,\n        \"w\": 4,\n        \"x\":\
+    \ 16,\n        \"y\": 0\n      },\n      \"targets\": [\n        {\n         \
+    \ \"expr\": \"sum(rabbitmq_queue_messages_ready) or vector(0)\",\n          \"\
+    refId\": \"A\"\n        }\n      ],\n      \"options\": {\n        \"colorMode\"\
+    : \"background\",\n        \"graphMode\": \"area\",\n        \"justifyMode\":\
+    \ \"center\",\n        \"orientation\": \"horizontal\",\n        \"reduceOptions\"\
+    : {\n          \"calcs\": [\n            \"lastNotNull\"\n          ],\n     \
+    \     \"fields\": \"\",\n          \"values\": false\n        },\n        \"textMode\"\
+    : \"value_and_name\"\n      },\n      \"fieldConfig\": {\n        \"defaults\"\
+    : {\n          \"decimals\": 0,\n          \"thresholds\": {\n            \"mode\"\
+    : \"absolute\",\n            \"steps\": [\n              {\n                \"\
+    color\": \"green\",\n                \"value\": null\n              },\n     \
+    \         {\n                \"color\": \"orange\",\n                \"value\"\
+    : 10\n              },\n              {\n                \"color\": \"red\",\n\
+    \                \"value\": 50\n              }\n            ]\n          }\n\
+    \        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 6,\n      \"title\": \"Outbox Failed\",\n      \"type\":\
+    \ \"stat\",\n      \"gridPos\": {\n        \"h\": 3,\n        \"w\": 4,\n    \
+    \    \"x\": 20,\n        \"y\": 0\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"sum(app_outbox_failed{service=\\\"outbox-publisher\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    area\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0,\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"green\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"orange\",\n \
+    \               \"value\": 1\n              },\n              {\n            \
+    \    \"color\": \"red\",\n                \"value\": 5\n              }\n    \
+    \        ]\n          }\n        },\n        \"overrides\": []\n      }\n    },\n\
+    \    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
+    uid\": \"prometheus\"\n      },\n      \"id\": 100,\n      \"title\": \"web\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 3,\n        \"x\": 0,\n        \"y\": 3\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"web\\\"}) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
+    \   \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n \
+    \       \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 101,\n      \"title\"\
+    : \"frontend\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 3,\n        \"x\": 3,\n        \"y\": 3\n      },\n     \
+    \ \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"frontend\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 102,\n      \"title\"\
+    : \"identity-service\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n   \
+    \     \"h\": 2,\n        \"w\": 3,\n        \"x\": 6,\n        \"y\": 3\n    \
+    \  },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"\
+    identity-service\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n\
+    \      ],\n      \"options\": {\n        \"colorMode\": \"background\",\n    \
+    \    \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"\
+    orientation\": \"horizontal\",\n        \"reduceOptions\": {\n          \"calcs\"\
+    : [\n            \"lastNotNull\"\n          ],\n          \"fields\": \"\",\n\
+    \          \"values\": false\n        },\n        \"textMode\": \"value\"\n  \
+    \    },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 103,\n      \"title\": \"upload-service\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 3,\n        \"x\": 9,\n        \"y\": 3\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"upload-service\\\"}) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
+    \   \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n \
+    \       \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 104,\n      \"title\"\
+    : \"video-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"\
+    h\": 2,\n        \"w\": 3,\n        \"x\": 12,\n        \"y\": 3\n      },\n \
+    \     \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"video-api\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 105,\n      \"title\"\
+    : \"live-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 3,\n        \"x\": 15,\n        \"y\": 3\n      },\n    \
+    \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"live-api\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 106,\n      \"title\"\
+    : \"processing-worker\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n  \
+    \      \"h\": 2,\n        \"w\": 3,\n        \"x\": 18,\n        \"y\": 3\n  \
+    \    },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"\
+    processing-worker\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n\
+    \      ],\n      \"options\": {\n        \"colorMode\": \"background\",\n    \
+    \    \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"\
+    orientation\": \"horizontal\",\n        \"reduceOptions\": {\n          \"calcs\"\
+    : [\n            \"lastNotNull\"\n          ],\n          \"fields\": \"\",\n\
+    \          \"values\": false\n        },\n        \"textMode\": \"value\"\n  \
+    \    },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 107,\n      \"title\": \"outbox-publisher\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 3,\n        \"x\": 21,\n        \"y\": 3\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"outbox-publisher\\\"}) or\
+    \ vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n\
+    \        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 108,\n      \"title\"\
+    : \"video-events-consumer\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n\
+    \        \"h\": 2,\n        \"w\": 3,\n        \"x\": 0,\n        \"y\": 5\n \
+    \     },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
+    \"video-events-consumer\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n  \
+    \      }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
+    ,\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n  \
+    \      \"orientation\": \"horizontal\",\n        \"reduceOptions\": {\n      \
+    \    \"calcs\": [\n            \"lastNotNull\"\n          ],\n          \"fields\"\
+    : \"\",\n          \"values\": false\n        },\n        \"textMode\": \"value\"\
+    \n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 109,\n      \"title\": \"live-cleaner\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 3,\n        \"x\": 3,\n        \"y\": 5\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"live-cleaner\\\"}) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
+    \   \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n \
+    \       \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 110,\n      \"title\"\
+    : \"rabbitmq\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 3,\n        \"x\": 6,\n        \"y\": 5\n      },\n     \
+    \ \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"rabbitmq\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 111,\n      \"title\"\
+    : \"prometheus\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"\
+    h\": 2,\n        \"w\": 3,\n        \"x\": 9,\n        \"y\": 5\n      },\n  \
+    \    \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"prometheus\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 112,\n      \"title\"\
+    : \"grafana\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 3,\n        \"x\": 12,\n        \"y\": 5\n      },\n    \
+    \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"grafana\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 113,\n      \"title\"\
+    : \"loki\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n\
+    \        \"w\": 3,\n        \"x\": 15,\n        \"y\": 5\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"loki\\\"}) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
+    \   \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n \
+    \       \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 114,\n      \"title\"\
+    : \"promtail\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 3,\n        \"x\": 18,\n        \"y\": 5\n      },\n    \
+    \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"promtail\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 115,\n      \"title\"\
+    : \"node-exporter\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n      \
+    \  \"h\": 2,\n        \"w\": 3,\n        \"x\": 21,\n        \"y\": 5\n      },\n\
+    \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"node-exporter\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 116,\n      \"title\"\
+    : \"cadvisor\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 3,\n        \"x\": 0,\n        \"y\": 7\n      },\n     \
+    \ \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"cadvisor\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 117,\n      \"title\"\
+    : \"postgres-exporter-master\",\n      \"type\": \"stat\",\n      \"gridPos\"\
+    : {\n        \"h\": 2,\n        \"w\": 3,\n        \"x\": 3,\n        \"y\": 7\n\
+    \      },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
+    \"postgres-exporter-master\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n\
+    \        }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
+    ,\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n  \
+    \      \"orientation\": \"horizontal\",\n        \"reduceOptions\": {\n      \
+    \    \"calcs\": [\n            \"lastNotNull\"\n          ],\n          \"fields\"\
+    : \"\",\n          \"values\": false\n        },\n        \"textMode\": \"value\"\
+    \n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 118,\n      \"title\": \"postgres-exporter-replica\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 3,\n        \"x\": 6,\n        \"y\": 7\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"postgres-exporter-replica\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 119,\n      \"title\"\
+    : \"alertmanager\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n       \
+    \ \"h\": 2,\n        \"w\": 3,\n        \"x\": 9,\n        \"y\": 7\n      },\n\
+    \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"alertmanager\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 30,\n      \"title\"\
+    : \"Node CPU %\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n   \
+    \     \"h\": 5,\n        \"w\": 8,\n        \"x\": 0,\n        \"y\": 9\n    \
+    \  },\n      \"targets\": [\n        {\n          \"expr\": \"100 - (avg by(instance)\
+    \ (irate(node_cpu_seconds_total{mode=\\\"idle\\\"}[5m])) * 100)\",\n         \
+    \ \"legendFormat\": \"{{instance}}\",\n          \"refId\": \"A\"\n        }\n\
+    \      ],\n      \"options\": {\n        \"legend\": {\n          \"displayMode\"\
+    : \"list\",\n          \"placement\": \"bottom\"\n        },\n        \"tooltip\"\
+    : {\n          \"mode\": \"multi\"\n        }\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"unit\": \"percent\"\n        },\n  \
+    \      \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n  \
+    \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 31,\n      \"title\": \"Node Memory %\",\n      \"type\": \"timeseries\"\
+    ,\n      \"gridPos\": {\n        \"h\": 5,\n        \"w\": 8,\n        \"x\":\
+    \ 8,\n        \"y\": 9\n      },\n      \"targets\": [\n        {\n          \"\
+    expr\": \"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))\
+    \ * 100\",\n          \"legendFormat\": \"{{instance}}\",\n          \"refId\"\
+    : \"A\"\n        }\n      ],\n      \"options\": {\n        \"legend\": {\n  \
+    \        \"displayMode\": \"list\",\n          \"placement\": \"bottom\"\n   \
+    \     },\n        \"tooltip\": {\n          \"mode\": \"multi\"\n        }\n \
+    \     },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"unit\"\
+    : \"percent\"\n        },\n        \"overrides\": []\n      }\n    },\n    {\n\
+    \      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\":\
+    \ \"prometheus\"\n      },\n      \"id\": 32,\n      \"title\": \"Disk Usage %\"\
+    ,\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n\
+    \        \"w\": 8,\n        \"x\": 16,\n        \"y\": 9\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"(1 - (node_filesystem_avail_bytes{fstype!~\\\
+    \"tmpfs|overlay\\\"} / node_filesystem_size_bytes{fstype!~\\\"tmpfs|overlay\\\"\
+    })) * 100\",\n          \"legendFormat\": \"{{instance}} {{mountpoint}}\",\n \
+    \         \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n      \
+    \  \"legend\": {\n          \"displayMode\": \"list\",\n          \"placement\"\
+    : \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\
+    \n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n   \
+    \       \"unit\": \"percent\"\n        },\n        \"overrides\": []\n      }\n\
+    \    },\n    {\n      \"datasource\": {\n        \"type\": \"loki\",\n       \
+    \ \"uid\": \"loki\"\n      },\n      \"id\": 40,\n      \"title\": \"Platform\
+    \ Logs\",\n      \"type\": \"logs\",\n      \"gridPos\": {\n        \"h\": 5,\n\
+    \        \"w\": 12,\n        \"x\": 0,\n        \"y\": 14\n      },\n      \"\
+    targets\": [\n        {\n          \"expr\": \"{namespace=\\\"default\\\", app=~\\\
+    \"web|frontend|identity-service|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|live-cleaner|rabbitmq|prometheus|grafana|loki|promtail\\\
+    \"}\",\n          \"queryType\": \"range\",\n          \"refId\": \"A\"\n    \
+    \    }\n      ],\n      \"options\": {\n        \"dedupStrategy\": \"none\",\n\
+    \        \"enableLogDetails\": true,\n        \"prettifyLogMessage\": true,\n\
+    \        \"showLabels\": true,\n        \"sortOrder\": \"Descending\"\n      }\n\
+    \    }\n  ],\n  \"annotations\": {\n    \"list\": [\n      {\n        \"builtIn\"\
+    : 1,\n        \"datasource\": {\n          \"type\": \"grafana\",\n          \"\
+    uid\": \"-- Grafana --\"\n        },\n        \"enable\": true,\n        \"hide\"\
+    : true,\n        \"iconColor\": \"rgba(0, 211, 255, 1)\",\n        \"name\": \"\
+    Annotations & Alerts\",\n        \"type\": \"dashboard\"\n      }\n    ]\n  }\n\
+    }"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-api
+  labels:
+    app: grafana
+    grafana_dashboard: '1'
+data:
+  video-platform-k8s-api.json: "{\n  \"title\": \"Video Platform K8s API\",\n  \"\
+    uid\": \"video-platform-k8s-api\",\n  \"schemaVersion\": 39,\n  \"version\": 1,\n\
+    \  \"refresh\": \"10s\",\n  \"panels\": [\n    {\n      \"datasource\": {\n  \
+    \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 1,\n      \"title\": \"web\",\n      \"type\": \"stat\",\n    \
+    \  \"gridPos\": {\n        \"h\": 2,\n        \"w\": 4,\n        \"x\": 0,\n \
+    \       \"y\": 0\n      },\n      \"targets\": [\n        {\n          \"expr\"\
+    : \"max(up{job=\\\"web\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n   \
+    \     }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
+    ,\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n  \
+    \      \"orientation\": \"horizontal\",\n        \"reduceOptions\": {\n      \
+    \    \"calcs\": [\n            \"lastNotNull\"\n          ],\n          \"fields\"\
+    : \"\",\n          \"values\": false\n        },\n        \"textMode\": \"value\"\
+    \n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 2,\n      \"title\": \"identity-service\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 4,\n        \"x\": 4,\n        \"y\": 0\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"identity-service\\\"}) or\
+    \ vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n\
+    \        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 3,\n      \"title\"\
+    : \"upload-service\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n     \
+    \   \"h\": 2,\n        \"w\": 4,\n        \"x\": 8,\n        \"y\": 0\n      },\n\
+    \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"upload-service\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 4,\n      \"title\"\
+    : \"video-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"\
+    h\": 2,\n        \"w\": 4,\n        \"x\": 12,\n        \"y\": 0\n      },\n \
+    \     \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"video-api\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 5,\n      \"title\"\
+    : \"live-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 4,\n        \"x\": 16,\n        \"y\": 0\n      },\n    \
+    \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"live-api\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 10,\n      \"title\"\
+    : \"API Request Rate by Service\",\n      \"type\": \"timeseries\",\n      \"\
+    gridPos\": {\n        \"h\": 5,\n        \"w\": 8,\n        \"x\": 0,\n      \
+    \  \"y\": 2\n      },\n      \"targets\": [\n        {\n          \"expr\": \"\
+    sum by (service) (rate(app_http_requests_total{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
+    \"}[5m])) or vector(0)\",\n          \"legendFormat\": \"{{service}}\",\n    \
+    \      \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n        \"\
+    legend\": {\n          \"displayMode\": \"list\",\n          \"placement\": \"\
+    bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\n\
+    \        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {},\n  \
+    \      \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n  \
+    \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 11,\n      \"title\": \"API Latency P95 by Service + Path\",\n\
+    \      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n  \
+    \      \"w\": 8,\n        \"x\": 8,\n        \"y\": 2\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"histogram_quantile(0.95, sum by (service,\
+    \ path, le) (rate(app_http_request_duration_seconds_bucket{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
+    \"}[5m]))) or vector(0)\",\n          \"legendFormat\": \"{{service}} {{path}}\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"legend\": {\n          \"displayMode\": \"list\",\n          \"placement\"\
+    : \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\
+    \n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {},\n \
+    \       \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n \
+    \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 12,\n      \"title\": \"API 5xx Ratio by Service\",\n      \"type\"\
+    : \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n        \"w\": 8,\n\
+    \        \"x\": 16,\n        \"y\": 2\n      },\n      \"targets\": [\n      \
+    \  {\n          \"expr\": \"((sum by (service) (rate(app_http_requests_total{service=~\\\
+    \"web|upload-service|video-api|live-api|identity-service\\\",status=~\\\"5..\\\
+    \"}[5m]))) / clamp_min(sum by (service) (rate(app_http_requests_total{service=~\\\
+    \"web|upload-service|video-api|live-api|identity-service\\\"}[5m])), 0.001)) or\
+    \ vector(0)\",\n          \"legendFormat\": \"{{service}}\",\n          \"refId\"\
+    : \"A\"\n        }\n      ],\n      \"options\": {\n        \"legend\": {\n  \
+    \        \"displayMode\": \"list\",\n          \"placement\": \"bottom\"\n   \
+    \     },\n        \"tooltip\": {\n          \"mode\": \"multi\"\n        }\n \
+    \     },\n      \"fieldConfig\": {\n        \"defaults\": {},\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 13,\n      \"title\"\
+    : \"Unhandled Exceptions / 10m\",\n      \"type\": \"timeseries\",\n      \"gridPos\"\
+    : {\n        \"h\": 5,\n        \"w\": 8,\n        \"x\": 0,\n        \"y\": 7\n\
+    \      },\n      \"targets\": [\n        {\n          \"expr\": \"increase(app_http_exceptions_total{service=~\\\
+    \"web|upload-service|video-api|live-api|identity-service\\\"}[10m]) or vector(0)\"\
+    ,\n          \"legendFormat\": \"{{service}}\",\n          \"refId\": \"A\"\n\
+    \        }\n      ],\n      \"options\": {\n        \"legend\": {\n          \"\
+    displayMode\": \"list\",\n          \"placement\": \"bottom\"\n        },\n  \
+    \      \"tooltip\": {\n          \"mode\": \"multi\"\n        }\n      },\n  \
+    \    \"fieldConfig\": {\n        \"defaults\": {},\n        \"overrides\": []\n\
+    \      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 14,\n      \"title\"\
+    : \"HTTP Status Rate by Service\",\n      \"type\": \"timeseries\",\n      \"\
+    gridPos\": {\n        \"h\": 5,\n        \"w\": 8,\n        \"x\": 8,\n      \
+    \  \"y\": 7\n      },\n      \"targets\": [\n        {\n          \"expr\": \"\
+    sum by (service, status) (rate(app_http_requests_total{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
+    \"}[5m])) or vector(0)\",\n          \"legendFormat\": \"{{service}} {{status}}\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"legend\": {\n          \"displayMode\": \"list\",\n          \"placement\"\
+    : \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\
+    \n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {},\n \
+    \       \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n \
+    \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 15,\n      \"title\": \"API Latency P50 / P95 by Service\",\n \
+    \     \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n   \
+    \     \"w\": 8,\n        \"x\": 16,\n        \"y\": 7\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"histogram_quantile(0.50, sum by (service,\
+    \ le) (rate(app_http_request_duration_seconds_bucket{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
+    \"}[5m]))) or vector(0)\",\n          \"legendFormat\": \"{{service}} p50\",\n\
+    \          \"refId\": \"A\"\n        },\n        {\n          \"expr\": \"histogram_quantile(0.95,\
+    \ sum by (service, le) (rate(app_http_request_duration_seconds_bucket{service=~\\\
+    \"web|upload-service|video-api|live-api|identity-service\\\"}[5m]))) or vector(0)\"\
+    ,\n          \"legendFormat\": \"{{service}} p95\",\n          \"refId\": \"B\"\
+    \n        }\n      ],\n      \"options\": {\n        \"legend\": {\n         \
+    \ \"displayMode\": \"list\",\n          \"placement\": \"bottom\"\n        },\n\
+    \        \"tooltip\": {\n          \"mode\": \"multi\"\n        }\n      },\n\
+    \      \"fieldConfig\": {\n        \"defaults\": {},\n        \"overrides\": []\n\
+    \      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"loki\",\n\
+    \        \"uid\": \"loki\"\n      },\n      \"id\": 16,\n      \"title\": \"API\
+    \ Service Logs\",\n      \"type\": \"logs\",\n      \"gridPos\": {\n        \"\
+    h\": 6,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\": 12\n      },\n\
+    \      \"targets\": [\n        {\n          \"expr\": \"{namespace=\\\"default\\\
+    \", app=~\\\"web|identity-service|upload-service|video-api|live-api\\\"}\",\n\
+    \          \"queryType\": \"range\",\n          \"refId\": \"A\"\n        }\n\
+    \      ],\n      \"options\": {\n        \"dedupStrategy\": \"none\",\n      \
+    \  \"enableLogDetails\": true,\n        \"prettifyLogMessage\": true,\n      \
+    \  \"showLabels\": true,\n        \"sortOrder\": \"Descending\"\n      }\n   \
+    \ }\n  ],\n  \"annotations\": {\n    \"list\": [\n      {\n        \"builtIn\"\
+    : 1,\n        \"datasource\": {\n          \"type\": \"grafana\",\n          \"\
+    uid\": \"-- Grafana --\"\n        },\n        \"enable\": true,\n        \"hide\"\
+    : true,\n        \"iconColor\": \"rgba(0, 211, 255, 1)\",\n        \"name\": \"\
+    Annotations & Alerts\",\n        \"type\": \"dashboard\"\n      }\n    ]\n  }\n\
+    }"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-pipeline
+  labels:
+    app: grafana
+    grafana_dashboard: '1'
+data:
+  video-platform-k8s-pipeline.json: "{\n  \"title\": \"Video Platform K8s Pipeline\"\
+    ,\n  \"uid\": \"video-platform-k8s-pipeline\",\n  \"schemaVersion\": 39,\n  \"\
+    version\": 1,\n  \"refresh\": \"10s\",\n  \"panels\": [\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 1,\n      \"title\": \"processing-worker\",\n      \"type\"\
+    : \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n        \"w\": 4,\n    \
+    \    \"x\": 0,\n        \"y\": 0\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"max(up{job=\\\"processing-worker\\\"}) or vector(0)\",\n\
+    \          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n     \
+    \   \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n       \
+    \ \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n   \
+    \     \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 2,\n      \"title\"\
+    : \"outbox-publisher\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n   \
+    \     \"h\": 2,\n        \"w\": 4,\n        \"x\": 4,\n        \"y\": 0\n    \
+    \  },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"\
+    outbox-publisher\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n\
+    \      ],\n      \"options\": {\n        \"colorMode\": \"background\",\n    \
+    \    \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n        \"\
+    orientation\": \"horizontal\",\n        \"reduceOptions\": {\n          \"calcs\"\
+    : [\n            \"lastNotNull\"\n          ],\n          \"fields\": \"\",\n\
+    \          \"values\": false\n        },\n        \"textMode\": \"value\"\n  \
+    \    },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 3,\n      \"title\": \"video-events-consumer\"\
+    ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\": 2,\n      \
+    \  \"w\": 4,\n        \"x\": 8,\n        \"y\": 0\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"max(up{job=\\\"video-events-consumer\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 4,\n      \"title\"\
+    : \"live-cleaner\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n       \
+    \ \"h\": 2,\n        \"w\": 4,\n        \"x\": 12,\n        \"y\": 0\n      },\n\
+    \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"live-cleaner\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 5,\n      \"title\"\
+    : \"rabbitmq\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"h\"\
+    : 2,\n        \"w\": 4,\n        \"x\": 16,\n        \"y\": 0\n      },\n    \
+    \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"rabbitmq\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
+    none\",\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value\"\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {\n          \"thresholds\": {\n            \"mode\": \"\
+    absolute\",\n            \"steps\": [\n              {\n                \"color\"\
+    : \"red\",\n                \"value\": null\n              },\n              {\n\
+    \                \"color\": \"green\",\n                \"value\": 1\n       \
+    \       }\n            ]\n          },\n          \"mappings\": [\n          \
+    \  {\n              \"type\": \"value\",\n              \"options\": {\n     \
+    \           \"0\": {\n                  \"text\": \"DOWN\"\n                },\n\
+    \                \"1\": {\n                  \"text\": \"UP\"\n              \
+    \  }\n              }\n            }\n          ]\n        },\n        \"overrides\"\
+    : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
+    ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 6,\n      \"title\"\
+    : \"postgres-exporter-master\",\n      \"type\": \"stat\",\n      \"gridPos\"\
+    : {\n        \"h\": 2,\n        \"w\": 4,\n        \"x\": 20,\n        \"y\":\
+    \ 0\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
+    \"postgres-exporter-master\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n\
+    \        }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
+    ,\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n  \
+    \      \"orientation\": \"horizontal\",\n        \"reduceOptions\": {\n      \
+    \    \"calcs\": [\n            \"lastNotNull\"\n          ],\n          \"fields\"\
+    : \"\",\n          \"values\": false\n        },\n        \"textMode\": \"value\"\
+    \n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"thresholds\"\
+    : {\n            \"mode\": \"absolute\",\n            \"steps\": [\n         \
+    \     {\n                \"color\": \"red\",\n                \"value\": null\n\
+    \              },\n              {\n                \"color\": \"green\",\n  \
+    \              \"value\": 1\n              }\n            ]\n          },\n  \
+    \        \"mappings\": [\n            {\n              \"type\": \"value\",\n\
+    \              \"options\": {\n                \"0\": {\n                  \"\
+    text\": \"DOWN\"\n                },\n                \"1\": {\n             \
+    \     \"text\": \"UP\"\n                }\n              }\n            }\n  \
+    \        ]\n        },\n        \"overrides\": []\n      }\n    },\n    {\n  \
+    \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
+    prometheus\"\n      },\n      \"id\": 10,\n      \"title\": \"Worker Jobs\",\n\
+    \      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n  \
+    \      \"w\": 8,\n        \"x\": 0,\n        \"y\": 2\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"sum(app_worker_jobs_total{service=\\\"processing-worker\\\
+    \",status=\\\"success\\\"}) or on() vector(0)\",\n          \"legendFormat\":\
+    \ \"success\",\n          \"refId\": \"A\"\n        },\n        {\n          \"\
+    expr\": \"sum(app_worker_jobs_total{service=\\\"processing-worker\\\",status=\\\
+    \"failed\\\"}) or on() vector(0)\",\n          \"legendFormat\": \"failed\",\n\
+    \          \"refId\": \"B\"\n        }\n      ],\n      \"options\": {\n     \
+    \   \"legend\": {\n          \"displayMode\": \"list\",\n          \"placement\"\
+    : \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\
+    \n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {},\n \
+    \       \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n \
+    \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 11,\n      \"title\": \"Worker Duration P95\",\n      \"type\"\
+    : \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n        \"w\": 8,\n\
+    \        \"x\": 8,\n        \"y\": 2\n      },\n      \"targets\": [\n       \
+    \ {\n          \"expr\": \"histogram_quantile(0.95, sum by (job_type, le) (rate(app_worker_job_duration_seconds_bucket{service=\\\
+    \"processing-worker\\\"}[1h]))) or on() vector(0)\",\n          \"legendFormat\"\
+    : \"{{job_type}} p95\",\n          \"refId\": \"A\"\n        }\n      ],\n   \
+    \   \"options\": {\n        \"legend\": {\n          \"displayMode\": \"list\"\
+    ,\n          \"placement\": \"bottom\"\n        },\n        \"tooltip\": {\n \
+    \         \"mode\": \"multi\"\n        }\n      },\n      \"fieldConfig\": {\n\
+    \        \"defaults\": {},\n        \"overrides\": []\n      }\n    },\n    {\n\
+    \      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\":\
+    \ \"prometheus\"\n      },\n      \"id\": 12,\n      \"title\": \"Worker Failures\"\
+    ,\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n\
+    \        \"w\": 8,\n        \"x\": 16,\n        \"y\": 2\n      },\n      \"targets\"\
+    : [\n        {\n          \"expr\": \"sum(app_worker_job_failures_total{service=\\\
+    \"processing-worker\\\"}) or on() vector(0)\",\n          \"legendFormat\": \"\
+    failures\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"legend\": {\n          \"displayMode\": \"list\",\n          \"\
+    placement\": \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\"\
+    : \"multi\"\n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\"\
+    : {},\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 13,\n      \"title\": \"Jobs In Progress\",\n      \"type\"\
+    : \"stat\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n    \
+    \    \"x\": 0,\n        \"y\": 7\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"sum(app_worker_jobs_in_progress{service=\\\"processing-worker\\\
+    \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"value\",\n        \"graphMode\": \"area\"\
+    ,\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0\n        },\n        \"\
+    overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 14,\n\
+    \      \"title\": \"Outbox Backlog\",\n      \"type\": \"stat\",\n      \"gridPos\"\
+    : {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 6,\n        \"y\": 7\n\
+    \      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(app_outbox_backlog{service=\\\
+    \"outbox-publisher\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n       \
+    \ }\n      ],\n      \"options\": {\n        \"colorMode\": \"value\",\n     \
+    \   \"graphMode\": \"area\",\n        \"justifyMode\": \"center\",\n        \"\
+    orientation\": \"horizontal\",\n        \"reduceOptions\": {\n          \"calcs\"\
+    : [\n            \"lastNotNull\"\n          ],\n          \"fields\": \"\",\n\
+    \          \"values\": false\n        },\n        \"textMode\": \"value_and_name\"\
+    \n      },\n      \"fieldConfig\": {\n        \"defaults\": {\n          \"decimals\"\
+    : 0\n        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 15,\n      \"title\": \"Outbox Failed\",\n      \"type\"\
+    : \"stat\",\n      \"gridPos\": {\n        \"h\": 4,\n        \"w\": 6,\n    \
+    \    \"x\": 12,\n        \"y\": 7\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"sum(app_outbox_failed{service=\\\"outbox-publisher\\\"\
+    }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
+    options\": {\n        \"colorMode\": \"value\",\n        \"graphMode\": \"area\"\
+    ,\n        \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\"\
+    ,\n        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0\n        },\n        \"\
+    overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 16,\n\
+    \      \"title\": \"Queue Size\",\n      \"type\": \"stat\",\n      \"gridPos\"\
+    : {\n        \"h\": 4,\n        \"w\": 6,\n        \"x\": 18,\n        \"y\":\
+    \ 7\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rabbitmq_queue_messages_ready)\
+    \ or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"colorMode\": \"value\",\n        \"graphMode\": \"area\",\n   \
+    \     \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n\
+    \        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0\n        },\n        \"\
+    overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"loki\",\n        \"uid\": \"loki\"\n      },\n      \"id\": 17,\n      \"\
+    title\": \"Pipeline Service Logs\",\n      \"type\": \"logs\",\n      \"gridPos\"\
+    : {\n        \"h\": 6,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\":\
+    \ 11\n      },\n      \"targets\": [\n        {\n          \"expr\": \"{namespace=\\\
+    \"default\\\", app=~\\\"processing-worker|outbox-publisher|video-events-consumer|live-cleaner|rabbitmq\\\
+    \"}\",\n          \"queryType\": \"range\",\n          \"refId\": \"A\"\n    \
+    \    }\n      ],\n      \"options\": {\n        \"dedupStrategy\": \"none\",\n\
+    \        \"enableLogDetails\": true,\n        \"prettifyLogMessage\": true,\n\
+    \        \"showLabels\": true,\n        \"sortOrder\": \"Descending\"\n      }\n\
+    \    }\n  ],\n  \"annotations\": {\n    \"list\": [\n      {\n        \"builtIn\"\
+    : 1,\n        \"datasource\": {\n          \"type\": \"grafana\",\n          \"\
+    uid\": \"-- Grafana --\"\n        },\n        \"enable\": true,\n        \"hide\"\
+    : true,\n        \"iconColor\": \"rgba(0, 211, 255, 1)\",\n        \"name\": \"\
+    Annotations & Alerts\",\n        \"type\": \"dashboard\"\n      }\n    ]\n  }\n\
+    }"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-slo
+  labels:
+    app: grafana
+    grafana_dashboard: '1'
+data:
+  video-platform-k8s-slo.json: "{\n  \"title\": \"Video Platform K8s SLO\",\n  \"\
+    uid\": \"video-platform-k8s-slo\",\n  \"schemaVersion\": 39,\n  \"version\": 1,\n\
+    \  \"refresh\": \"10s\",\n  \"panels\": [\n    {\n      \"datasource\": {\n  \
+    \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 1,\n      \"title\": \"Upload Success vs Failed\",\n      \"type\"\
+    : \"timeseries\",\n      \"gridPos\": {\n        \"h\": 6,\n        \"w\": 12,\n\
+    \        \"x\": 0,\n        \"y\": 0\n      },\n      \"targets\": [\n       \
+    \ {\n          \"expr\": \"sum(rate(app_video_uploads_total{status=\\\"success\\\
+    \"}[5m])) or vector(0)\",\n          \"legendFormat\": \"success\",\n        \
+    \  \"refId\": \"A\"\n        },\n        {\n          \"expr\": \"sum(rate(app_video_uploads_total{status=\\\
+    \"failed\\\"}[5m])) or vector(0)\",\n          \"legendFormat\": \"failed\",\n\
+    \          \"refId\": \"B\"\n        }\n      ],\n      \"options\": {\n     \
+    \   \"legend\": {\n          \"displayMode\": \"list\",\n          \"placement\"\
+    : \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\
+    \n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {},\n \
+    \       \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n \
+    \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 2,\n      \"title\": \"Upload Completions\",\n      \"type\": \"\
+    timeseries\",\n      \"gridPos\": {\n        \"h\": 6,\n        \"w\": 12,\n \
+    \       \"x\": 12,\n        \"y\": 0\n      },\n      \"targets\": [\n       \
+    \ {\n          \"expr\": \"sum(rate(app_video_uploads_total[5m])) or vector(0)\"\
+    ,\n          \"legendFormat\": \"uploads\",\n          \"refId\": \"A\"\n    \
+    \    }\n      ],\n      \"options\": {\n        \"legend\": {\n          \"displayMode\"\
+    : \"list\",\n          \"placement\": \"bottom\"\n        },\n        \"tooltip\"\
+    : {\n          \"mode\": \"multi\"\n        }\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {},\n        \"overrides\": []\n      }\n    },\n \
+    \   {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
+    uid\": \"prometheus\"\n      },\n      \"id\": 3,\n      \"title\": \"Video Processing\
+    \ Pipeline Events\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n\
+    \        \"h\": 6,\n        \"w\": 12,\n        \"x\": 0,\n        \"y\": 6\n\
+    \      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(app_video_processing_total[5m]))\
+    \ by (stage) or vector(0)\",\n          \"legendFormat\": \"{{stage}}\",\n   \
+    \       \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n        \"\
+    legend\": {\n          \"displayMode\": \"list\",\n          \"placement\": \"\
+    bottom\"\n        },\n        \"tooltip\": {\n          \"mode\": \"multi\"\n\
+    \        }\n      },\n      \"fieldConfig\": {\n        \"defaults\": {},\n  \
+    \      \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n  \
+    \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
+    \      \"id\": 4,\n      \"title\": \"Worker Failures (5m)\",\n      \"type\"\
+    : \"stat\",\n      \"gridPos\": {\n        \"h\": 6,\n        \"w\": 6,\n    \
+    \    \"x\": 12,\n        \"y\": 6\n      },\n      \"targets\": [\n        {\n\
+    \          \"expr\": \"sum(increase(app_worker_job_failures_total[5m])) or vector(0)\"\
+    ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
+    \     \"colorMode\": \"value\",\n        \"graphMode\": \"area\",\n        \"\
+    justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n       \
+    \ \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\n\
+    \          ],\n          \"fields\": \"\",\n          \"values\": false\n    \
+    \    },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0\n        },\n        \"\
+    overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 5,\n\
+    \      \"title\": \"Jobs In Progress\",\n      \"type\": \"stat\",\n      \"gridPos\"\
+    : {\n        \"h\": 6,\n        \"w\": 6,\n        \"x\": 18,\n        \"y\":\
+    \ 6\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(app_worker_jobs_in_progress)\
+    \ or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"colorMode\": \"value\",\n        \"graphMode\": \"area\",\n   \
+    \     \"justifyMode\": \"center\",\n        \"orientation\": \"horizontal\",\n\
+    \        \"reduceOptions\": {\n          \"calcs\": [\n            \"lastNotNull\"\
+    \n          ],\n          \"fields\": \"\",\n          \"values\": false\n   \
+    \     },\n        \"textMode\": \"value_and_name\"\n      },\n      \"fieldConfig\"\
+    : {\n        \"defaults\": {\n          \"decimals\": 0\n        },\n        \"\
+    overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
+    : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 6,\n\
+    \      \"title\": \"Active Live Sessions\",\n      \"type\": \"stat\",\n     \
+    \ \"gridPos\": {\n        \"h\": 5,\n        \"w\": 8,\n        \"x\": 0,\n  \
+    \      \"y\": 12\n      },\n      \"targets\": [\n        {\n          \"expr\"\
+    : \"sum(app_live_active_sessions{service=\\\"live-api\\\"}) or vector(0)\",\n\
+    \          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n     \
+    \   \"colorMode\": \"value\",\n        \"graphMode\": \"area\",\n        \"justifyMode\"\
+    : \"center\",\n        \"orientation\": \"horizontal\",\n        \"reduceOptions\"\
+    : {\n          \"calcs\": [\n            \"lastNotNull\"\n          ],\n     \
+    \     \"fields\": \"\",\n          \"values\": false\n        },\n        \"textMode\"\
+    : \"value_and_name\"\n      },\n      \"fieldConfig\": {\n        \"defaults\"\
+    : {\n          \"decimals\": 0\n        },\n        \"overrides\": []\n      }\n\
+    \    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n \
+    \       \"uid\": \"prometheus\"\n      },\n      \"id\": 7,\n      \"title\":\
+    \ \"Live API Errors\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n\
+    \        \"h\": 5,\n        \"w\": 8,\n        \"x\": 8,\n        \"y\": 12\n\
+    \      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rate(app_http_requests_total{service=\\\
+    \"live-api\\\",status=~\\\"5..\\\"}[5m])) or vector(0)\",\n          \"legendFormat\"\
+    : \"5xx\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"legend\": {\n          \"displayMode\": \"list\",\n          \"\
+    placement\": \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\"\
+    : \"multi\"\n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\"\
+    : {},\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
+    : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
+    \  },\n      \"id\": 8,\n      \"title\": \"Playback Errors (video-api 5xx)\"\
+    ,\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"h\": 5,\n\
+    \        \"w\": 8,\n        \"x\": 16,\n        \"y\": 12\n      },\n      \"\
+    targets\": [\n        {\n          \"expr\": \"sum(rate(app_http_requests_total{service=\\\
+    \"video-api\\\",status=~\\\"5..\\\"}[5m])) or vector(0)\",\n          \"legendFormat\"\
+    : \"5xx\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
+    : {\n        \"legend\": {\n          \"displayMode\": \"list\",\n          \"\
+    placement\": \"bottom\"\n        },\n        \"tooltip\": {\n          \"mode\"\
+    : \"multi\"\n        }\n      },\n      \"fieldConfig\": {\n        \"defaults\"\
+    : {},\n        \"overrides\": []\n      }\n    }\n  ],\n  \"annotations\": {\n\
+    \    \"list\": [\n      {\n        \"builtIn\": 1,\n        \"datasource\": {\n\
+    \          \"type\": \"grafana\",\n          \"uid\": \"-- Grafana --\"\n    \
+    \    },\n        \"enable\": true,\n        \"hide\": true,\n        \"iconColor\"\
+    : \"rgba(0, 211, 255, 1)\",\n        \"name\": \"Annotations & Alerts\",\n   \
+    \     \"type\": \"dashboard\"\n      }\n    ]\n  }\n}"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+spec:
+  type: NodePort
+  selector:
+    app: grafana
+  ports:
+  - name: http
+    port: 3000
+    targetPort: 3000
+    nodePort: 30300
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+      - name: grafana
+        image: grafana/grafana:latest
+        ports:
+        - containerPort: 3000
+          name: http
+        env:
+        - name: GF_SECURITY_ADMIN_USER
+          value: admin
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          value: admin
+        volumeMounts:
+        - name: datasources
+          mountPath: /etc/grafana/provisioning/datasources/datasources.yml
+          subPath: datasources.yml
+        - name: provider
+          mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
+          subPath: dashboards.yml
+        - name: overview
+          mountPath: /etc/grafana/provisioning/dashboards/json/video-platform-k8s-overview.json
+          subPath: video-platform-k8s-overview.json
+        - name: api
+          mountPath: /etc/grafana/provisioning/dashboards/json/video-platform-k8s-api.json
+          subPath: video-platform-k8s-api.json
+        - name: pipeline
+          mountPath: /etc/grafana/provisioning/dashboards/json/video-platform-k8s-pipeline.json
+          subPath: video-platform-k8s-pipeline.json
+        - name: slo
+          mountPath: /etc/grafana/provisioning/dashboards/json/video-platform-k8s-slo.json
+          subPath: video-platform-k8s-slo.json
+      volumes:
+      - name: datasources
+        configMap:
+          name: grafana-datasources
+      - name: provider
+        configMap:
+          name: grafana-dashboard-provider
+      - name: overview
+        configMap:
+          name: grafana-dashboard-overview
+      - name: api
+        configMap:
+          name: grafana-dashboard-api
+      - name: pipeline
+        configMap:
+          name: grafana-dashboard-pipeline
+      - name: slo
+        configMap:
+          name: grafana-dashboard-slo
