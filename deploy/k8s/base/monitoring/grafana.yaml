@@ -142,7 +142,7 @@ data:
     \    {\n      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"\
     uid\": \"prometheus\"\n      },\n      \"id\": 100,\n      \"title\": \"web\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 0,\n      \
-    \  \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n      },\n      \"targets\"\
+    \  \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"web\\\"}) or vector(0)\"\
     ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
     \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
@@ -162,7 +162,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 101,\n      \"title\"\
     : \"frontend\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 3,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n      },\n     \
+    : 3,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n      },\n     \
     \ \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"frontend\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -182,7 +182,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 102,\n      \"title\"\
     : \"identity-service\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n   \
-    \     \"x\": 6,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n    \
+    \     \"x\": 6,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n    \
     \  },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"\
     identity-service\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n\
     \      ],\n      \"options\": {\n        \"colorMode\": \"background\",\n    \
@@ -203,7 +203,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 103,\n      \"title\": \"upload-service\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 9,\n      \
-    \  \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n      },\n      \"targets\"\
+    \  \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"upload-service\\\"}) or vector(0)\"\
     ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
     \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
@@ -223,7 +223,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 104,\n      \"title\"\
     : \"video-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"\
-    x\": 12,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n      },\n \
+    x\": 12,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n      },\n \
     \     \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"video-api\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -243,7 +243,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 105,\n      \"title\"\
     : \"live-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 15,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n      },\n    \
+    : 15,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n      },\n    \
     \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"live-api\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -263,7 +263,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 106,\n      \"title\"\
     : \"processing-worker\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n  \
-    \      \"x\": 18,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n  \
+    \      \"x\": 18,\n        \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n  \
     \    },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"\
     processing-worker\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n\
     \      ],\n      \"options\": {\n        \"colorMode\": \"background\",\n    \
@@ -284,7 +284,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 107,\n      \"title\": \"outbox-publisher\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 21,\n     \
-    \   \"y\": 3,\n        \"w\": 3,\n        \"h\": 2\n      },\n      \"targets\"\
+    \   \"y\": 3,\n        \"w\": 3,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"outbox-publisher\\\"}) or\
     \ vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
     : {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n\
@@ -304,7 +304,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 108,\n      \"title\"\
     : \"video-events-consumer\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n\
-    \        \"x\": 0,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n \
+    \        \"x\": 0,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n \
     \     },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
     \"video-events-consumer\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n  \
     \      }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
@@ -325,7 +325,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 109,\n      \"title\": \"live-cleaner\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 3,\n      \
-    \  \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n      \"targets\"\
+    \  \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"live-cleaner\\\"}) or vector(0)\"\
     ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
     \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
@@ -345,7 +345,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 110,\n      \"title\"\
     : \"rabbitmq\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 6,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n     \
+    : 6,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n     \
     \ \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"rabbitmq\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -365,7 +365,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 111,\n      \"title\"\
     : \"prometheus\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"\
-    x\": 9,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n  \
+    x\": 9,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n  \
     \    \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"prometheus\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -385,7 +385,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 112,\n      \"title\"\
     : \"grafana\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 12,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n    \
+    : 12,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n    \
     \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"grafana\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -405,7 +405,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 113,\n      \"title\"\
     : \"loki\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 15,\n\
-    \        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n      \"targets\"\
+    \        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"loki\\\"}) or vector(0)\"\
     ,\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n   \
     \     \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n     \
@@ -425,7 +425,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 114,\n      \"title\"\
     : \"promtail\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 18,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n    \
+    : 18,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n    \
     \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"promtail\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -445,7 +445,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 115,\n      \"title\"\
     : \"node-exporter\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n      \
-    \  \"x\": 21,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 2\n      },\n\
+    \  \"x\": 21,\n        \"y\": 5,\n        \"w\": 3,\n        \"h\": 3\n      },\n\
     \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"node-exporter\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -465,7 +465,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 116,\n      \"title\"\
     : \"cadvisor\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 0,\n        \"y\": 7,\n        \"w\": 3,\n        \"h\": 2\n      },\n     \
+    : 0,\n        \"y\": 7,\n        \"w\": 3,\n        \"h\": 3\n      },\n     \
     \ \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"cadvisor\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -485,7 +485,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 117,\n      \"title\"\
     : \"postgres-exporter-master\",\n      \"type\": \"stat\",\n      \"gridPos\"\
-    : {\n        \"x\": 3,\n        \"y\": 7,\n        \"w\": 3,\n        \"h\": 2\n\
+    : {\n        \"x\": 3,\n        \"y\": 7,\n        \"w\": 3,\n        \"h\": 3\n\
     \      },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
     \"postgres-exporter-master\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n\
     \        }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
@@ -506,7 +506,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 118,\n      \"title\": \"postgres-exporter-replica\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 6,\n      \
-    \  \"y\": 7,\n        \"w\": 3,\n        \"h\": 2\n      },\n      \"targets\"\
+    \  \"y\": 7,\n        \"w\": 3,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"postgres-exporter-replica\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -526,7 +526,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 119,\n      \"title\"\
     : \"alertmanager\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n       \
-    \ \"x\": 9,\n        \"y\": 7,\n        \"w\": 3,\n        \"h\": 2\n      },\n\
+    \ \"x\": 9,\n        \"y\": 7,\n        \"w\": 3,\n        \"h\": 3\n      },\n\
     \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"alertmanager\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -546,8 +546,8 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 30,\n      \"title\"\
     : \"Node CPU %\",\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n   \
-    \     \"x\": 0,\n        \"y\": 9,\n        \"w\": 8,\n        \"h\": 5\n    \
-    \  },\n      \"targets\": [\n        {\n          \"expr\": \"100 - (avg by(instance)\
+    \     \"x\": 0,\n        \"y\": 11,\n        \"w\": 8,\n        \"h\": 5\n   \
+    \   },\n      \"targets\": [\n        {\n          \"expr\": \"100 - (avg by(instance)\
     \ (irate(node_cpu_seconds_total{mode=\\\"idle\\\"}[5m])) * 100)\",\n         \
     \ \"legendFormat\": \"{{instance}}\",\n          \"refId\": \"A\"\n        }\n\
     \      ],\n      \"options\": {\n        \"legend\": {\n          \"displayMode\"\
@@ -557,8 +557,8 @@ data:
     \      \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n  \
     \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
     \      \"id\": 31,\n      \"title\": \"Node Memory %\",\n      \"type\": \"timeseries\"\
-    ,\n      \"gridPos\": {\n        \"x\": 8,\n        \"y\": 9,\n        \"w\":\
-    \ 8,\n        \"h\": 5\n      },\n      \"targets\": [\n        {\n          \"\
+    ,\n      \"gridPos\": {\n        \"x\": 8,\n        \"y\": 11,\n        \"w\"\
+    : 8,\n        \"h\": 5\n      },\n      \"targets\": [\n        {\n          \"\
     expr\": \"(1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes))\
     \ * 100\",\n          \"legendFormat\": \"{{instance}}\",\n          \"refId\"\
     : \"A\"\n        }\n      ],\n      \"options\": {\n        \"legend\": {\n  \
@@ -569,7 +569,7 @@ data:
     \      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\":\
     \ \"prometheus\"\n      },\n      \"id\": 32,\n      \"title\": \"Disk Usage %\"\
     ,\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"x\": 16,\n\
-    \        \"y\": 9,\n        \"w\": 8,\n        \"h\": 5\n      },\n      \"targets\"\
+    \        \"y\": 11,\n        \"w\": 8,\n        \"h\": 5\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"(1 - (node_filesystem_avail_bytes{fstype!~\\\
     \"tmpfs|overlay\\\"} / node_filesystem_size_bytes{fstype!~\\\"tmpfs|overlay\\\"\
     })) * 100\",\n          \"legendFormat\": \"{{instance}} {{mountpoint}}\",\n \
@@ -581,7 +581,7 @@ data:
     \    },\n    {\n      \"datasource\": {\n        \"type\": \"loki\",\n       \
     \ \"uid\": \"loki\"\n      },\n      \"id\": 40,\n      \"title\": \"Platform\
     \ Logs\",\n      \"type\": \"logs\",\n      \"gridPos\": {\n        \"h\": 14,\n\
-    \        \"w\": 24,\n        \"x\": 0,\n        \"y\": 14\n      },\n      \"\
+    \        \"w\": 24,\n        \"x\": 0,\n        \"y\": 16\n      },\n      \"\
     targets\": [\n        {\n          \"expr\": \"{namespace=\\\"default\\\", app=~\\\
     \"web|frontend|identity-service|upload-service|video-api|live-api|processing-worker|outbox-publisher|video-events-consumer|live-cleaner|rabbitmq|prometheus|grafana|loki|promtail\\\
     \"}\",\n          \"queryType\": \"range\",\n          \"refId\": \"A\"\n    \
@@ -609,7 +609,7 @@ data:
     \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
     \      \"id\": 1,\n      \"title\": \"web\",\n      \"type\": \"stat\",\n    \
     \  \"gridPos\": {\n        \"x\": 0,\n        \"y\": 0,\n        \"w\": 8,\n \
-    \       \"h\": 2\n      },\n      \"targets\": [\n        {\n          \"expr\"\
+    \       \"h\": 3\n      },\n      \"targets\": [\n        {\n          \"expr\"\
     : \"max(up{job=\\\"web\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n   \
     \     }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
     ,\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n  \
@@ -629,7 +629,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 2,\n      \"title\": \"identity-service\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 8,\n      \
-    \  \"y\": 0,\n        \"w\": 8,\n        \"h\": 2\n      },\n      \"targets\"\
+    \  \"y\": 0,\n        \"w\": 8,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"identity-service\\\"}) or\
     \ vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
     : {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n\
@@ -649,7 +649,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 3,\n      \"title\"\
     : \"upload-service\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n     \
-    \   \"x\": 16,\n        \"y\": 0,\n        \"w\": 8,\n        \"h\": 2\n     \
+    \   \"x\": 16,\n        \"y\": 0,\n        \"w\": 8,\n        \"h\": 3\n     \
     \ },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"upload-service\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -669,7 +669,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 4,\n      \"title\"\
     : \"video-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"\
-    x\": 0,\n        \"y\": 2,\n        \"w\": 12,\n        \"h\": 2\n      },\n \
+    x\": 0,\n        \"y\": 3,\n        \"w\": 12,\n        \"h\": 3\n      },\n \
     \     \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"video-api\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -689,7 +689,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 5,\n      \"title\"\
     : \"live-api\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 12,\n        \"y\": 2,\n        \"w\": 12,\n        \"h\": 2\n      },\n   \
+    : 12,\n        \"y\": 3,\n        \"w\": 12,\n        \"h\": 3\n      },\n   \
     \   \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"live-api\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -709,7 +709,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 10,\n      \"title\"\
     : \"API Request Rate by Service\",\n      \"type\": \"timeseries\",\n      \"\
-    gridPos\": {\n        \"x\": 0,\n        \"y\": 4,\n        \"w\": 8,\n      \
+    gridPos\": {\n        \"x\": 0,\n        \"y\": 5,\n        \"w\": 8,\n      \
     \  \"h\": 4\n      },\n      \"targets\": [\n        {\n          \"expr\": \"\
     sum by (service) (rate(app_http_requests_total{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
     \"}[5m])) or vector(0)\",\n          \"legendFormat\": \"{{service}}\",\n    \
@@ -721,7 +721,7 @@ data:
     \      \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
     \      \"id\": 11,\n      \"title\": \"API Latency P95 by Service + Path\",\n\
     \      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"x\": 8,\n  \
-    \      \"y\": 4,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
+    \      \"y\": 5,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"histogram_quantile(0.95, sum by (service,\
     \ path, le) (rate(app_http_request_duration_seconds_bucket{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
     \"}[5m]))) or vector(0)\",\n          \"legendFormat\": \"{{service}} {{path}}\"\
@@ -732,7 +732,7 @@ data:
     \       \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n \
     \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
     \      \"id\": 12,\n      \"title\": \"API 5xx Ratio by Service\",\n      \"type\"\
-    : \"timeseries\",\n      \"gridPos\": {\n        \"x\": 16,\n        \"y\": 4,\n\
+    : \"timeseries\",\n      \"gridPos\": {\n        \"x\": 16,\n        \"y\": 5,\n\
     \        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\": [\n       \
     \ {\n          \"expr\": \"((sum by (service) (rate(app_http_requests_total{service=~\\\
     \"web|upload-service|video-api|live-api|identity-service\\\",status=~\\\"5..\\\
@@ -746,7 +746,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 13,\n      \"title\"\
     : \"Unhandled Exceptions / 10m\",\n      \"type\": \"timeseries\",\n      \"gridPos\"\
-    : {\n        \"x\": 0,\n        \"y\": 8,\n        \"w\": 8,\n        \"h\": 4\n\
+    : {\n        \"x\": 0,\n        \"y\": 9,\n        \"w\": 8,\n        \"h\": 4\n\
     \      },\n      \"targets\": [\n        {\n          \"expr\": \"increase(app_http_exceptions_total{service=~\\\
     \"web|upload-service|video-api|live-api|identity-service\\\"}[10m]) or vector(0)\"\
     ,\n          \"legendFormat\": \"{{service}}\",\n          \"refId\": \"A\"\n\
@@ -757,7 +757,7 @@ data:
     \      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 14,\n      \"title\"\
     : \"HTTP Status Rate by Service\",\n      \"type\": \"timeseries\",\n      \"\
-    gridPos\": {\n        \"x\": 8,\n        \"y\": 8,\n        \"w\": 8,\n      \
+    gridPos\": {\n        \"x\": 8,\n        \"y\": 9,\n        \"w\": 8,\n      \
     \  \"h\": 4\n      },\n      \"targets\": [\n        {\n          \"expr\": \"\
     sum by (service, status) (rate(app_http_requests_total{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
     \"}[5m])) or vector(0)\",\n          \"legendFormat\": \"{{service}} {{status}}\"\
@@ -769,7 +769,7 @@ data:
     \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
     \      \"id\": 15,\n      \"title\": \"API Latency P50 / P95 by Service\",\n \
     \     \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"x\": 16,\n  \
-    \      \"y\": 8,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
+    \      \"y\": 9,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"histogram_quantile(0.50, sum by (service,\
     \ le) (rate(app_http_request_duration_seconds_bucket{service=~\\\"web|upload-service|video-api|live-api|identity-service\\\
     \"}[5m]))) or vector(0)\",\n          \"legendFormat\": \"{{service}} p50\",\n\
@@ -784,7 +784,7 @@ data:
     \      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"loki\",\n\
     \        \"uid\": \"loki\"\n      },\n      \"id\": 16,\n      \"title\": \"API\
     \ Service Logs\",\n      \"type\": \"logs\",\n      \"gridPos\": {\n        \"\
-    h\": 14,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\": 12\n      },\n\
+    h\": 14,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\": 13\n      },\n\
     \      \"targets\": [\n        {\n          \"expr\": \"{namespace=\\\"default\\\
     \", app=~\\\"web|identity-service|upload-service|video-api|live-api\\\"}\",\n\
     \          \"queryType\": \"range\",\n          \"refId\": \"A\"\n        }\n\
@@ -812,7 +812,7 @@ data:
     : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
     \  },\n      \"id\": 1,\n      \"title\": \"processing-worker\",\n      \"type\"\
     : \"stat\",\n      \"gridPos\": {\n        \"x\": 0,\n        \"y\": 0,\n    \
-    \    \"w\": 4,\n        \"h\": 2\n      },\n      \"targets\": [\n        {\n\
+    \    \"w\": 4,\n        \"h\": 3\n      },\n      \"targets\": [\n        {\n\
     \          \"expr\": \"max(up{job=\\\"processing-worker\\\"}) or vector(0)\",\n\
     \          \"refId\": \"A\"\n        }\n      ],\n      \"options\": {\n     \
     \   \"colorMode\": \"background\",\n        \"graphMode\": \"none\",\n       \
@@ -832,7 +832,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 2,\n      \"title\"\
     : \"outbox-publisher\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n   \
-    \     \"x\": 4,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\": 2\n    \
+    \     \"x\": 4,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\": 3\n    \
     \  },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"\
     outbox-publisher\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n\
     \      ],\n      \"options\": {\n        \"colorMode\": \"background\",\n    \
@@ -853,7 +853,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 3,\n      \"title\": \"video-events-consumer\"\
     ,\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\": 8,\n      \
-    \  \"y\": 0,\n        \"w\": 4,\n        \"h\": 2\n      },\n      \"targets\"\
+    \  \"y\": 0,\n        \"w\": 4,\n        \"h\": 3\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"max(up{job=\\\"video-events-consumer\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -873,7 +873,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 4,\n      \"title\"\
     : \"live-cleaner\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n       \
-    \ \"x\": 12,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\": 2\n      },\n\
+    \ \"x\": 12,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\": 3\n      },\n\
     \      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"live-cleaner\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -893,7 +893,7 @@ data:
     : []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\": \"prometheus\"\
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 5,\n      \"title\"\
     : \"rabbitmq\",\n      \"type\": \"stat\",\n      \"gridPos\": {\n        \"x\"\
-    : 16,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\": 2\n      },\n    \
+    : 16,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\": 3\n      },\n    \
     \  \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\"rabbitmq\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
     options\": {\n        \"colorMode\": \"background\",\n        \"graphMode\": \"\
@@ -914,7 +914,7 @@ data:
     ,\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 6,\n      \"title\"\
     : \"postgres-exporter-master\",\n      \"type\": \"stat\",\n      \"gridPos\"\
     : {\n        \"x\": 20,\n        \"y\": 0,\n        \"w\": 4,\n        \"h\":\
-    \ 2\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
+    \ 3\n      },\n      \"targets\": [\n        {\n          \"expr\": \"max(up{job=\\\
     \"postgres-exporter-master\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n\
     \        }\n      ],\n      \"options\": {\n        \"colorMode\": \"background\"\
     ,\n        \"graphMode\": \"none\",\n        \"justifyMode\": \"center\",\n  \
@@ -934,7 +934,7 @@ data:
     \    \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\": \"\
     prometheus\"\n      },\n      \"id\": 10,\n      \"title\": \"Worker Jobs\",\n\
     \      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"x\": 0,\n  \
-    \      \"y\": 2,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
+    \      \"y\": 3,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"sum(app_worker_jobs_total{service=\\\"processing-worker\\\
     \",status=\\\"success\\\"}) or on() vector(0)\",\n          \"legendFormat\":\
     \ \"success\",\n          \"refId\": \"A\"\n        },\n        {\n          \"\
@@ -947,7 +947,7 @@ data:
     \       \"overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n \
     \       \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n\
     \      \"id\": 11,\n      \"title\": \"Worker Duration P95\",\n      \"type\"\
-    : \"timeseries\",\n      \"gridPos\": {\n        \"x\": 8,\n        \"y\": 2,\n\
+    : \"timeseries\",\n      \"gridPos\": {\n        \"x\": 8,\n        \"y\": 3,\n\
     \        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\": [\n       \
     \ {\n          \"expr\": \"histogram_quantile(0.95, sum by (job_type, le) (rate(app_worker_job_duration_seconds_bucket{service=\\\
     \"processing-worker\\\"}[1h]))) or on() vector(0)\",\n          \"legendFormat\"\
@@ -959,7 +959,7 @@ data:
     \      \"datasource\": {\n        \"type\": \"prometheus\",\n        \"uid\":\
     \ \"prometheus\"\n      },\n      \"id\": 12,\n      \"title\": \"Worker Failures\"\
     ,\n      \"type\": \"timeseries\",\n      \"gridPos\": {\n        \"x\": 16,\n\
-    \        \"y\": 2,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
+    \        \"y\": 3,\n        \"w\": 8,\n        \"h\": 4\n      },\n      \"targets\"\
     : [\n        {\n          \"expr\": \"sum(app_worker_job_failures_total{service=\\\
     \"processing-worker\\\"}) or on() vector(0)\",\n          \"legendFormat\": \"\
     failures\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
@@ -969,7 +969,7 @@ data:
     : {},\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
     : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
     \  },\n      \"id\": 13,\n      \"title\": \"Jobs In Progress\",\n      \"type\"\
-    : \"stat\",\n      \"gridPos\": {\n        \"x\": 0,\n        \"y\": 6,\n    \
+    : \"stat\",\n      \"gridPos\": {\n        \"x\": 0,\n        \"y\": 7,\n    \
     \    \"w\": 6,\n        \"h\": 4\n      },\n      \"targets\": [\n        {\n\
     \          \"expr\": \"sum(app_worker_jobs_in_progress{service=\\\"processing-worker\\\
     \"}) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
@@ -982,7 +982,7 @@ data:
     overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
     : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 14,\n\
     \      \"title\": \"Outbox Backlog\",\n      \"type\": \"stat\",\n      \"gridPos\"\
-    : {\n        \"x\": 6,\n        \"y\": 6,\n        \"w\": 6,\n        \"h\": 4\n\
+    : {\n        \"x\": 6,\n        \"y\": 7,\n        \"w\": 6,\n        \"h\": 4\n\
     \      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(app_outbox_backlog{service=\\\
     \"outbox-publisher\\\"}) or vector(0)\",\n          \"refId\": \"A\"\n       \
     \ }\n      ],\n      \"options\": {\n        \"colorMode\": \"value\",\n     \
@@ -994,7 +994,7 @@ data:
     : 0\n        },\n        \"overrides\": []\n      }\n    },\n    {\n      \"datasource\"\
     : {\n        \"type\": \"prometheus\",\n        \"uid\": \"prometheus\"\n    \
     \  },\n      \"id\": 15,\n      \"title\": \"Outbox Failed\",\n      \"type\"\
-    : \"stat\",\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 6,\n   \
+    : \"stat\",\n      \"gridPos\": {\n        \"x\": 12,\n        \"y\": 7,\n   \
     \     \"w\": 6,\n        \"h\": 4\n      },\n      \"targets\": [\n        {\n\
     \          \"expr\": \"sum(app_outbox_failed{service=\\\"outbox-publisher\\\"\
     }) or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"\
@@ -1007,7 +1007,7 @@ data:
     overrides\": []\n      }\n    },\n    {\n      \"datasource\": {\n        \"type\"\
     : \"prometheus\",\n        \"uid\": \"prometheus\"\n      },\n      \"id\": 16,\n\
     \      \"title\": \"Queue Size\",\n      \"type\": \"stat\",\n      \"gridPos\"\
-    : {\n        \"x\": 18,\n        \"y\": 6,\n        \"w\": 6,\n        \"h\":\
+    : {\n        \"x\": 18,\n        \"y\": 7,\n        \"w\": 6,\n        \"h\":\
     \ 4\n      },\n      \"targets\": [\n        {\n          \"expr\": \"sum(rabbitmq_queue_messages_ready)\
     \ or vector(0)\",\n          \"refId\": \"A\"\n        }\n      ],\n      \"options\"\
     : {\n        \"colorMode\": \"value\",\n        \"graphMode\": \"area\",\n   \
@@ -1020,7 +1020,7 @@ data:
     : \"loki\",\n        \"uid\": \"loki\"\n      },\n      \"id\": 17,\n      \"\
     title\": \"Pipeline Service Logs\",\n      \"type\": \"logs\",\n      \"gridPos\"\
     : {\n        \"h\": 14,\n        \"w\": 24,\n        \"x\": 0,\n        \"y\"\
-    : 11\n      },\n      \"targets\": [\n        {\n          \"expr\": \"{namespace=\\\
+    : 12\n      },\n      \"targets\": [\n        {\n          \"expr\": \"{namespace=\\\
     \"default\\\", app=~\\\"processing-worker|outbox-publisher|video-events-consumer|live-cleaner|rabbitmq\\\
     \"}\",\n          \"queryType\": \"range\",\n          \"refId\": \"A\"\n    \
     \    }\n      ],\n      \"options\": {\n        \"dedupStrategy\": \"none\",\n\
