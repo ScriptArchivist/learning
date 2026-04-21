@@ -7,8 +7,8 @@ touch /var/log/nginx/error.log || true
 mkdir -p /app/uploads
 mkdir -p /app/uploads/live
 
-# безопаснее чем 0777
-chmod 0755 /app/uploads || true
-chmod 0755 /app/uploads/live || true
+# Для локального PVC ingest должен уметь создавать каталоги стримов и HLS-артефакты.
+chmod 0777 /app/uploads || true
+chmod 0777 /app/uploads/live || true
 
 exec nginx -g "daemon off;"

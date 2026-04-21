@@ -7,7 +7,12 @@ MINIKUBE_IP="${MINIKUBE_IP:-$(minikube ip)}"
 
 WEB_DEPLOY="${WEB_DEPLOY:-web}"
 LIVE_API_BASE="${LIVE_API_BASE:-http://${MINIKUBE_IP}:30005}"
-INGEST_HEALTH_URL="${INGEST_HEALTH_URL:-http://${MINIKUBE_IP}:32169/healthz}"
+
+INGEST_HEALTH_NODE_PORT="${INGEST_HEALTH_NODE_PORT:-$(
+  kubectl get svc ingest -o jsonpath='{.spec.ports[?(@.name=="health")].nodePort}'
+)}"
+INGEST_HEALTH_URL="${INGEST_HEALTH_URL:-http://${MINIKUBE_IP}:${INGEST_HEALTH_NODE_PORT}/healthz}"
+
 ORIGIN_HEALTH_URL="${ORIGIN_HEALTH_URL:-http://${MINIKUBE_IP}:30006/healthz}"
 
 JWT_USER_ID="${JWT_USER_ID:-1}"
@@ -15,12 +20,12 @@ JWT_EXPIRES_MINUTES="${JWT_EXPIRES_MINUTES:-120}"
 JWT_ISSUER="${JWT_ISSUER:-identity-service}"
 JWT_AUDIENCE="${JWT_AUDIENCE:-video-platform}"
 
-IDEMPOTENCY_KEY="${IDEMPOTENCY_KEY:-k8s-live-smoke-001}"
+IDEMPOTENCY_KEY="${IDEMPOTENCY_KEY:-k8s-live-smoke-$(date +%s)}"
 TTL_SECONDS="${TTL_SECONDS:-3600}"
 WAIT_ATTEMPTS="${WAIT_ATTEMPTS:-60}"
 WAIT_SLEEP_SECONDS="${WAIT_SLEEP_SECONDS:-2}"
 
-LOG_DIR="${LOG_DIR:-./live_logs_k8s}"
+LOG_DIR="${LOG_DIR:-./live_logs_k8s_$(date +%s)}"
 mkdir -p "$LOG_DIR"
 
 need_cmd() {

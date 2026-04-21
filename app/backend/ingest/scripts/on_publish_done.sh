@@ -39,8 +39,6 @@ rmdir "$LOCK_DIR" 2>/dev/null || true
 log "grace wait start seconds='${GRACE_SECONDS}'"
 sleep "$GRACE_SECONDS"
 
-# Если за это время stream переподключился, новый on_publish уже создаст новый PID_FILE.
-# Тогда disconnect старого publish не должен завершать новую live-сессию.
 if [ -f "$PID_FILE" ]; then
   NEW_PID="$(cat "$PID_FILE" 2>/dev/null || true)"
   if [ -n "${NEW_PID:-}" ] && kill -0 "$NEW_PID" 2>/dev/null; then
@@ -54,7 +52,7 @@ if [ -d "$OUT_DIR" ]; then
   rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts "${OUT_DIR}"/*.tmp 2>/dev/null || true
 fi
 
-LIVE_API_INTERNAL_BASE_URL="${LIVE_API_INTERNAL_BASE_URL:-http://live-api:8004}"
+LIVE_API_INTERNAL_BASE_URL="${LIVE_API_INTERNAL_BASE_URL:-http://live-api:8000}"
 DISCONNECT_URL="${LIVE_API_INTERNAL_BASE_URL%/}/live/sessions/disconnect/${NAME}"
 INTERNAL_TOKEN="${LIVE_INTERNAL_TOKEN:-}"
 
