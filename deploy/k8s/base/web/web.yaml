@@ -28,13 +28,18 @@ spec:
         app: web
     spec:
       initContainers:
-        - name: fix-uploads-permissions
+        - name: prepare-uploads
           image: busybox:1.36
           command:
             - sh
             - -c
             - |
-              chown -R 10001:10001 /app/uploads && chmod -R 775 /app/uploads
+              mkdir -p /app/uploads /app/uploads/live /app/uploads/hls /app/uploads/original /app/uploads/thumbs
+              chmod 777 /app/uploads || true
+              chmod 777 /app/uploads/live || true
+              chmod 777 /app/uploads/hls || true
+              chmod 777 /app/uploads/original || true
+              chmod 777 /app/uploads/thumbs || true
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
@@ -42,9 +47,6 @@ spec:
         - name: web
           image: learning-app-backend:local
           imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8000
-              name: http
           command:
             - /bin/sh
             - -c
@@ -58,42 +60,21 @@ spec:
               value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
             - name: database_read_url
               value: postgresql+psycopg://postgres:postgres@postgres-master:5432/app
-            - name: RABBIT_URL
-              value: amqp://app:app@rabbitmq:5672/
-            - name: REDIS_URL
-              value: redis://redis:6379/0
             - name: secret_key
               value: super-secret-key-change-me
             - name: access_token_expire_minutes
               value: "30"
+            - name: STORAGE_PATH
+              value: /app/uploads
             - name: PUBLIC_HOST
               value: "192.168.49.2"
             - name: PUBLIC_HTTP_SCHEME
               value: "http"
             - name: PUBLIC_HTTP_PORT
               value: "30006"
-            - name: PUBLIC_RTMP_PORT
-              value: "31935"
-            - name: DELIVERY_MODE
-              value: local
-            - name: DELIVERY_BASE_URL
-              value: http://origin:80
-            - name: DELIVERY_PUBLIC_BASE_URL
-              value: http://192.168.49.2:30006
-            - name: VIDEO_LOCK_TTL_SECONDS
-              value: "3600"
-            - name: HLS_TOKEN_SECRET
-              value: super-secret-hls
-            - name: HLS_TOKEN_TTL_SECONDS
-              value: "300"
-            - name: LIVE_RTMP_URL_TEMPLATE
-              value: rtmp://192.168.49.2:31935/live/{stream_key}
-            - name: LIVE_HLS_URL_TEMPLATE
-              value: http://192.168.49.2:30006/live/{stream_key}/master.m3u8
-            - name: CORS_ALLOW_ORIGINS
-              value: ""
-            - name: CORS_ALLOW_ORIGIN_REGEX
-              value: ^https?://(localhost|127\.0\.0\.1|192\.168\.49\.2)(:\d+)?$
+          ports:
+            - containerPort: 8000
+              name: http
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads

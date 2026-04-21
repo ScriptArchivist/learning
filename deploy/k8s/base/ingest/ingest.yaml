@@ -108,7 +108,7 @@ data:
       ATTEMPT=$((ATTEMPT + 1))
       echo "transcode: attempt=${ATTEMPT} input=${INPUT_URL} output=${MASTER}" >&2
 
-      /usr/local/bin/ffmpeg -hide_banner -loglevel info -y \
+      /usr/bin/ffmpeg -hide_banner -loglevel info -y \
         -rtmp_live live \
         -fflags +genpts \
         -use_wallclock_as_timestamps 1 \

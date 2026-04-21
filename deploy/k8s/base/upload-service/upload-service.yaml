@@ -7,7 +7,8 @@ spec:
   selector:
     app: upload-service
   ports:
-    - port: 8000
+    - name: http
+      port: 8000
       targetPort: 8000
       nodePort: 30003
 
@@ -26,18 +27,19 @@ spec:
       labels:
         app: upload-service
     spec:
-      securityContext:
-        fsGroup: 10001
       initContainers:
-        - name: fix-uploads-permissions
+        - name: prepare-uploads
           image: busybox:1.36
           command:
             - sh
             - -c
             - |
-              mkdir -p /app/uploads
-              chown -R 10001:10001 /app/uploads
-              chmod -R ug+rwX /app/uploads
+              mkdir -p /app/uploads /app/uploads/live /app/uploads/hls /app/uploads/original /app/uploads/thumbs
+              chmod 777 /app/uploads || true
+              chmod 777 /app/uploads/live || true
+              chmod 777 /app/uploads/hls || true
+              chmod 777 /app/uploads/original || true
+              chmod 777 /app/uploads/thumbs || true
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
@@ -45,8 +47,6 @@ spec:
         - name: upload-service
           image: learning-app-backend:local
           imagePullPolicy: IfNotPresent
-          ports:
-            - containerPort: 8000
           command:
             - /bin/sh
             - -c
@@ -66,6 +66,9 @@ spec:
               value: "30"
             - name: STORAGE_PATH
               value: /app/uploads
+          ports:
+            - containerPort: 8000
+              name: http
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
