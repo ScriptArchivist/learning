@@ -44,6 +44,11 @@ spec:
           ports:
             - containerPort: 3001
               name: http
+          volumeMounts:
+            - name: frontend-next-config
+              mountPath: /app/next.config.ts
+              subPath: next.config.ts
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /login
@@ -56,3 +61,7 @@ spec:
               port: 3001
             initialDelaySeconds: 40
             periodSeconds: 20
+      volumes:
+        - name: frontend-next-config
+          configMap:
+            name: frontend-next-config

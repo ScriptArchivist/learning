@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: frontend-next-config
+data:
+  next.config.ts: |
+    import type { NextConfig } from 'next';
+
+    const nextConfig: NextConfig = {
+      async rewrites() {
+        return [
+          {
+            source: '/api/identity/:path*',
+            destination: 'http://identity-service:8000/:path*',
+          },
+          {
+            source: '/api/video/:path*',
+            destination: 'http://video-api:8000/api/v1/:path*',
+          },
+          {
+            source: '/api/upload/:path*',
+            destination: 'http://upload-service:8000/api/v1/:path*',
+          },
+          {
+            source: '/api/live/:path*',
+            destination: 'http://live-api:8000/:path*',
+          },
+          {
+            source: '/origin/:path*',
+            destination: 'http://origin:80/:path*',
+          },
+        ];
+      },
+    };
+
+    export default nextConfig;
