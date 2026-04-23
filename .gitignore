@@ -66,3 +66,4 @@ uploads/
 
 
 .env*
+minikube-linux-amd64
