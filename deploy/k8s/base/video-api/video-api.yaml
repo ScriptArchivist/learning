@@ -52,17 +52,17 @@ spec:
             - name: access_token_expire_minutes
               value: "30"
             - name: PUBLIC_HOST
-              value: "192.168.49.2"
+              value: "192.168.1.12"
             - name: PUBLIC_HTTP_SCHEME
               value: "http"
             - name: PUBLIC_HTTP_PORT
-              value: "30006"
+              value: "80"
             - name: PUBLIC_RTMP_PORT
               value: "31935"
             - name: DELIVERY_MODE
               value: url
             - name: DELIVERY_PUBLIC_BASE_URL
-              value: http://192.168.49.2:30006
+              value: http://192.168.1.12
             - name: DELIVERY_BASE_URL
               value: http://origin:80
           readinessProbe:

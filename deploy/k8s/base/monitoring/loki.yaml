@@ -13,14 +13,14 @@ data:
 
     common:
       path_prefix: /loki
-      storage:
-        filesystem:
-          chunks_directory: /loki/chunks
-          rules_directory: /loki/rules
       replication_factor: 1
       ring:
         kvstore:
           store: inmemory
+      storage:
+        filesystem:
+          chunks_directory: /loki/chunks
+          rules_directory: /loki/rules
 
     schema_config:
       configs:
@@ -32,12 +32,19 @@ data:
             prefix: index_
             period: 24h
 
+    storage_config:
+      filesystem:
+        directory: /loki/chunks
+
     limits_config:
       retention_period: 168h
+      reject_old_samples: false
+      reject_old_samples_max_age: 168h
 
     compactor:
       working_directory: /loki/compactor
       retention_enabled: true
+
 ---
 apiVersion: v1
 kind: Service
@@ -51,6 +58,7 @@ spec:
     - name: http
       port: 3100
       targetPort: 3100
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -72,8 +80,8 @@ spec:
           args:
             - -config.file=/etc/loki/local-config.yaml
           ports:
-            - containerPort: 3100
-              name: http
+            - name: http
+              containerPort: 3100
           volumeMounts:
             - name: config
               mountPath: /etc/loki/local-config.yaml

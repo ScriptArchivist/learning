@@ -29,6 +29,18 @@ data:
           add_header Content-Type text/plain;
         }
 
+        location ^~ /origin/live/ {
+          rewrite ^/origin/live/(.*)$ /live/$1 break;
+        }
+
+        location ^~ /origin/hls/ {
+          rewrite ^/origin/hls/(.*)$ /hls/$1 break;
+        }
+
+        location ^~ /origin/thumb/ {
+          rewrite ^/origin/thumb/(.*)$ /thumb/$1 break;
+        }
+
         location ^~ /live/ {
           alias /app/uploads/live/;
 

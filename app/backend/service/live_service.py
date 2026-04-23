@@ -29,7 +29,7 @@ except Exception:
     class Settings:
         storage_path = "/app/uploads"
         ORIGIN_BASE_URL = "http://localhost:8080"
-        LIVE_RTMP_URL_TEMPLATE = "rtmp://localhost:1935/live/{stream_key}"
+        LIVE_RTMP_URL_TEMPLATE = "rtmp://localhost:1935/live"
         LIVE_HLS_URL_TEMPLATE = "http://localhost:8080/live/{stream_key}/master.m3u8"
 
     settings = Settings()
@@ -81,9 +81,9 @@ def _live_thumbnail_path(stream_key: str) -> Path:
 def _build_rtmp_url(stream_key: str) -> str:
     tpl = os.getenv(
         "LIVE_RTMP_URL_TEMPLATE",
-        getattr(settings, "LIVE_RTMP_URL_TEMPLATE", "rtmp://localhost:1935/live/{stream_key}"),
+        getattr(settings, "LIVE_RTMP_URL_TEMPLATE", "rtmp://localhost:1935/live"),
     )
-    return tpl.format(stream_key=stream_key)
+    return tpl
 
 
 def _build_hls_url(stream_key: str) -> str:

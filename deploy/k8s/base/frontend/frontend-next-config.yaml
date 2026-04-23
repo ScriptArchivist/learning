@@ -5,10 +5,14 @@ metadata:
 data:
   next.config.ts: |
     import type { NextConfig } from 'next';
-
+    
     const nextConfig: NextConfig = {
       async rewrites() {
         return [
+          {
+            source: '/auth/:path*',
+            destination: 'http://identity-service:8000/auth/:path*',
+          },
           {
             source: '/api/identity/:path*',
             destination: 'http://identity-service:8000/:path*',
@@ -32,5 +36,5 @@ data:
         ];
       },
     };
-
+    
     export default nextConfig;

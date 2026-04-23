@@ -75,16 +75,27 @@ data:
     INPUT_URL="rtmp://${RTMP_HOST}:${RTMP_PORT}/live/${STREAM_KEY}"
     OUT_DIR="/app/uploads/live/${STREAM_KEY}"
     MASTER="${OUT_DIR}/master.m3u8"
+    THUMB="${OUT_DIR}/thumb.jpg"
 
     echo "transcode: STREAM_KEY=${STREAM_KEY}"
     echo "transcode: INPUT_URL=${INPUT_URL}"
     echo "transcode: OUT_DIR=${OUT_DIR}"
     echo "transcode: MASTER=${MASTER}"
+    echo "transcode: THUMB=${THUMB}"
 
     mkdir -p "${OUT_DIR}"
-    rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts 2>/dev/null || true
+    rm -f "${OUT_DIR}"/*.m3u8 "${OUT_DIR}"/*.ts "${THUMB}" 2>/dev/null || true
 
     FFMPEG_PID=""
+    THUMB_PID=""
+
+    stop_thumb() {
+      if [ -n "${THUMB_PID:-}" ]; then
+        kill "${THUMB_PID}" 2>/dev/null || true
+        sleep 1
+        kill -0 "${THUMB_PID}" 2>/dev/null && kill -9 "${THUMB_PID}" 2>/dev/null || true
+      fi
+    }
 
     stop_ffmpeg() {
       if [ -n "${FFMPEG_PID:-}" ]; then
@@ -95,6 +106,7 @@ data:
     }
 
     on_term() {
+      stop_thumb
       stop_ffmpeg
       exit 0
     }
@@ -114,10 +126,10 @@ data:
         -use_wallclock_as_timestamps 1 \
         -i "${INPUT_URL}" \
         -map 0:v:0 -map 0:a:0? \
+        -vf "scale=trunc(iw/2)*2:trunc(ih/2)*2,format=yuv420p" \
         -c:v libx264 \
         -preset veryfast \
         -tune zerolatency \
-        -pix_fmt yuv420p \
         -g 48 \
         -keyint_min 48 \
         -sc_threshold 0 \
@@ -133,9 +145,27 @@ data:
         "${MASTER}" &
 
       FFMPEG_PID="$!"
-      wait "${FFMPEG_PID}"
-      RC=$?
+
+      /usr/bin/ffmpeg -hide_banner -loglevel error -y \
+        -rtmp_live live \
+        -i "${INPUT_URL}" \
+        -map 0:v:0 \
+        -vf "fps=1/5,scale=trunc(iw/2)*2:trunc(ih/2)*2" \
+        -q:v 2 \
+        -update 1 \
+        "${THUMB}" &
+
+      THUMB_PID="$!"
+
+      if wait "${FFMPEG_PID}"; then
+        RC=0
+      else
+        RC=$?
+      fi
+
       FFMPEG_PID=""
+      stop_thumb
+      THUMB_PID=""
 
       if [ -f "${MASTER}" ]; then
         echo "transcode: master playlist created for ${STREAM_KEY}" >&2
