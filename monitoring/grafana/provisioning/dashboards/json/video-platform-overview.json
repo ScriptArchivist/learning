@@ -917,7 +917,7 @@
       "targets": [
         {
           "expr": "(1 - (node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\"})) * 100",
-          "legendFormat": "{{instance}} {{mountpoint}}",
+          "legendFormat": "{{mountpoint}}",
           "refId": "A"
         }
       ],

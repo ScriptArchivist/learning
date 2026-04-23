@@ -76,7 +76,7 @@ spec:
             - name: PUBLIC_RTMP_PORT
               value: "31935"
             - name: LIVE_RTMP_URL_TEMPLATE
-              value: rtmp://192.168.1.12:31935/live
+              value: rtmp://192.168.1.12:31935/live/{stream_key}
             - name: LIVE_HLS_URL_TEMPLATE
               value: http://192.168.1.12/live/{stream_key}/master.m3u8
           volumeMounts:
