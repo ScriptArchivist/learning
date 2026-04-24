@@ -73,6 +73,8 @@ metadata:
   annotations:
     nginx.ingress.kubernetes.io/use-regex: "true"
     nginx.ingress.kubernetes.io/rewrite-target: /api/v1/$2
+    nginx.ingress.kubernetes.io/proxy-body-size: "5g"
+    nginx.ingress.kubernetes.io/proxy-request-buffering: "off"
 spec:
   ingressClassName: {{ .Values.ingress.className }}
   rules:

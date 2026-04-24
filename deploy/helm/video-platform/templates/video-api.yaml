@@ -47,20 +47,20 @@ spec:
               value: super-secret-key-change-me
             - name: access_token_expire_minutes
               value: "30"
+
             - name: PUBLIC_HOST
-              value: video-platform.local
+              value: "192.168.1.12"
             - name: PUBLIC_HTTP_SCHEME
-              value: http
+              value: "http"
             - name: PUBLIC_HTTP_PORT
-              value: "80"
-            - name: PUBLIC_RTMP_PORT
-              value: "1935"
+              value: "8088"
+
             - name: DELIVERY_MODE
               value: url
             - name: DELIVERY_PUBLIC_BASE_URL
-              value: http://video-platform.local
+              value: "http://192.168.1.12:8088"
             - name: DELIVERY_BASE_URL
-              value: http://origin:80
+              value: "http://origin:80"
           ports:
             - containerPort: 8000
               name: http
