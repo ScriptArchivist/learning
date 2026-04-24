@@ -53,12 +53,12 @@ spec:
             - name: PUBLIC_HTTP_SCHEME
               value: "http"
             - name: PUBLIC_HTTP_PORT
-              value: "8088"
+              value: ""
 
             - name: DELIVERY_MODE
               value: url
             - name: DELIVERY_PUBLIC_BASE_URL
-              value: "http://192.168.1.12:8088"
+              value: "http://192.168.1.12"
             - name: DELIVERY_BASE_URL
               value: "http://origin:80"
           ports:

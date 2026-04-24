@@ -1,0 +1,181 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    { "id": 1, "type": "row", "title": "Service Health", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 } },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Targets UP",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(up{job=~\"frontend|identity-service|upload-service|video-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq|postgres-exporter|prometheus|loki|alertmanager\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 }
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "frontend",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"frontend\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 }
+    },
+
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "identity",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"identity-service\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 }
+    },
+
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "upload",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"upload-service\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 }
+    },
+
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "video-api",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"video-api\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 }
+    },
+
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "worker",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"processing-worker\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 }
+    },
+
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "outbox",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"outbox-publisher\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 5 }
+    },
+
+    {
+      "id": 10,
+      "type": "stat",
+      "title": "consumer",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"video-events-consumer\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 5 }
+    },
+
+    {
+      "id": 11,
+      "type": "stat",
+      "title": "rabbitmq",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"rabbitmq\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 5 }
+    },
+
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "postgres",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"postgres-exporter\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 5 }
+    },
+
+    {
+      "id": 13,
+      "type": "stat",
+      "title": "prometheus",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"prometheus\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 5 }
+    },
+
+    {
+      "id": 14,
+      "type": "stat",
+      "title": "loki",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN" }, "1": { "text": "UP" } } }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } }, "overrides": [] },
+      "options": { "colorMode": "background", "graphMode": "none", "textMode": "value" },
+      "targets": [{ "expr": "max(up{job=\"loki\"})", "instant": true, "refId": "A" }],
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 5 }
+    },
+
+    { "id": 15, "type": "row", "title": "API", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 } },
+
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "API Requests",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(app_http_requests_total{service=~\"identity-service|upload-service|video-api\"}[5m]))",
+          "legendFormat": "{{service}}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 10 }
+    },
+
+    { "id": 17, "type": "row", "title": "Logs", "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 } },
+
+    {
+      "id": 18,
+      "type": "logs",
+      "title": "Application Logs",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{namespace=\"video-platform\"}",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 13, "w": 24, "x": 0, "y": 19 }
+    }
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["video-platform", "minimal", "helm"],
+  "time": { "from": "now-1h", "to": "now" },
+  "timepicker": {},
+  "timezone": "",
+  "title": "Video Platform Cloud Clean",
+  "uid": "video-platform-cloud-clean-final",
+  "version": 3
+}

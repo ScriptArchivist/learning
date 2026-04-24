@@ -1,0 +1,30 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-platform-monitoring
+  namespace: video-platform
+  annotations:
+    nginx.ingress.kubernetes.io/upstream-vhost: "video-platform.local"
+    nginx.ingress.kubernetes.io/proxy-set-headers: "video-platform/grafana-proxy-headers"
+    nginx.ingress.kubernetes.io/server-alias: "192.168.1.12"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: video-platform.local
+      http:
+        paths:
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: grafana
+                port:
+                  number: 3000
+
+          - path: /prometheus
+            pathType: Prefix
+            backend:
+              service:
+                name: prometheus
+                port:
+                  number: 9090

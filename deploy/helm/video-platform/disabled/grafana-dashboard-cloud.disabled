@@ -1,0 +1,172 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "panels": [
+
+    {
+      "type": "row",
+      "title": "Service Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
+    },
+    {
+      "type": "stat",
+      "title": "Services UP",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(up{job=~\"frontend|identity-service|upload-service|video-api|processing-worker|outbox-publisher|video-events-consumer|rabbitmq\"})",
+          "instant": true
+        }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 }
+    },
+
+    {
+      "type": "row",
+      "title": "API",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
+    },
+    {
+      "type": "timeseries",
+      "title": "API RPS",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(app_http_requests_total[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 6 }
+    },
+    {
+      "type": "timeseries",
+      "title": "API 5xx",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum by (service) (rate(app_http_requests_total{status=~\"5..\"}[5m]))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 6 }
+    },
+    {
+      "type": "timeseries",
+      "title": "API p95 latency",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum by (le, service) (rate(app_http_request_duration_seconds_bucket[5m])))",
+          "legendFormat": "{{service}}"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 6 }
+    },
+
+    {
+      "type": "row",
+      "title": "RabbitMQ",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 }
+    },
+    {
+      "type": "stat",
+      "title": "Queue Ready",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(rabbitmq_queue_messages_ready)", "instant": true }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 15 }
+    },
+    {
+      "type": "stat",
+      "title": "Queue Unacked",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(rabbitmq_queue_messages_unacked)", "instant": true }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 15 }
+    },
+
+    {
+      "type": "row",
+      "title": "Outbox",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 19 }
+    },
+    {
+      "type": "stat",
+      "title": "Outbox Backlog",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(app_outbox_backlog)", "instant": true }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 20 }
+    },
+    {
+      "type": "stat",
+      "title": "Outbox Failed",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(app_outbox_failed)", "instant": true }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 20 }
+    },
+
+    {
+      "type": "row",
+      "title": "Postgres",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 }
+    },
+    {
+      "type": "stat",
+      "title": "Connections",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum(pg_stat_activity_count)", "instant": true }
+      ],
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 25 }
+    },
+
+    {
+      "type": "row",
+      "title": "Processing",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 29 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Processing Rate",
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        {
+          "expr": "sum(rate(app_video_processing_total[5m]))",
+          "legendFormat": "processing"
+        }
+      ],
+      "gridPos": { "h": 6, "w": 12, "x": 0, "y": 30 }
+    },
+
+    {
+      "type": "row",
+      "title": "Logs",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 }
+    },
+    {
+      "type": "logs",
+      "title": "Logs (Loki)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "targets": [
+        {
+          "expr": "{namespace=\"video-platform\"}"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 37 }
+    }
+
+  ],
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["video-platform"],
+  "time": { "from": "now-1h", "to": "now" },
+  "title": "Video Platform (Clean Overview)",
+  "uid": "video-platform-clean"
+}
