@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: video-api
+  namespace: video-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: video-api
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: video-api
+  namespace: video-platform
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: video-api
+  template:
+    metadata:
+      labels:
+        app: video-api
+    spec:
+      containers:
+        - name: video-api
+          image: {{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              uvicorn src.video_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log
+          env:
+            - name: SERVICE_NAME
+              value: video-api
+            - name: database_write_url
+              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
+            - name: database_read_url
+              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
+            - name: secret_key
+              value: super-secret-key-change-me
+            - name: access_token_expire_minutes
+              value: "30"
+            - name: PUBLIC_HOST
+              value: video-platform.local
+            - name: PUBLIC_HTTP_SCHEME
+              value: http
+            - name: PUBLIC_HTTP_PORT
+              value: "80"
+            - name: PUBLIC_RTMP_PORT
+              value: "1935"
+            - name: DELIVERY_MODE
+              value: url
+            - name: DELIVERY_PUBLIC_BASE_URL
+              value: http://video-platform.local
+            - name: DELIVERY_BASE_URL
+              value: http://origin:80
+          ports:
+            - containerPort: 8000
+              name: http
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 20

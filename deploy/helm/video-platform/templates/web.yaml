@@ -1,0 +1,84 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: web
+  namespace: video-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: web
+  ports:
+    - port: 8000
+      targetPort: 8000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: video-platform
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      initContainers:
+        - name: prepare-uploads
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /app/uploads /app/uploads/live /app/uploads/hls /app/uploads/original /app/uploads/thumbs
+              chmod 777 /app/uploads || true
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+
+      containers:
+        - name: web
+          image: {{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}
+          imagePullPolicy: {{ .Values.image.backend.pullPolicy }}
+          command:
+            - /bin/sh
+            - -c
+            - |
+              uvicorn src.main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log
+          env:
+            - name: SERVICE_NAME
+              value: web
+            - name: database_write_url
+              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
+            - name: database_read_url
+              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
+            - name: REDIS_URL
+              value: redis://redis:6379/0
+            - name: RABBIT_URL
+              value: amqp://{{ .Values.rabbitmq.user }}:{{ .Values.rabbitmq.password }}@rabbitmq:5672/
+            - name: STORAGE_PATH
+              value: /app/uploads
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: {{ .Values.storage.pvcName }}
