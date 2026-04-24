@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: promtail-config
+  namespace: video-platform
+  labels:
+    app: promtail
+data:
+  promtail.yml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 9095
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: video-platform-pods
+        static_configs:
+          - targets:
+              - localhost
+            labels:
+              namespace: video-platform
+              job: video-platform-pods
+              __path__: /var/log/pods/video-platform_*/*/*.log
+
+        pipeline_stages:
+          - cri: {}
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: promtail
+  namespace: video-platform
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: promtail
+  namespace: video-platform
+  labels:
+    app: promtail
+spec:
+  selector:
+    matchLabels:
+      app: promtail
+  template:
+    metadata:
+      labels:
+        app: promtail
+    spec:
+      serviceAccountName: promtail
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.8
+          securityContext:
+            privileged: false
+          args:
+            - -config.file=/etc/promtail/promtail.yml
+          ports:
+            - name: http
+              containerPort: 9080
+            - name: grpc
+              containerPort: 9095
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: varlogpods
+              mountPath: /var/log/pods
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-config
+        - name: varlogpods
+          hostPath:
+            path: /var/log/pods
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: promtail
+  namespace: video-platform
+  labels:
+    app: promtail
+spec:
+  type: ClusterIP
+  selector:
+    app: promtail
+  ports:
+    - name: http
+      port: 9080
+      targetPort: 9080

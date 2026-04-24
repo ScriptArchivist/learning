@@ -1,0 +1,143 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-datasources
+  namespace: video-platform
+  labels:
+    app: grafana
+data:
+data:
+  datasources.yml: |
+    apiVersion: 1
+
+    deleteDatasources:
+      - name: Prometheus
+        orgId: 1
+
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus:9090/prometheus
+        isDefault: true
+        editable: true
+
+      - name: Loki
+        uid: loki
+        type: loki
+        access: proxy
+        url: http://loki:3100
+        editable: true
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboard-provider
+  namespace: video-platform
+  labels:
+    app: grafana
+data:
+  dashboards.yml: |
+    apiVersion: 1
+
+    providers:
+      - name: "video-platform-cloud"
+        orgId: 1
+        folder: "Cloud"
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /etc/grafana/dashboards
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: video-platform
+spec:
+  type: ClusterIP
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: video-platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:latest
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: admin
+
+            - name: GF_SERVER_DOMAIN
+              value: "video-platform.local"
+
+            - name: GF_SERVER_ROOT_URL
+              value: "http://video-platform.local/grafana/"
+
+            - name: GF_SERVER_SERVE_FROM_SUB_PATH
+              value: "true"
+
+            - name: GF_SECURITY_CSRF_TRUSTED_ORIGINS
+              value: "http://video-platform.local"
+
+            - name: GF_AUTH_ANONYMOUS_ENABLED
+              value: "true"
+
+            - name: GF_AUTH_ANONYMOUS_ORG_ROLE
+              value: "Admin"
+
+            - name: GF_AUTH_DISABLE_LOGIN_FORM
+              value: "true"
+
+            - name: GF_SECURITY_COOKIE_SAMESITE
+              value: "lax"
+
+            - name: GF_SECURITY_ALLOW_EMBEDDING
+              value: "true"
+          volumeMounts:
+            - name: datasources
+              mountPath: /etc/grafana/provisioning/datasources/datasources.yml
+              subPath: datasources.yml
+            - name: provider
+              mountPath: /etc/grafana/provisioning/dashboards/dashboards.yml
+              subPath: dashboards.yml
+            - name: dashboards
+              mountPath: /etc/grafana/dashboards
+      volumes:
+        - name: datasources
+          configMap:
+            name: grafana-datasources
+        - name: provider
+          configMap:
+            name: grafana-dashboard-provider
+        - name: dashboards
+          configMap:
+            name: grafana-cloud-clean-dashboard

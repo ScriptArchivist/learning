@@ -1,0 +1,49 @@
+global:
+  environment: cloud
+
+image:
+  backend:
+    repository: learning-app-backend
+    tag: local
+    pullPolicy: IfNotPresent
+
+  worker:
+    repository: learning-app-worker
+    tag: local
+    pullPolicy: IfNotPresent
+
+  frontend:
+    repository: learning-app-frontend
+    tag: local
+    pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  className: nginx
+  host: video-platform.local
+  annotations: {}
+
+postgres:
+  host: postgres-master
+  port: 5432
+  db: app
+  user: postgres
+  password: postgres
+
+rabbitmq:
+  host: rabbitmq
+  port: 5672
+  user: guest
+  password: guest
+
+redis:
+  host: redis
+  port: 6379
+
+storage:
+  pvcName: uploads-pvc

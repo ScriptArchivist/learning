@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-cloud-clean-dashboard
+  namespace: video-platform
+  labels:
+    app: grafana
+data:
+  video-platform-cloud-clean.json: |
+{{ .Files.Get "dashboards/video-platform-cloud-clean.json" | indent 4 }}
