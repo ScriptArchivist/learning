@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: processing-worker
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   type: ClusterIP
   selector:
@@ -17,7 +17,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: processing-worker
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -48,23 +48,16 @@ spec:
             - python
             - -m
             - src.worker
+          envFrom:
+            - configMapRef:
+                name: video-platform-config
+            - secretRef:
+                name: {{ .Values.secrets.appSecretName }}
           env:
             - name: SERVICE_NAME
               value: processing-worker
             - name: METRICS_PORT
               value: "9100"
-            - name: database_write_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: database_read_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: RABBIT_URL
-              value: amqp://{{ .Values.rabbitmq.user }}:{{ .Values.rabbitmq.password }}@rabbitmq:5672/
-            - name: REDIS_URL
-              value: redis://redis:6379/0
-            - name: VIDEO_LOCK_TTL_SECONDS
-              value: "3600"
-            - name: STORAGE_PATH
-              value: /app/uploads
           ports:
             - containerPort: 9100
               name: metrics

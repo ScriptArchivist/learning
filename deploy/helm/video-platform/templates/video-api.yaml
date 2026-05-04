@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: video-api
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   type: ClusterIP
   selector:
@@ -16,7 +16,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: video-api
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -36,31 +36,14 @@ spec:
             - -c
             - |
               uvicorn src.video_api_main:app --host 0.0.0.0 --port 8000 --log-config /app/logging.ini --access-log
+          envFrom:
+            - configMapRef:
+                name: video-platform-config
+            - secretRef:
+                name: {{ .Values.secrets.appSecretName }}
           env:
             - name: SERVICE_NAME
               value: video-api
-            - name: database_write_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: database_read_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: secret_key
-              value: super-secret-key-change-me
-            - name: access_token_expire_minutes
-              value: "30"
-
-            - name: PUBLIC_HOST
-              value: "192.168.1.12"
-            - name: PUBLIC_HTTP_SCHEME
-              value: "http"
-            - name: PUBLIC_HTTP_PORT
-              value: ""
-
-            - name: DELIVERY_MODE
-              value: url
-            - name: DELIVERY_PUBLIC_BASE_URL
-              value: "http://192.168.1.12"
-            - name: DELIVERY_BASE_URL
-              value: "http://origin:80"
           ports:
             - containerPort: 8000
               name: http

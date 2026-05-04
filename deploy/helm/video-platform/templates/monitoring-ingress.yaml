@@ -2,15 +2,14 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: video-platform-monitoring
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
   annotations:
-    nginx.ingress.kubernetes.io/upstream-vhost: "video-platform.local"
-    nginx.ingress.kubernetes.io/proxy-set-headers: "video-platform/grafana-proxy-headers"
-    nginx.ingress.kubernetes.io/server-alias: "192.168.1.12"
+    nginx.ingress.kubernetes.io/upstream-vhost: "{{ .Values.global.domain }}"
+    nginx.ingress.kubernetes.io/proxy-set-headers: "{{ .Values.global.namespace }}/grafana-proxy-headers"
 spec:
   ingressClassName: nginx
   rules:
-    - host: video-platform.local
+    - host: {{ .Values.global.domain }}
       http:
         paths:
           - path: /grafana

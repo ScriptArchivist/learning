@@ -2,14 +2,17 @@
 
 set -euo pipefail
 
-echo "🚀 K8S VIDEO PLATFORM SMOKE TEST START"
+echo "🚀 HELM VIDEO PLATFORM SMOKE TEST START"
 
-MINIKUBE_IP=$(minikube ip)
+MINIKUBE_IP="$(minikube ip)"
+HOST_NAME="${HOST_NAME:-video-platform.local}"
+BASE_URL="http://${MINIKUBE_IP}"
 
-WEB_BASE="http://${MINIKUBE_IP}:30000/api/v1"
-VIDEO_API_BASE="http://${MINIKUBE_IP}:30004/api/v1"
-UPLOAD_BASE="http://${MINIKUBE_IP}:30003/api/v1"
-ORIGIN_BASE="http://${MINIKUBE_IP}:30006"
+HOST_HEADER="Host: ${HOST_NAME}"
+
+WEB_BASE="${BASE_URL}/api"
+VIDEO_API_BASE="${BASE_URL}/api/video/api/v1"
+UPLOAD_BASE="${BASE_URL}/api/upload/api/v1"
 
 FILE="${1:-/home/vadim/"Документы"/"Проектные документы"/video5204062485010747752.mp4}"
 
@@ -22,14 +25,12 @@ FILENAME="$(basename "$FILE")"
 FILESIZE="$(stat -c%s "$FILE")"
 
 echo "📍 MINIKUBE_IP=$MINIKUBE_IP"
+echo "🌐 HOST=$HOST_NAME"
 echo "📦 FILE=$FILE ($FILESIZE bytes)"
 
-# -------------------------------
-# 1. Ensure user exists
-# -------------------------------
 echo "👤 Ensuring test user exists..."
 
-kubectl exec postgres-master-0 -- env PGPASSWORD=postgres \
+kubectl -n video-platform exec postgres-master-0 -- env PGPASSWORD=postgres \
 psql -U postgres -d app -c "
 insert into users (id, username, email, hashed_password, is_active, role, storage_limit, used_storage)
 values (1, 'vadim', 'vadim@example.com', 'debug', true, 'user', 10737418240, 0)
@@ -38,12 +39,9 @@ on conflict (id) do nothing;
 
 echo "✅ User ready"
 
-# -------------------------------
-# 2. Generate JWT
-# -------------------------------
 echo "🔐 Generating JWT..."
 
-TOKEN="$(kubectl exec deploy/web -- python3 -c '
+TOKEN="$(kubectl -n video-platform exec deploy/web -- python3 -c '
 import base64,hashlib,hmac,json,time
 from src.config import settings
 
@@ -74,15 +72,13 @@ AUTH_HEADER="Authorization: Bearer $TOKEN"
 
 echo "✅ JWT ready"
 
-# -------------------------------
-# 3. Create video
-# -------------------------------
 echo "🎬 Creating video..."
 
-CREATE_RESP="$(curl -sS -X POST "$VIDEO_API_BASE/videos" \
+CREATE_RESP="$(curl -sS -X POST "${VIDEO_API_BASE}/videos" \
+  -H "$HOST_HEADER" \
   -H "$AUTH_HEADER" \
   -H "Content-Type: application/json" \
-  -d '{"title":"k8s smoke upload","description":"k8s test","visibility":"private"}')"
+  -d '{"title":"helm smoke upload","description":"helm ingress test","visibility":"private"}')"
 
 echo "$CREATE_RESP" | jq .
 
@@ -92,13 +88,11 @@ VIDEO_ID="$(echo "$CREATE_RESP" | jq -r '.id')"
 
 echo "✅ VIDEO_ID=$VIDEO_ID"
 
-# -------------------------------
-# 4. Init upload
-# -------------------------------
 echo "📤 Init upload..."
 
 INIT_RAW="$(curl -sS -i -X POST \
-  "$UPLOAD_BASE/uploads/init?video_id=${VIDEO_ID}&filename=${FILENAME}" \
+  "${UPLOAD_BASE}/uploads/init?video_id=${VIDEO_ID}&filename=${FILENAME}" \
+  -H "$HOST_HEADER" \
   -H "$AUTH_HEADER")"
 
 INIT_BODY="$(echo "$INIT_RAW" | tr -d '\r' | sed -n '/^$/,$p' | tail -n +2)"
@@ -111,35 +105,31 @@ UPLOAD_ID="$(echo "$INIT_BODY" | jq -r '.upload_id')"
 
 echo "✅ UPLOAD_ID=$UPLOAD_ID"
 
-# -------------------------------
-# 5. Upload file
-# -------------------------------
 echo "📦 Uploading file..."
 
-curl -sS -X POST "$UPLOAD_BASE/uploads/${UPLOAD_ID}/file" \
+curl -sS -X POST "${UPLOAD_BASE}/uploads/${UPLOAD_ID}/file" \
+  -H "$HOST_HEADER" \
   -F "file=@$FILE" >/dev/null
 
 echo "✅ File uploaded"
 
-# -------------------------------
-# 6. Complete upload
-# -------------------------------
 echo "🏁 Completing upload..."
 
 curl -sS -X POST \
-  "$UPLOAD_BASE/uploads/${UPLOAD_ID}/complete?size=${FILESIZE}&content_type=video/mp4" \
+  "${UPLOAD_BASE}/uploads/${UPLOAD_ID}/complete?size=${FILESIZE}&content_type=video/mp4" \
+  -H "$HOST_HEADER" \
   -H "$AUTH_HEADER" | jq .
 
 echo "✅ Upload completed"
 
-# -------------------------------
-# 7. Wait for processing
-# -------------------------------
 echo "⏳ Waiting for processing..."
+
+STATUS=""
 
 for i in $(seq 1 60); do
   STATUS="$(curl -sS \
     "${VIDEO_API_BASE}/videos/${VIDEO_ID}?consistent=1" \
+    -H "$HOST_HEADER" \
     -H "$AUTH_HEADER" | jq -r '.status')"
 
   echo "[$i/60] status=$STATUS"
@@ -152,13 +142,16 @@ for i in $(seq 1 60); do
   sleep 2
 done
 
-# -------------------------------
-# 8. Get playback
-# -------------------------------
+if [ "$STATUS" != "ready" ]; then
+  echo "❌ Processing timeout"
+  exit 1
+fi
+
 echo "🎥 Checking playback..."
 
 PLAYBACK_JSON="$(curl -sS \
   "${VIDEO_API_BASE}/videos/${VIDEO_ID}/playback?consistent=1" \
+  -H "$HOST_HEADER" \
   -H "$AUTH_HEADER")"
 
 echo "$PLAYBACK_JSON" | jq .
@@ -169,18 +162,30 @@ HLS_URL="$(echo "$PLAYBACK_JSON" | jq -r '.hls_url // empty')"
 
 echo "🎯 HLS_URL=$HLS_URL"
 
-# -------------------------------
-# 9. Validate HLS
-# -------------------------------
+if echo "$HLS_URL" | grep -q "192.168.1.12"; then
+  echo "❌ HLS URL still contains old hardcoded IP"
+  exit 1
+fi
+
+HLS_PATH="$(echo "$HLS_URL" | sed -E 's#^https?://[^/]+##')"
+
 echo "📺 Validating HLS..."
+echo "🔗 HLS_PATH=$HLS_PATH"
 
-HTTP_CODE=$(curl -sS -o /tmp/k8s_master.m3u8 -w '%{http_code}' "$HLS_URL")
+HTTP_CODE="$(curl -sS \
+  -H "$HOST_HEADER" \
+  -o /tmp/helm_master.m3u8 \
+  -w '%{http_code}' \
+  "${BASE_URL}${HLS_PATH}")"
 
-[ "$HTTP_CODE" == "200" ] || { echo "❌ HLS not доступен"; exit 1; }
+[ "$HTTP_CODE" == "200" ] || {
+  echo "❌ HLS not доступен, HTTP_CODE=$HTTP_CODE"
+  exit 1
+}
 
-grep -q "#EXTM3U" /tmp/k8s_master.m3u8 \
+grep -q "#EXTM3U" /tmp/helm_master.m3u8 \
   && echo "✅ HLS playlist OK" \
   || { echo "❌ Invalid HLS"; exit 1; }
 
 echo ""
-echo "🎉 SMOKE TEST PASSED SUCCESSFULLY"
+echo "🎉 HELM SMOKE TEST PASSED SUCCESSFULLY"
