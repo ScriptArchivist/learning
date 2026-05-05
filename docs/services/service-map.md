@@ -1,31 +1,192 @@
 # Service Map
 
-## Текущий full local profile
+## Назначение
 
-На текущем этапе полный локальный контур проекта запускается через:
+Документ описывает **полный набор сервисов системы** и их роль в runtime.
 
-`deploy/docker/docker-compose.ci.yml`
+Используется как:
 
-Ниже перечислены сервисы, входящие в полный локальный профиль.
+* карта системы для разработки;
+* карта для DevOps/SRE понимания;
+* основа для отладки и эксплуатации.
 
-| Сервис | Назначение | Обязателен для full local | Комментарий |
-|--------|------------|---------------------------|-------------|
-| db-master | основная PostgreSQL БД | да | primary database |
-| db-replica | read replica PostgreSQL | да | используется для read/write split |
-| rabbitmq | очередь сообщений | да | нужна для event-driven flow |
-| redis | кеш / блокировки | да | используется worker'ом |
-| migrate | применение миграций Alembic | да | one-shot сервис перед запуском приложения |
-| identity-service | сервис аутентификации | да | auth / identity |
-| web | основной API | да | основная точка входа |
-| live-api | API для live-сценариев | да | live endpoints |
-| video-api | API для чтения/получения видео | да | video read API |
-| upload-service | загрузка файлов | да | e2e upload flow |
-| video-events-consumer | consumer событий | да | обработка video events |
-| ingest | RTMP ingest / live intake | да | live video ingest |
-| processing-worker | обработка видео | да | ffmpeg / processing |
-| outbox-publisher | публикация outbox-событий | да | event publishing |
-| dlq-replayer | переотправка DLQ | да | вспомогательный recovery-сервис |
-| live-cleaner | очистка live TTL | да | housekeeping для live |
-| origin | nginx раздача видео/медиа | да | delivery layer |
-| prometheus | сбор метрик | да | monitoring |
-| grafana | визуализация метрик | да | dashboards |
+---
+
+## Full local profile
+
+Полный локальный контур запускается через:
+
+```bash
+docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.ci.yml up -d --build
+```
+
+Это **production-like окружение**, включающее:
+
+* все API сервисы;
+* очередь;
+* БД;
+* workers;
+* ingest;
+* monitoring;
+* вспомогательные сервисы.
+
+---
+
+## Категории сервисов
+
+### API layer
+
+| Сервис           | Назначение                        |
+| ---------------- | --------------------------------- |
+| identity-service | аутентификация                    |
+| web              | основной API (compatibility слой) |
+| video-api        | API для чтения видео и playback   |
+| upload-service   | загрузка файлов                   |
+| live-api         | управление live streaming         |
+
+👉 Отвечают за входящий HTTP-трафик и контракт с клиентами.
+
+---
+
+### Processing / background
+
+| Сервис                | Назначение                          |
+| --------------------- | ----------------------------------- |
+| processing-worker     | обработка видео (ffmpeg)            |
+| video-events-consumer | обработка доменных событий          |
+| outbox-publisher      | публикация событий из БД            |
+| live-cleaner          | очистка live TTL                    |
+| dlq-replayer          | повторная отправка сообщений из DLQ |
+
+👉 Отвечают за асинхронную обработку и надёжность системы.
+
+---
+
+### Infrastructure
+
+| Сервис     | Назначение             |
+| ---------- | ---------------------- |
+| db-master  | основная PostgreSQL БД |
+| db-replica | read replica           |
+| rabbitmq   | очередь сообщений      |
+| redis      | cache / locks          |
+| migrate    | применение миграций    |
+
+👉 Базовый слой хранения и коммуникации.
+
+---
+
+### Delivery layer
+
+| Сервис | Назначение                |
+| ------ | ------------------------- |
+| origin | nginx раздача HLS и медиа |
+| ingest | RTMP ingest для live      |
+
+👉 Отвечают за доставку контента пользователю.
+
+---
+
+### Observability
+
+| Сервис       | Назначение   |
+| ------------ | ------------ |
+| prometheus   | сбор метрик  |
+| grafana      | визуализация |
+| loki         | логирование  |
+| promtail     | сбор логов   |
+| alertmanager | алерты       |
+
+👉 Обеспечивают наблюдаемость системы.
+
+---
+
+## Полный список сервисов
+
+| Сервис                | Назначение         | Обязателен |
+| --------------------- | ------------------ | ---------- |
+| db-master             | PostgreSQL primary | да         |
+| db-replica            | PostgreSQL replica | да         |
+| rabbitmq              | очередь            | да         |
+| redis                 | cache/lock         | да         |
+| migrate               | миграции           | да         |
+| identity-service      | auth               | да         |
+| web                   | основной API       | да         |
+| live-api              | live API           | да         |
+| video-api             | video API          | да         |
+| upload-service        | upload flow        | да         |
+| video-events-consumer | event processing   | да         |
+| ingest                | RTMP ingest        | да         |
+| processing-worker     | video processing   | да         |
+| outbox-publisher      | event publishing   | да         |
+| dlq-replayer          | DLQ recovery       | да         |
+| live-cleaner          | housekeeping       | да         |
+| origin                | media delivery     | да         |
+| prometheus            | metrics            | да         |
+| grafana               | dashboards         | да         |
+
+---
+
+## Как это работает вместе
+
+### Upload pipeline
+
+```text
+upload-service
+  -> PostgreSQL
+  -> outbox_events
+  -> outbox-publisher
+  -> RabbitMQ
+  -> processing-worker
+  -> storage
+  -> video-events-consumer
+  -> video-api
+```
+
+---
+
+### Live pipeline
+
+```text
+live-api
+  -> ingest (RTMP)
+  -> nginx/origin
+  -> HLS playback
+```
+
+---
+
+## Надёжность
+
+Система построена с учётом отказов:
+
+* at-least-once delivery;
+* retry через RabbitMQ + DLQ;
+* outbox pattern;
+* lock TTL для worker;
+* идемпотентные операции;
+* разделение sync и async логики.
+
+---
+
+## Масштабирование
+
+Архитектура допускает масштабирование:
+
+* API сервисы — горизонтально;
+* workers — независимо;
+* RabbitMQ — буфер нагрузки;
+* storage — может быть вынесен в S3;
+* Kubernetes deployment через Helm.
+
+---
+
+## Вывод
+
+Service map отражает:
+
+* реальный runtime системы;
+* разделение ответственности;
+* event-driven архитектуру;
+* готовность к облачному деплою;
+* ориентацию на DevOps/SRE практики.

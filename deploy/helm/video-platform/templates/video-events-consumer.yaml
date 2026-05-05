@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: video-events-consumer
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   type: ClusterIP
   selector:
@@ -17,7 +17,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: video-events-consumer
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -36,17 +36,16 @@ spec:
             - python
             - -m
             - src.video_events_consumer
+          envFrom:
+            - configMapRef:
+                name: video-platform-config
+            - secretRef:
+                name: {{ .Values.secrets.appSecretName }}
           env:
             - name: SERVICE_NAME
               value: video-events-consumer
             - name: METRICS_PORT
               value: "9100"
-            - name: database_write_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: database_read_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: RABBIT_URL
-              value: amqp://{{ .Values.rabbitmq.user }}:{{ .Values.rabbitmq.password }}@rabbitmq:5672/
           ports:
             - containerPort: 9100
               name: metrics

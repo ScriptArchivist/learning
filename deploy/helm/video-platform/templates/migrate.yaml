@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: migrate
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   backoffLimit: 3
   template:
@@ -20,7 +20,7 @@ spec:
             - -c
             - |
               echo "Waiting for postgres..."
-              until nc -z postgres-master 5432; do
+              until nc -z {{ .Values.postgres.host }} {{ .Values.postgres.port }}; do
                 sleep 2
               done
               echo "Postgres is ready"
@@ -35,8 +35,8 @@ spec:
             - |
               echo "Running migrations..." &&
               alembic upgrade head
-          env:
-            - name: database_write_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
-            - name: database_read_url
-              value: postgresql+psycopg://{{ .Values.postgres.user }}:{{ .Values.postgres.password }}@postgres-master:5432/{{ .Values.postgres.db }}
+          envFrom:
+            - configMapRef:
+                name: video-platform-config
+            - secretRef:
+                name: {{ .Values.secrets.appSecretName }}

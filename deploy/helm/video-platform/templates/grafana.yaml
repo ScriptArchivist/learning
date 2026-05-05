@@ -2,10 +2,9 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-datasources
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
   labels:
     app: grafana
-data:
 data:
   datasources.yml: |
     apiVersion: 1
@@ -35,7 +34,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: grafana-dashboard-provider
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
   labels:
     app: grafana
 data:
@@ -57,7 +56,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: grafana
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   type: ClusterIP
   selector:
@@ -72,7 +71,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: grafana
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -85,37 +84,41 @@ spec:
     spec:
       containers:
         - name: grafana
-          image: grafana/grafana:latest
+          image: {{ .Values.image.grafana.repository }}:{{ .Values.image.grafana.tag }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - name: http
               containerPort: 3000
           env:
             - name: GF_SECURITY_ADMIN_USER
-              value: admin
+              value: {{ .Values.grafana.adminUser | quote }}
 
             - name: GF_SECURITY_ADMIN_PASSWORD
-              value: admin
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.secrets.grafanaSecretName }}
+                  key: GF_SECURITY_ADMIN_PASSWORD
 
             - name: GF_SERVER_DOMAIN
-              value: "video-platform.local"
+              value: {{ .Values.grafana.domain | quote }}
 
             - name: GF_SERVER_ROOT_URL
-              value: "http://video-platform.local/grafana/"
+              value: {{ .Values.grafana.rootUrl | quote }}
 
             - name: GF_SERVER_SERVE_FROM_SUB_PATH
               value: "true"
 
             - name: GF_SECURITY_CSRF_TRUSTED_ORIGINS
-              value: "http://video-platform.local"
+              value: {{ .Values.grafana.csrfTrustedOrigins | quote }}
 
             - name: GF_AUTH_ANONYMOUS_ENABLED
-              value: "true"
+              value: {{ .Values.grafana.anonymous.enabled | quote }}
 
             - name: GF_AUTH_ANONYMOUS_ORG_ROLE
-              value: "Admin"
+              value: {{ .Values.grafana.anonymous.orgRole | quote }}
 
             - name: GF_AUTH_DISABLE_LOGIN_FORM
-              value: "true"
+              value: {{ .Values.grafana.loginForm.disabled | quote }}
 
             - name: GF_SECURITY_COOKIE_SAMESITE
               value: "lax"

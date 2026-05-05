@@ -1,198 +1,111 @@
-src/ # service entrypoints
-service/ # бизнес логика
-web/ # HTTP API handlers
-db/ # database models
-model/ # domain models
-identity/ # authentication service
-ingest/ # streaming ingest + transcoding
-alembic/ # database migrations
-docs/ # project documentation
-tests/ # tests and scripts
+# Project documentation
 
+Документация по backend-видеоплатформе, архитектуре, окружениям, событиям и мониторингу.
 
 ---
 
-# Services
+## Архитектура
 
-| Service | Description |
-|------|-------------|
-| video-api | API для работы с видео |
-| upload-service | загрузка видео |
-| live-service | управление live streams |
-| worker | background processing |
-| outbox publisher | event publishing |
-| video events consumer | обработка событий |
+* `architecture.md`
+* `architecture/demo-profile.md`
+* `services/service-map.md`
 
 ---
 
-# Quick Start
+## Окружения
 
-## Requirements
-
-- Docker
-- Docker Compose
-- Python 3.11+
+* `environments/dev.md`
+* `environments/stage.md`
+* `environments/vps-helm-deploy.md`
 
 ---
 
-## Run locally
+## Runtime и события
+
+* `events.md`
+* `monitoring.md`
+
+---
+
+## API
+
+* `api/`
+
+---
+
+## Сервисы
+
+* identity-service
+* web
+* video-api
+* upload-service
+* live-api
+* processing-worker
+* outbox-publisher
+* video-events-consumer
+* dlq-replayer
+* live-cleaner
+
+---
+
+## Local full-profile
 
 ```bash
-docker compose up --build
+docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.ci.yml up -d --build
+```
 
-Запустятся:
+---
 
-API сервисы
+## Cloud demo-profile
 
-PostgreSQL
+* Kubernetes
+* Helm
+* упрощённый набор сервисов
 
-ingest nginx
+---
 
-workers
+## Video pipeline
 
-monitoring
+```text
+upload → outbox → RabbitMQ → worker → ffmpeg → storage → playback
+```
 
-Environment
+---
 
-Основные переменные .env:
+## Events
 
-DATABASE_URL=
-JWT_SECRET=
-STORAGE_BUCKET=
-BROKER_URL=
-Database
+Система использует event-driven подход:
 
-Используется PostgreSQL.
+* upload.completed
+* video.process.requested
+* video.process.completed
+* video.process.failed
 
-Миграции управляются через Alembic.
+Подробнее:
 
-Apply migrations
-alembic upgrade head
-Create migration
-alembic revision --autogenerate -m "message"
-API
-
-Основные API:
-
-API	Docs
-Auth	docs/api/auth.md
-Video	docs/api/video_api.md
-Upload	docs/api/upload_service.md
-Live	docs/api/live_api.md
-Video Pipeline
-
-Видео проходит следующие стадии:
-
-upload
-   ↓
-queued
-   ↓
-processing
-   ↓
-ready
-
-Pipeline:
-
-upload -> storage -> event -> worker -> ffmpeg -> storage -> ready
-Live Streaming
-
-Live поток обрабатывается через nginx-rtmp ingest.
-
-Scripts:
-
-ingest/scripts/on_publish.sh
-ingest/scripts/on_publish_done.sh
-
-Транскодинг:
-
-ingest/transcode.sh
-Events
-
-Используется event-driven architecture.
-
-Основные события:
-
-video_uploaded
-
-video_processing_started
-
-video_ready
-
-video_failed
-
-Документация:
-
+```text
 docs/events.md
-Monitoring
+```
 
-Метрики:
+---
 
-Prometheus
+## Monitoring
 
-Конфиги:
+* Prometheus
+* Grafana
+* Loki
+* Alertmanager
 
-prometheus.yml
-alerts.yml
+Подробнее:
 
-Метрики сервисов:
+```text
+docs/monitoring.md
+```
 
-src/metrics.py
-Testing
+---
 
-Unit tests:
+## CI/CD
 
-pytest
-
-Smoke tests:
-
-tests/live_smoke.sh
-tests/e2e_video_pipeline.sh
-CI/CD
-
-GitLab CI pipeline:
-
+```text
 .gitlab-ci.yml
-
-Stages:
-
-lint
-test
-build
-deploy
-
-CI использует:
-
-docker-compose.ci.yml
-Workers
-
-Фоновые задачи:
-
-src/worker.py
-src/outbox_publisher.py
-src/video_events_consumer.py
-Useful Scripts
-
-Replay DLQ:
-
-src/dlq_replayer.py
-
-TTL cleaner:
-
-src/live_ttl_cleaner.py
-Documentation
-
-Полная документация:
-
-docs/
-
-Основные файлы:
-
-architecture.md
-
-runtime.md
-
-events.md
-
-api_frontend.md
-
-flutter_integration.md
+```
