@@ -5,8 +5,10 @@ __pycache__/
 *.so
 .Python
 *.pyc
+
+# Virtualenv
 venv/
-.env/
+.venv/
 
 # IDE
 .vscode/
@@ -24,12 +26,13 @@ venv/
 ehthumbs.db
 Thumbs.db
 
-# Логи и временные файлы
+# Logs and temporary files
 *.log
 *.tmp
 *.temp
+nohup.out
 
-# PyCache
+# Test / cache
 .pytest_cache/
 .mypy_cache/
 .coverage
@@ -54,15 +57,27 @@ wheels/
 *.egg
 MANIFEST
 
-# Конфигурация с секретами
+# Secrets / local config
 .env
-.env.local
+.env.*
+!.env.example
 .secrets/
-uploads/
 
-# Базы данных (если есть)
+# Runtime data / uploads
+uploads/
+app/backend/uploads/
+deploy/edge/run/
+
+# Databases
 *.db
 *.sqlite
+*.sqlite3
 
+# Node / frontend
+node_modules/
+.next/
 
-.env*
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup

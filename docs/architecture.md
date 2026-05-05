@@ -1,307 +1,348 @@
 # Architecture
 
-## Назначение проекта
+## Общее описание
 
-Проект представляет собой backend-видеоплатформу на FastAPI с поддержкой:
+Проект представляет собой **backend-видеоплатформу** на FastAPI с микросервисной архитектурой.
 
-- VOD upload
-- асинхронной обработки видео
-- HLS playback
-- live streaming
-- event-driven взаимодействия между сервисами
-- мониторинга через Prometheus/Grafana
+Система поддерживает:
 
-Основная цель текущего этапа — предоставить стабильный backend-контракт для клиентского приложения, в первую очередь для Flutter.
+* VOD upload (загрузка видео);
+* асинхронную обработку видео;
+* HLS playback;
+* live streaming;
+* event-driven взаимодействие между сервисами;
+* monitoring через Prometheus/Grafana/Loki.
+
+Проект реализован как **production-like система**, пригодная для локального и облачного запуска.
 
 ---
 
-## High-level схема
+## High-level архитектура
 
 ```text
-Clients (Flutter / Web)
+Clients (Web / Flutter)
         |
-        | HTTP
+        | HTTP API
         v
-+-------------------+
-|  API services     |
-|-------------------|
-| identity-service  |
-| video-api         |
-| upload-service    |
-| live-api          |
-| web (legacy/compat)
-+-------------------+
++-------------------------+
+|      API Layer          |
+|-------------------------|
+| identity-service        |
+| video-api               |
+| upload-service          |
+| live-api                |
+| web (compatibility)     |
++-------------------------+
         |
-        +--------------------+
-        |                    |
-        v                    v
-   PostgreSQL           RabbitMQ / Redis
-(master + replica)          |
-                             v
-                    background services
-                    - processing-worker
-                    - outbox-publisher
-                    - video-events-consumer
-                    - live-cleaner
-
+        +----------------------+
+        |                      |
+        v                      v
+   PostgreSQL            RabbitMQ / Redis
+   (master / replica)         |
+                              v
+                      Background services
+                      - processing-worker
+                      - outbox-publisher
+                      - video-events-consumer
+                      - live-cleaner
         |
         v
    origin / nginx
    HLS / static delivery
+```
 
+---
 
-Сервисы
-1. identity-service
+## Основные сервисы
 
-Отвечает за аутентификацию.
+### identity-service
 
-Сейчас реализовано:
+Отвечает за аутентификацию пользователей.
 
-POST /auth/login
+* проверка логина/пароля
+* выдача токенов
 
-Назначение:
+---
 
-проверить логин/пароль
+### video-api
 
-вернуть токен/данные авторизации (в фактическом формате сервиса)
+Основной API для клиента.
 
-2. video-api
+Функции:
 
-Сервис для клиента Flutter.
-
-Основные задачи:
-
-создание записи видео
-
-получение списка видео
-
-получение карточки видео
-
-получение playback-данных
-
-Основные endpoints:
-
-POST /videos
-
-GET /videos
-
-GET /videos/{id}
-
-GET /videos/{id}/playback
+* создание видео
+* получение списка видео
+* получение карточки видео
+* получение playback-данных
 
 Важно:
 
-video-api не принимает сам бинарный файл
+* не принимает файлы
+* не выполняет обработку
+* не раздаёт HLS напрямую
 
-video-api не делает ffmpeg-обработку
+---
 
-video-api не раздаёт HLS-сегменты
+### upload-service
 
-3. upload-service
+Сервис загрузки файлов.
 
-Отдельный сервис загрузки файлов.
+Функции:
 
-Основные задачи:
+* init upload
+* загрузка файла
+* завершение upload
+* публикация события
 
-инициализировать upload
+---
 
-принять файл
-
-завершить upload и опубликовать событие
-
-Основные endpoints:
-
-POST /uploads/init
-
-POST /uploads/{upload_id}/file
-
-POST /uploads/{upload_id}/complete
-
-4. live-api
+### live-api
 
 Сервис live streaming.
 
-Основные задачи:
+Функции:
 
-создать live session
+* создание live session
+* получение состояния
+* остановка session
 
-получить live session
+---
 
-остановить live session
+### web (compatibility layer)
 
-Основные endpoints:
+Legacy-слой для:
 
-POST /live/sessions
+* старых endpoint’ов
+* тестов
+* обратной совместимости
 
-GET /live/sessions/{stream_key}
+---
 
-DELETE /live/sessions/{session_id}
+## Background сервисы
 
-5. web (legacy / compatibility layer)
+### processing-worker
 
-web содержит совместимые endpoints из монолитного слоя.
+* обработка видео через ffmpeg
+* формирование HLS
 
-Он важен для:
+---
 
-старых тестов
+### outbox-publisher
 
-локального режима
+* публикация событий из PostgreSQL (outbox)
+* обеспечивает надёжную доставку в RabbitMQ
 
-обратной совместимости
+---
 
-Пример:
+### video-events-consumer
 
-POST /videos/upload/prepare
+* обработка доменных событий
+* обновление статусов видео
 
-POST /videos/{id}/upload/direct
+---
 
-POST /videos/{id}/upload/complete
+### live-cleaner
 
-share endpoints
+* очистка live-сессий по TTL
 
-Для нового Flutter-клиента рекомендуется ориентироваться в первую очередь на:
+---
 
-identity-service
+## Основные потоки
 
-video-api
+### 1. VOD upload flow
 
-upload-service
+```text
+Client
+  -> identity-service (login)
+  -> video-api (create video)
+  -> upload-service (init/upload/complete)
+  -> outbox -> RabbitMQ
+  -> processing-worker
+  -> video-events-consumer
+  -> video-api (status/playback)
+```
 
-live-api
+---
 
-А compatibility endpoints использовать только если это отдельно согласовано.
+### 2. Playback flow
 
-Основные потоки
-1. VOD upload flow
-Flutter
-  -> identity-service: login
-  -> video-api: create metadata or create/list videos
-  -> upload-service: init upload
-  -> upload-service: upload file
-  -> upload-service: complete upload
-  -> processing-worker: async processing
-  -> video-events-consumer: status update
-  -> video-api: poll status / playback
-2. VOD playback flow
-Flutter
-  -> video-api: GET /videos/{id}
-  -> video-api: GET /videos/{id}/playback
-  -> origin/nginx: HLS playlist + segments
-3. Live flow
-Flutter
-  -> live-api: create session
-  -> ingest: RTMP ingest by stream_key
-  -> origin/nginx: HLS live playback
-  -> live-api: stop session
-Хранилище и данные
-PostgreSQL
+```text
+Client
+  -> video-api
+  -> origin/nginx (HLS)
+```
 
-Используется для:
+---
 
-пользователей
+### 3. Live flow
 
-видео
+```text
+Client
+  -> live-api (create session)
+  -> ingest (RTMP)
+  -> nginx (HLS)
+  -> live-api (stop session)
+```
 
-uploads
+---
 
-live sessions
+## Хранилище и данные
 
-outbox events
-
-processing metadata
-
-Схема чтения/записи:
-
-master — write
-
-replica — read
-
-RabbitMQ
+### PostgreSQL
 
 Используется для:
 
-событий upload/process/live
+* пользователей
+* видео
+* uploads
+* live sessions
+* outbox events
+* processing metadata
 
-асинхронной обработки видео
+Режим:
 
-Redis
+* master — запись
+* replica — чтение
+
+---
+
+### RabbitMQ
 
 Используется для:
 
-вспомогательных механизмов
+* доменных событий
+* асинхронной обработки
+* video pipeline
 
-lock / cache / временных состояний
+---
 
-Storage
+### Redis
 
-Сейчас используется local storage.
+Используется для:
 
-В нём хранятся:
+* lock
+* cache
+* временные состояния
 
-оригиналы файлов
+---
 
-HLS output
+### Storage
 
-thumbnails
+Текущая реализация использует абстракцию storage provider.
 
-live HLS output
+Поддерживаются:
 
-Переход на S3 planned, но не является обязательным для Flutter MVP в домашней сети.
+* локальное файловое хранилище (используется сейчас);
+* S3-совместимое хранилище (планируется для cloud deployment).
 
-Monitoring
+В локальном профиле используются:
 
-Добавлены:
+* оригиналы видео;
+* HLS output;
+* thumbnails;
+* live output.
 
-Prometheus
+В cloud/demo-профиле предполагается переход на:
 
-Grafana
+* S3-compatible storage (например, Yandex Object Storage / AWS S3);
+* генерацию presigned URL для upload/download;
+* отделение compute (workers) от storage.
 
-/metrics endpoints
+Это позволяет:
 
-метрики API / worker / DB / outbox / live
+* масштабировать обработку;
+* упростить Kubernetes deployment;
+* избежать привязки к локальному volume.
 
-Это важно для эксплуатации и диагностики, но Flutter-клиент напрямую с monitoring не взаимодействует.
+---
 
-Что важно для Flutter
+## Event-driven архитектура
 
-Flutter-клиент должен быть построен так, чтобы не зависеть от внутренней docker-сети.
+Система построена вокруг событий:
 
-Рекомендуемый подход:
+* upload завершён
+* processing запрошен
+* processing завершён / failed
 
-настраиваемый baseUrl
+Особенности:
 
-отдельный конфиг окружений:
+* transactional outbox
+* at-least-once delivery
+* retry/backoff
+* идемпотентные consumer-ы
 
-local emulator
+Подробнее:
 
-home LAN
+```text
+docs/events.md
+```
 
-public URL
+---
 
-клиент использует только публичные HTTP endpoints
+## Monitoring
 
-клиент не должен знать адреса контейнеров вроде video-api:8000
+В систему встроен observability-стек:
 
-Вывод
+* Prometheus — метрики
+* Grafana — визуализация
+* Loki — логи
+* Alertmanager — алерты
 
-На текущем этапе backend уже позволяет реализовать Android Flutter MVP для сценариев:
+Собираются:
 
-login
+* HTTP метрики
+* worker метрики
+* очередь
+* БД
+* инфраструктура
 
-список видео
+---
 
-карточка видео
+## Особенности реализации
 
-upload файла
+### Transactional outbox
 
-ожидание обработки
+* события сначала пишутся в БД
+* затем публикуются
+* нет потери событий
 
-playback HLS
+---
 
-start/stop live
+### Idempotency
 
-playback live HLS
+* upload через `client_upload_id`
+* processing через lock token
+* защита от повторной доставки
 
+---
 
+### Correlation
 
+Используются:
 
+* `X-Request-ID`
+* `X-Trace-Id`
+
+Они проходят через:
+
+* HTTP layer
+* outbox
+* RabbitMQ
+* worker
+
+---
+
+## Вывод
+
+Система представляет собой:
+
+* микросервисную backend-платформу
+* с асинхронной обработкой
+* event-driven архитектурой
+* production-like поведением
+* полной поддержкой DevOps/SRE практик
+
+и может использоваться как:
+
+* основа для реального продукта
+* демонстрация инженерного уровня
