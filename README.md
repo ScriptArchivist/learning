@@ -1,116 +1,195 @@
 # Video Platform DevOps Project
 
-Production-like видеоплатформа на FastAPI с микросервисной backend-архитектурой, асинхронной обработкой видео, очередями, Kubernetes/Helm-деплоем и observability-стеком.
+Production-oriented video platform built with FastAPI microservices, asynchronous video processing, event-driven architecture, Kubernetes/Helm deployment and a full observability stack.
 
-Проект является **реально работающей системой**, поддерживающей web (Next.js) и mobile (Flutter) клиентов, и используется как демонстрация DevOps/SRE-подхода к разработке backend-платформы.
-
----
-
-## Цель проекта
-
-Показать полный цикл разработки и эксплуатации backend-системы:
-
-* FastAPI backend с разделением на сервисы;
-* загрузка и обработка видео;
-* event-driven взаимодействие через RabbitMQ;
-* transactional outbox pattern;
-* идемпотентность и retry-механизмы;
-* Docker / Docker Compose для локального полного стенда;
-* Kubernetes / Helm для cloud demo-profile;
-* Prometheus / Grafana / Loki / Alertmanager для observability;
-* GitLab CI/CD pipeline для проверки, сборки и security scan.
+The project is a реально работающая distributed system supporting both web (Next.js) and mobile (Flutter) clients and is used as a demonstration of DevOps/SRE-oriented backend platform engineering.
 
 ---
 
-## Что это за проект
+## Project Overview
 
-Это не просто pet-проект, а **production-like система**, в которой:
+The goal of the project is to demonstrate a complete backend platform lifecycle:
 
-* реализован полный video pipeline (upload → processing → playback);
-* система может быть развернута локально полностью;
-* есть облачный demo-профиль через Kubernetes/Helm;
-* есть наблюдаемость, retry-механизмы и обработка ошибок;
-* клиенты (web + mobile) могут реально работать с API.
-
----
-
-## Cloud-ready design
-
-Архитектура проекта изначально спроектирована с учётом облачного деплоя и масштабирования.
-
-### Stateless сервисы
-
-* API и worker сервисы не хранят состояние локально;
-* состояние вынесено в PostgreSQL / RabbitMQ / Redis;
-* позволяет масштабировать сервисы горизонтально.
+- FastAPI microservice architecture;
+- video upload and processing pipeline;
+- event-driven communication through RabbitMQ;
+- transactional outbox pattern;
+- idempotency and retry mechanisms;
+- Docker / Docker Compose local full stand;
+- Kubernetes / Helm cloud deployment profile;
+- Prometheus / Grafana / Loki / Alertmanager observability stack;
+- GitLab CI/CD pipelines with automated validation and security scanning.
 
 ---
 
-### Storage abstraction
+## Key Features
 
-* используется абстракция storage provider;
-* текущая реализация — локальное файловое хранилище;
-* для cloud deployment предусмотрен переход на S3-compatible storage:
-
-  * AWS S3 / Yandex Object Storage;
-  * presigned URL для upload/download;
-  * отделение compute от storage.
-
----
-
-### Asynchronous processing
-
-* heavy задачи вынесены в background workers;
-* RabbitMQ используется как буфер нагрузки;
-* система устойчива к всплескам трафика.
+- Event-driven video processing
+- Transactional outbox pattern
+- Idempotent upload pipeline
+- RTMP → HLS live streaming
+- Distributed background workers
+- Kubernetes + Helm deployment
+- PostgreSQL replication
+- Retry / DLQ handling
+- Centralized monitoring and logging
+- Production-like backend architecture
 
 ---
 
-### Reliability patterns
+## Tech Stack
 
-В проекте реализованы ключевые паттерны надёжности:
+### Backend
 
-* transactional outbox;
-* at-least-once delivery;
-* retry/backoff;
-* DLQ (dead-letter queue);
-* идемпотентные consumer-ы;
-* lock + TTL для предотвращения гонок.
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- RabbitMQ
+- Redis
+
+### Infrastructure
+
+- Docker
+- Docker Compose
+- Kubernetes
+- Helm
+- Minikube
+- NGINX
+
+### Streaming
+
+- RTMP
+- HLS
+- FFmpeg
+- nginx-rtmp
+
+### Observability
+
+- Prometheus
+- Grafana
+- Loki
+- Alertmanager
+
+### Frontend / Clients
+
+- Next.js
+- Flutter
+
+---
+
+# Architecture
+
+## Full Local Kubernetes Environment
+
+Production-like local Kubernetes stand with:
+
+- FastAPI microservices
+- event-driven processing
+- RTMP → HLS live streaming
+- RabbitMQ event bus
+- PostgreSQL replication
+- centralized observability stack
+
+[![Local Kubernetes Architecture](docs/architecture/Complete_K8S_Stend.png)](docs/architecture/Complete_K8S_Stend.png)
+
+Architecture source:
+- `docs/architecture/Local_K8S_stend.drawio`
+
+### Legend
+
+- Blue — Clients & Entry Points
+- Green — API Services
+- Orange — Background Workers
+- Purple — Streaming Services
+- Yellow — Infrastructure
+- Red — Monitoring & Observability
+
+---
+
+## Cloud-ready Design
+
+The architecture is designed with cloud deployment and horizontal scalability in mind.
+
+---
+
+### Stateless Services
+
+- API and worker services do not store state locally;
+- state is externalized into PostgreSQL / RabbitMQ / Redis;
+- services can be scaled independently.
+
+---
+
+### Storage Abstraction
+
+The platform uses a storage provider abstraction layer.
+
+Current implementation:
+- local filesystem storage.
+
+Planned cloud implementation:
+- AWS S3;
+- Yandex Object Storage;
+- S3-compatible object storage;
+- presigned upload/download URLs.
+
+This allows compute and storage layers to be separated.
+
+---
+
+### Asynchronous Processing
+
+- heavy workloads are processed by background workers;
+- RabbitMQ acts as an event bus and load buffer;
+- the system is resilient to traffic spikes and retries.
+
+---
+
+### Reliability Patterns
+
+Implemented reliability patterns include:
+
+- transactional outbox;
+- at-least-once delivery;
+- retry/backoff;
+- dead-letter queues (DLQ);
+- idempotent consumers;
+- distributed locks with TTL.
 
 ---
 
 ### Observability
 
-* Prometheus — метрики;
-* Grafana — dashboards;
-* Loki — централизованные логи;
-* Alertmanager — алерты;
-* request/trace correlation через headers.
+- Prometheus metrics;
+- Grafana dashboards;
+- Loki centralized logging;
+- Alertmanager alerts;
+- request correlation through tracing headers.
 
 ---
 
 ### Kubernetes-ready
 
-* deployment через Helm chart;
-* разделение environments (dev / stage);
-* поддержка cloud demo-profile;
-* возможность масштабирования сервисов независимо.
+- Helm-based deployment;
+- multiple environments;
+- cloud demo-profile;
+- independently scalable services.
 
 ---
 
-### Design goal
+### Design Goals
 
-Система спроектирована так, чтобы:
+The platform is designed to:
 
-* легко переноситься в облако;
-* масштабироваться по компонентам;
-* выдерживать повторную доставку сообщений;
-* быть наблюдаемой и диагностируемой;
-* демонстрировать production-подход к backend разработке.
+- be cloud portable;
+- scale by components;
+- tolerate duplicate message delivery;
+- remain observable and diagnosable;
+- demonstrate production-oriented backend engineering practices.
 
-___
+---
 
-## Основной video pipeline
+## Main Video Pipeline
 
 ```text
 upload-service
@@ -127,79 +206,122 @@ upload-service
 
 ---
 
-## Архитектурные особенности
+## Architectural Highlights
 
-### Transactional outbox
+### Transactional Outbox
 
-* событие сначала пишется в БД;
-* затем публикуется в RabbitMQ;
-* при ошибках используется retry/backoff;
-* нет потери событий между БД и брокером.
+- events are first persisted into PostgreSQL;
+- outbox-publisher asynchronously publishes them into RabbitMQ;
+- retry/backoff mechanisms prevent message loss;
+- database and message broker consistency is preserved.
+
+---
 
 ### Idempotency
 
-* upload flow через `client_upload_id`;
-* processing через lock token + TTL;
-* защита от повторной доставки сообщений;
-* атомарные переходы состояний (`READY`, `FAILED`).
+- upload flow uses `client_upload_id`;
+- processing uses lock tokens with TTL;
+- consumers tolerate repeated message delivery;
+- state transitions are atomic (`READY`, `FAILED`).
 
-### Observability
+---
 
-* Prometheus метрики;
-* Grafana dashboards;
-* Loki для логов;
-* correlation через `X-Request-ID` и `X-Trace-Id`.
+### Event-driven Processing
+
+The platform uses asynchronous communication between services:
+
+```text
+upload-service
+    ↓
+PostgreSQL + outbox_events
+    ↓
+outbox-publisher
+    ↓
+RabbitMQ
+    ↓
+processing-worker
+    ↓
+video-events-consumer
+    ↓
+video-api
+```
 
 ---
 
 ## Environments
 
-### Full local profile
+### Full Local Profile
+
+Complete local environment with all services enabled.
 
 ```bash
-docker-compose --env-file deploy/docker/.env.dev -f deploy/docker/docker-compose.ci.yml up -d --build
+docker-compose \
+  --env-file deploy/docker/.env.dev \
+  -f deploy/docker/docker-compose.ci.yml \
+  up -d --build
 ```
 
-### Cloud demo-profile
+---
 
-* Kubernetes + Helm
-* минимальный набор сервисов
-* упрощённая демонстрация системы
+### Cloud Demo Profile
+
+Cloud-oriented reduced environment:
+
+- Kubernetes + Helm
+- reduced service set
+- simplified deployment profile
+- optimized resource usage
 
 ---
 
 ## Kubernetes / Helm
 
-Chart:
+Helm chart location:
 
 ```text
 deploy/helm/video-platform
+```
+
+Local Kubernetes manifests:
+
+```text
+deploy/k8s/base
 ```
 
 ---
 
 ## CI/CD
 
-Pipeline в GitLab:
+GitLab pipeline configuration:
 
 ```text
 .gitlab-ci.yml
 ```
 
-Stages:
+Pipeline stages include:
 
-* test
-* build
-* security (Trivy)
+- lint
+- test
+- build
+- container image build
+- security scan (Trivy)
+- deployment validation
 
 ---
 
-## Monitoring
+## Monitoring & Observability
 
-* Prometheus
-* Grafana
-* Loki
-* Alertmanager
+### Monitoring Stack
+
+- Prometheus
+- Grafana
+- Loki
+- Alertmanager
+- node-exporter
+- cAdvisor
+- postgres-exporter
+
+Documentation:
 
 ```text
 docs/monitoring.md
@@ -207,43 +329,71 @@ docs/monitoring.md
 
 ---
 
-## Project structure
+## Project Structure
 
 ```text
-app/backend/
+app/
+ ├── backend/              # FastAPI microservices
+ ├── frontend/             # Next.js frontend
+ └── mobile/               # Flutter client
+
 deploy/
-docs/
+ ├── docker/               # Docker Compose environments
+ ├── helm/                 # Helm charts
+ └── k8s/                  # Kubernetes manifests
+
 monitoring/
-infra/
+ ├── prometheus/
+ ├── grafana/
+ ├── loki/
+ └── alertmanager/
+
+docs/
+ ├── architecture/
+ ├── services/
+ └── environments/
 ```
 
 ---
 
 ## Documentation
 
-* `docs/architecture.md`
-* `docs/services/service-map.md`
-* `docs/events.md`
-* `docs/monitoring.md`
+- `docs/architecture.md`
+- `docs/services/service-map.md`
+- `docs/events.md`
+- `docs/monitoring.md`
 
 ---
 
-## Status
+## Current Status
 
-Project status: active portfolio project.
+Implemented:
 
-The platform is already working locally as a full production-like system:
+- full local Kubernetes stand;
+- distributed FastAPI microservices;
+- end-to-end video pipeline;
+- RTMP → HLS live streaming;
+- asynchronous event-driven processing;
+- PostgreSQL replication;
+- observability stack;
+- Docker and Kubernetes environments.
 
-* full microservice architecture;
-* end-to-end video pipeline (upload → processing → playback);
-* event-driven processing with RabbitMQ;
-* observability with Prometheus/Grafana/Loki.
+In progress:
 
-Cloud deployment is currently in progress:
+- cloud Helm deployment;
+- S3-compatible storage backend;
+- deployment automation improvements;
+- production deployment hardening.
 
-* Kubernetes (Helm-based deployment);
-* S3-compatible storage for media;
-* simplified cloud demo-profile.
+---
 
-The goal of the project is to demonstrate DevOps/SRE practices applied to a real backend system.
+## Design Purpose
 
+The project is intended to demonstrate:
+
+- DevOps/SRE engineering practices;
+- distributed backend architecture;
+- asynchronous processing patterns;
+- observability and diagnostics;
+- Kubernetes and Helm deployment workflows;
+- production-oriented system design.
