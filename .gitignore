@@ -77,6 +77,14 @@ deploy/edge/run/
 node_modules/
 .next/
 
+# Secrets / local config
+.env
+.env.*
+!.env.example
+
+# Local binaries
+minikube-linux-amd64
+
 # Terraform
 .terraform/
 *.tfstate

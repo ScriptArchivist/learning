@@ -9,6 +9,8 @@ include:
 
 trivy_scan:
   stage: security
-  image: aquasec/trivy:latest
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
   script:
     - trivy fs --exit-code 1 --severity HIGH,CRITICAL .
