@@ -1,39 +1,39 @@
 # Video Platform DevOps Project
 
-Production-oriented video platform built with FastAPI microservices, asynchronous video processing, event-driven architecture, Kubernetes/Helm deployment and a full observability stack.
+Production-oriented видеоплатформа на FastAPI с микросервисной backend-архитектурой, асинхронной обработкой видео, event-driven взаимодействием, Kubernetes/Helm-деплоем и полноценным observability-стеком.
 
-The project is a реально работающая distributed system supporting both web (Next.js) and mobile (Flutter) clients and is used as a demonstration of DevOps/SRE-oriented backend platform engineering.
+Проект представляет собой реально работающую distributed system с поддержкой web (Next.js) и mobile (Flutter) клиентов и используется как демонстрация DevOps/SRE-подхода к проектированию backend-платформ.
 
 ---
 
-## Project Overview
+## Обзор проекта
 
-The goal of the project is to demonstrate a complete backend platform lifecycle:
+Цель проекта — показать полный цикл разработки и эксплуатации backend-платформы:
 
-- FastAPI microservice architecture;
-- video upload and processing pipeline;
-- event-driven communication through RabbitMQ;
+- FastAPI микросервисная архитектура;
+- upload → processing → playback video pipeline;
+- event-driven взаимодействие через RabbitMQ;
 - transactional outbox pattern;
-- idempotency and retry mechanisms;
-- Docker / Docker Compose local full stand;
+- идемпотентность и retry-механизмы;
+- Docker / Docker Compose локальный full stand;
 - Kubernetes / Helm cloud deployment profile;
 - Prometheus / Grafana / Loki / Alertmanager observability stack;
-- GitLab CI/CD pipelines with automated validation and security scanning.
+- GitLab CI/CD pipeline с автоматической проверкой и security scan.
 
 ---
 
-## Key Features
+## Ключевые возможности
 
-- Event-driven video processing
+- Event-driven обработка видео
 - Transactional outbox pattern
-- Idempotent upload pipeline
+- Идемпотентный upload pipeline
 - RTMP → HLS live streaming
 - Distributed background workers
 - Kubernetes + Helm deployment
 - PostgreSQL replication
 - Retry / DLQ handling
-- Centralized monitoring and logging
-- Production-like backend architecture
+- Централизованный monitoring и logging
+- Production-oriented backend architecture
 
 ---
 
@@ -77,13 +77,13 @@ The goal of the project is to demonstrate a complete backend platform lifecycle:
 
 ---
 
-# Architecture
+# Архитектура
 
 ## Full Local Kubernetes Environment
 
-Production-like local Kubernetes stand with:
+Production-like локальный Kubernetes-стенд с:
 
-- FastAPI microservices
+- FastAPI микросервисами
 - event-driven processing
 - RTMP → HLS live streaming
 - RabbitMQ event bus
@@ -92,69 +92,67 @@ Production-like local Kubernetes stand with:
 
 [![Local Kubernetes Architecture](docs/architecture/Complete_K8S_Stend.png)](docs/architecture/Complete_K8S_Stend.png)
 
-Architecture source:
+Исходник схемы:
 - `docs/architecture/Local_K8S_stend.drawio`
 
-### Legend
+### Цветовая схема
 
 - Blue — Clients & Entry Points
 - Green — API Services
-- Orange — Background Workers
+- Gray — Background Workers
 - Purple — Streaming Services
-- Yellow — Infrastructure
-- Red — Monitoring & Observability
+- Yellow — Infrastructure & Storage
+- Orange — Monitoring & Observability
 
 ---
 
-## Cloud-ready Design
+## Cloud-ready архитектура
 
-The architecture is designed with cloud deployment and horizontal scalability in mind.
-
----
-
-### Stateless Services
-
-- API and worker services do not store state locally;
-- state is externalized into PostgreSQL / RabbitMQ / Redis;
-- services can be scaled independently.
+Архитектура проекта изначально проектировалась с учётом cloud deployment и горизонтального масштабирования.
 
 ---
 
-### Storage Abstraction
+### Stateless сервисы
 
-The platform uses a storage provider abstraction layer.
+- API и worker-сервисы не хранят состояние локально;
+- состояние вынесено в PostgreSQL / RabbitMQ / Redis;
+- сервисы могут масштабироваться независимо друг от друга.
 
-Current implementation:
-- local filesystem storage.
+---
 
-Planned cloud implementation:
-- AWS S3;
-- Yandex Object Storage;
+### Storage abstraction
+
+Платформа использует abstraction layer для storage provider.
+
+Текущая реализация:
+- локальное файловое хранилище.
+
+Планируемая cloud-реализация:
 - S3-compatible object storage;
-- presigned upload/download URLs.
-
-This allows compute and storage layers to be separated.
-
----
-
-### Asynchronous Processing
-
-- heavy workloads are processed by background workers;
-- RabbitMQ acts as an event bus and load buffer;
-- the system is resilient to traffic spikes and retries.
+- Selectel Object Storage;
+- presigned upload/download URL;
+- разделение compute и storage слоёв.
 
 ---
 
-### Reliability Patterns
+### Asynchronous processing
 
-Implemented reliability patterns include:
+- тяжёлые задачи вынесены в background workers;
+- RabbitMQ используется как event bus и buffer нагрузки;
+- система устойчива к всплескам трафика и retry.
+
+---
+
+### Reliability patterns
+
+В проекте реализованы:
 
 - transactional outbox;
 - at-least-once delivery;
 - retry/backoff;
-- dead-letter queues (DLQ);
-- idempotent consumers;
-- distributed locks with TTL.
+- dead-letter queue (DLQ);
+- идемпотентные consumer-ы;
+- distributed lock + TTL.
 
 ---
 
@@ -164,32 +162,32 @@ Implemented reliability patterns include:
 - Grafana dashboards;
 - Loki centralized logging;
 - Alertmanager alerts;
-- request correlation through tracing headers.
+- request correlation через tracing headers.
 
 ---
 
 ### Kubernetes-ready
 
 - Helm-based deployment;
-- multiple environments;
+- разделение environments;
 - cloud demo-profile;
-- independently scalable services.
+- независимо масштабируемые сервисы.
 
 ---
 
-### Design Goals
+### Цели архитектуры
 
-The platform is designed to:
+Система проектируется так, чтобы:
 
-- be cloud portable;
-- scale by components;
-- tolerate duplicate message delivery;
-- remain observable and diagnosable;
-- demonstrate production-oriented backend engineering practices.
+- быть переносимой в облако;
+- масштабироваться по компонентам;
+- выдерживать повторную доставку сообщений;
+- оставаться наблюдаемой и диагностируемой;
+- демонстрировать production-oriented backend engineering practices.
 
 ---
 
-## Main Video Pipeline
+## Основной video pipeline
 
 ```text
 upload-service
@@ -206,29 +204,29 @@ upload-service
 
 ---
 
-## Architectural Highlights
+## Архитектурные особенности
 
 ### Transactional Outbox
 
-- events are first persisted into PostgreSQL;
-- outbox-publisher asynchronously publishes them into RabbitMQ;
-- retry/backoff mechanisms prevent message loss;
-- database and message broker consistency is preserved.
+- события сначала сохраняются в PostgreSQL;
+- outbox-publisher асинхронно публикует их в RabbitMQ;
+- retry/backoff предотвращают потерю сообщений;
+- сохраняется консистентность между БД и брокером.
 
 ---
 
 ### Idempotency
 
-- upload flow uses `client_upload_id`;
-- processing uses lock tokens with TTL;
-- consumers tolerate repeated message delivery;
-- state transitions are atomic (`READY`, `FAILED`).
+- upload flow использует `client_upload_id`;
+- processing использует lock token + TTL;
+- consumer-ы устойчивы к повторной доставке;
+- переходы состояний атомарны (`READY`, `FAILED`).
 
 ---
 
-### Event-driven Processing
+### Event-driven processing
 
-The platform uses asynchronous communication between services:
+Платформа использует асинхронное взаимодействие между сервисами:
 
 ```text
 upload-service
@@ -252,7 +250,7 @@ video-api
 
 ### Full Local Profile
 
-Complete local environment with all services enabled.
+Полный локальный стенд со всеми сервисами.
 
 ```bash
 docker-compose \
@@ -265,18 +263,18 @@ docker-compose \
 
 ### Cloud Demo Profile
 
-Cloud-oriented reduced environment:
+Облачный упрощённый профиль:
 
 - Kubernetes + Helm
 - reduced service set
-- simplified deployment profile
-- optimized resource usage
+- упрощённый deployment profile
+- оптимизированное потребление ресурсов
 
 ---
 
 ## Kubernetes / Helm
 
-Helm chart location:
+Helm chart:
 
 ```text
 deploy/helm/video-platform
@@ -292,13 +290,13 @@ deploy/k8s/base
 
 ## CI/CD
 
-GitLab pipeline configuration:
+GitLab pipeline:
 
 ```text
 .gitlab-ci.yml
 ```
 
-Pipeline stages include:
+Pipeline stages:
 
 - lint
 - test
@@ -321,7 +319,7 @@ Pipeline stages include:
 - cAdvisor
 - postgres-exporter
 
-Documentation:
+Документация:
 
 ```text
 docs/monitoring.md
@@ -329,7 +327,7 @@ docs/monitoring.md
 
 ---
 
-## Project Structure
+## Структура проекта
 
 ```text
 app/
@@ -367,7 +365,7 @@ docs/
 
 ## Current Status
 
-Implemented:
+Реализовано:
 
 - full local Kubernetes stand;
 - distributed FastAPI microservices;
@@ -376,9 +374,9 @@ Implemented:
 - asynchronous event-driven processing;
 - PostgreSQL replication;
 - observability stack;
-- Docker and Kubernetes environments.
+- Docker и Kubernetes environments.
 
-In progress:
+В процессе:
 
 - cloud Helm deployment;
 - S3-compatible storage backend;
@@ -387,13 +385,13 @@ In progress:
 
 ---
 
-## Design Purpose
+## Назначение проекта
 
-The project is intended to demonstrate:
+Проект предназначен для демонстрации:
 
 - DevOps/SRE engineering practices;
 - distributed backend architecture;
 - asynchronous processing patterns;
-- observability and diagnostics;
-- Kubernetes and Helm deployment workflows;
+- observability и diagnostics;
+- Kubernetes и Helm deployment workflows;
 - production-oriented system design.
