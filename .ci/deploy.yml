@@ -11,6 +11,8 @@ deploy-vps-helm:
     - mkdir -p ~/.kube
     - echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
     - chmod 600 ~/.kube/config
+    - kubectl config get-contexts
+    - kubectl config use-context default
     - kubectl config current-context
     - kubectl get nodes
   script:
