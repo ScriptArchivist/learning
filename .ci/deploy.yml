@@ -15,6 +15,18 @@ deploy-vps-helm:
     - kubectl get nodes
   script:
     - |
+      kubectl create namespace "$KUBE_NAMESPACE" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      kubectl -n "$KUBE_NAMESPACE" create secret docker-registry gitlab-registry-secret \
+        - kubectl -n "$KUBE_NAMESPACE" get secret gitlab-registry-secret
+        --docker-server="$CI_REGISTRY" \
+        --docker-username="$REGISTRY_PULL_USER" \
+        --docker-password="$REGISTRY_PULL_TOKEN" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
       helm upgrade --install "$HELM_RELEASE" deploy/helm/video-platform \
         --namespace "$KUBE_NAMESPACE" \
         --create-namespace \
@@ -37,7 +49,6 @@ deploy-vps-helm:
         --set image.backend.tag="$CI_COMMIT_SHORT_SHA" \
         --set image.worker.repository="$CI_REGISTRY_IMAGE/worker" \
         --set image.worker.tag="$CI_COMMIT_SHORT_SHA" \
-        --atomic \
         --timeout 10m
 
     - kubectl -n "$KUBE_NAMESPACE" get pods
