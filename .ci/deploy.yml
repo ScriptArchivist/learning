@@ -23,10 +23,35 @@ deploy-vps-helm:
         sleep 5
       done
 
+    - kubectl create namespace "$KUBE_NAMESPACE"
+
+    - |
+      kubectl -n "$KUBE_NAMESPACE" create secret generic video-platform-app-secret \
+        --from-literal=secret_key="$JWT_SECRET" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      kubectl -n "$KUBE_NAMESPACE" create secret generic postgres-secret \
+        --from-literal=postgres-password="$POSTGRES_PASSWORD" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      kubectl -n "$KUBE_NAMESPACE" create secret generic rabbitmq-secret \
+        --from-literal=rabbitmq-password="$RABBITMQ_PASSWORD" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - |
+      kubectl -n "$KUBE_NAMESPACE" create secret generic grafana-secret \
+        --from-literal=admin-password="$GRAFANA_ADMIN_PASSWORD" \
+        --dry-run=client -o yaml | kubectl apply -f -
+
+    - kubectl label namespace "$KUBE_NAMESPACE" app.kubernetes.io/managed-by=Helm --overwrite
+    - kubectl annotate namespace "$KUBE_NAMESPACE" meta.helm.sh/release-name="$HELM_RELEASE" --overwrite
+    - kubectl annotate namespace "$KUBE_NAMESPACE" meta.helm.sh/release-namespace="$KUBE_NAMESPACE" --overwrite
+
     - |
       helm upgrade --install "$HELM_RELEASE" deploy/helm/video-platform \
         --namespace "$KUBE_NAMESPACE" \
-        --create-namespace \
         --values deploy/helm/values-prod.yaml \
         --set global.namespace="$KUBE_NAMESPACE" \
         --set global.domain="$PROD_DOMAIN" \
@@ -34,11 +59,7 @@ deploy-vps-helm:
         --set global.mediaBaseUrl="http://$PROD_DOMAIN" \
         --set ingress.host="$PROD_DOMAIN" \
         --set ingress.tls.enabled=false \
-        --set secrets.create=true \
-        --set secrets.jwtSecret="$JWT_SECRET" \
-        --set secrets.postgresPassword="$POSTGRES_PASSWORD" \
-        --set secrets.rabbitmqPassword="$RABBITMQ_PASSWORD" \
-        --set secrets.grafanaAdminPassword="$GRAFANA_ADMIN_PASSWORD" \
+        --set secrets.create=false \
         --set grafana.domain="$PROD_DOMAIN" \
         --set grafana.rootUrl="http://$PROD_DOMAIN/grafana/" \
         --set grafana.csrfTrustedOrigins="http://$PROD_DOMAIN" \
