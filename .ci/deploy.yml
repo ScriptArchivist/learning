@@ -64,6 +64,7 @@ deploy-vps-helm:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "feature/deploy"'
 
 smoke-vps-helm:
   stage: smoke
@@ -75,3 +76,4 @@ smoke-vps-helm:
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "feature/deploy"'
