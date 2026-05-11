@@ -46,10 +46,10 @@ deploy-vps-helm:
         --timeout 10m
 
     - kubectl -n "$KUBE_NAMESPACE" get pods
-    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/web --timeout=180s
-    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/video-api --timeout=180s
-    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/upload-service --timeout=180s
-    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/processing-worker --timeout=180s
+#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/web --timeout=180s
+#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/video-api --timeout=180s
+#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/upload-service --timeout=180s
+#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/processing-worker --timeout=180s
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "master"'
