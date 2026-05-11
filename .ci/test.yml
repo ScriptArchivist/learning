@@ -1,6 +1,8 @@
 run-tests:
   stage: test
-  image: alpine:latest
-  script: echo "test"
+  image: python:3.11-slim
+  script:
+    - python --version
+    - echo "Tests placeholder: backend tests will be extended after deploy pipeline is stable"
   rules:
-    - if: '$CI_COMMIT_BRANCH !~ /^(main|master)$/'
+    - if: '$CI_COMMIT_BRANCH'

@@ -1,102 +1,26 @@
-# .ci/build.yml
-build-docker-image:
+.build_template:
   stage: build
-  image: docker:latest
+  image: docker:27
   services:
-    - docker:dind
+    - name: docker:27-dind
+      command: ["--tls=false"]
   variables:
     DOCKER_TLS_CERTDIR: ""
-    # Используем Deploy Token переменные
-    REGISTRY_URL: "registry.gitlab.com"
-    REGISTRY_USER: "$GITLAB_DEPLOY_TOKEN_USER"
-    REGISTRY_TOKEN: "$GITLAB_DEPLOY_TOKEN"
-    REGISTRY_IMAGE: "$REGISTRY_URL/$CI_PROJECT_PATH"
-
+    DOCKER_DRIVER: overlay2
   before_script:
-    - |
-      echo "=== Настройка аутентификации ==="
-      echo ""
-      
-      # Проверяем наличие переменных
-      echo "Проверка переменных:"
-      echo "1. REGISTRY_USER: ${REGISTRY_USER:-НЕ УСТАНОВЛЕН}"
-      echo "2. REGISTRY_TOKEN: ${REGISTRY_TOKEN:+(установлен)}"
-      
-      if [ -z "$REGISTRY_USER" ] || [ -z "$REGISTRY_TOKEN" ]; then
-        echo ""
-        echo "❌ ОШИБКА: Не установлены переменные!"
-        echo ""
-        echo "ДЕЙСТВИЯ:"
-        echo "1. Settings → Repository → Deploy tokens"
-        echo "2. Создайте токен с scopes: read_registry, write_registry"
-        echo "3. Settings → CI/CD → Variables"
-        echo "   Добавьте переменные:"
-        echo "   - GITLAB_DEPLOY_TOKEN_USER = [username из токена]"
-        echo "   - GITLAB_DEPLOY_TOKEN = [token]"
-        exit 1
-      fi
-      
-      # Логинимся
-      echo ""
-      echo "Логинимся в GitLab Container Registry..."
-      echo "$REGISTRY_TOKEN" | docker login -u "$REGISTRY_USER" --password-stdin "$REGISTRY_URL"
-      
-      if [ $? -eq 0 ]; then
-        echo "✅ Успешный вход в $REGISTRY_URL"
-      else
-        echo "❌ Ошибка входа"
-        echo "   Проверьте:"
-        echo "   - Токен не истек"
-        echo "   - Правильный username"
-        exit 1
-      fi
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
 
+build-backend-image:
+  extends: .build_template
   script:
-    - |
-      echo ""
-      echo "=== Тестируем доступ к Registry ==="
-      
-      # 1. Тестовый образ
-      echo "1. Тестовый образ..."
-      docker pull alpine:latest
-      docker tag alpine:latest "$REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID"
-      
-      echo "   Пробуем пуш..."
-      if docker push "$REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID" 2>&1 | tail -5; then
-        echo "   ✅ Тестовый пуш успешен"
-        docker rmi "$REGISTRY_IMAGE:test-push-$CI_PIPELINE_ID"
-      else
-        echo "   ❌ Тестовый пуш не удался"
-        exit 1
-      fi
-      
-      # 2. Основной образ
-      echo ""
-      echo "2. Собираем основной образ..."
-      docker build -t "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" .
-      
-      echo ""
-      echo "3. Добавляем тег latest..."
-      docker tag "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA" "$REGISTRY_IMAGE:latest"
-      
-      # 3. Пуш основного образа
-      echo ""
-      echo "4. Пушим основной образ..."
-      docker push "$REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA"
-      
-      echo ""
-      echo "5. Пушим тег latest..."
-      docker push "$REGISTRY_IMAGE:latest"
-      
-      echo ""
-      echo "✅ Все образы успешно запушены!"
+    - docker build -f app/backend/Dockerfile -t "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE/backend:$CI_COMMIT_SHORT_SHA"
 
-  after_script:
-    - |
-      echo ""
-      echo "=== Завершение ==="
-      echo "Registry: $REGISTRY_URL"
-      echo "Project: $CI_PROJECT_PATH"
-
-  only:
-    - master
+build-worker-image:
+  extends: .build_template
+  script:
+    - docker build -f app/backend/Dockerfile.worker -t "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA" .
+    - docker push "$CI_REGISTRY_IMAGE/worker:$CI_COMMIT_SHORT_SHA"

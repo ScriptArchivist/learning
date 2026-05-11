@@ -1,0 +1,9 @@
+trivy-fs-scan:
+  stage: security
+  image:
+    name: aquasec/trivy:latest
+    entrypoint: [""]
+  script:
+    - trivy fs --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed .
+  rules:
+    - if: '$CI_COMMIT_BRANCH'
