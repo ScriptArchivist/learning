@@ -18,6 +18,7 @@ deploy-vps-helm:
 
     - kubectl -n "$KUBE_NAMESPACE" create secret docker-registry gitlab-registry-secret --docker-server="$CI_REGISTRY" --docker-username="$REGISTRY_PULL_USER" --docker-password="$REGISTRY_PULL_TOKEN" --dry-run=client -o yaml | kubectl apply -f -
     - kubectl -n "$KUBE_NAMESPACE" get secret gitlab-registry-secret
+    - kubectl -n "$KUBE_NAMESPACE" patch serviceaccount default -p '{"imagePullSecrets":[{"name":"gitlab-registry-secret"}]}'
 
     - |
       helm upgrade --install "$HELM_RELEASE" deploy/helm/video-platform \
