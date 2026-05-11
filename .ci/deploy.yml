@@ -17,6 +17,9 @@ deploy-vps-helm:
     - kubectl get nodes
   script:
     - kubectl create namespace "$KUBE_NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+    - kubectl label namespace "$KUBE_NAMESPACE" app.kubernetes.io/managed-by=Helm --overwrite
+    - kubectl annotate namespace "$KUBE_NAMESPACE" meta.helm.sh/release-name="$HELM_RELEASE" --overwrite
+    - kubectl annotate namespace "$KUBE_NAMESPACE" meta.helm.sh/release-namespace="$KUBE_NAMESPACE" --overwrite
 
     - |
       kubectl -n "$KUBE_NAMESPACE" create secret generic video-platform-app-secret \
@@ -42,7 +45,6 @@ deploy-vps-helm:
       helm upgrade --install "$HELM_RELEASE" deploy/helm/video-platform \
         --namespace "$KUBE_NAMESPACE" \
         --values deploy/helm/values-prod.yaml \
-        --set namespace.create=false \
         --set global.namespace="$KUBE_NAMESPACE" \
         --set global.domain="$PROD_DOMAIN" \
         --set global.publicBaseUrl="http://$PROD_DOMAIN" \
