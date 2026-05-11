@@ -42,6 +42,7 @@ deploy-vps-helm:
       helm upgrade --install "$HELM_RELEASE" deploy/helm/video-platform \
         --namespace "$KUBE_NAMESPACE" \
         --values deploy/helm/values-prod.yaml \
+        --set namespace.create=false \
         --set global.namespace="$KUBE_NAMESPACE" \
         --set global.domain="$PROD_DOMAIN" \
         --set global.publicBaseUrl="http://$PROD_DOMAIN" \
@@ -72,14 +73,7 @@ smoke-vps-helm:
   stage: smoke
   image: alpine:3.20
   before_script:
-    - apk add --no-cache kubectl bash coreutils
-    - mkdir -p ~/.kube
-    - echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
-    - chmod 600 ~/.kube/config
-    - kubectl config get-contexts
-    - kubectl config use-context default
-    - kubectl config current-context
-    - kubectl get nodes
+    - apk add --no-cache curl
   script:
     - curl -fsS "http://$PROD_DOMAIN/health"
   rules:
