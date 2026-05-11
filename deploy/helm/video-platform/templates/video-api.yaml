@@ -27,6 +27,9 @@ spec:
       labels:
         app: video-api
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+
       containers:
         - name: video-api
           image: {{ .Values.image.backend.repository }}:{{ .Values.image.backend.tag }}

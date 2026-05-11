@@ -28,6 +28,9 @@ spec:
       labels:
         app: processing-worker
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+
       initContainers:
         - name: prepare-uploads
           image: busybox:1.36
@@ -40,6 +43,7 @@ spec:
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
+
       containers:
         - name: processing-worker
           image: {{ .Values.image.worker.repository }}:{{ .Values.image.worker.tag }}
@@ -64,6 +68,7 @@ spec:
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
+
       volumes:
         - name: uploads
           persistentVolumeClaim:

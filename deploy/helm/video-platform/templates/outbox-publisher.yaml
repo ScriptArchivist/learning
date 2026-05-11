@@ -28,6 +28,9 @@ spec:
       labels:
         app: outbox-publisher
     spec:
+      imagePullSecrets:
+        - name: gitlab-registry-secret
+
       containers:
         - name: outbox-publisher
           image: {{ .Values.image.worker.repository }}:{{ .Values.image.worker.tag }}
