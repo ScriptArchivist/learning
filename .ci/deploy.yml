@@ -20,6 +20,8 @@ deploy-vps-helm:
     - kubectl -n "$KUBE_NAMESPACE" get secret gitlab-registry-secret
     - kubectl -n "$KUBE_NAMESPACE" patch serviceaccount default -p '{"imagePullSecrets":[{"name":"gitlab-registry-secret"}]}'
 
+    - kubectl -n "$KUBE_NAMESPACE" delete job migrate --ignore-not-found=true
+
     - |
       helm upgrade --install "$HELM_RELEASE" deploy/helm/video-platform \
         --namespace "$KUBE_NAMESPACE" \
@@ -46,10 +48,6 @@ deploy-vps-helm:
         --timeout 10m
 
     - kubectl -n "$KUBE_NAMESPACE" get pods
-#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/web --timeout=180s
-#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/video-api --timeout=180s
-#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/upload-service --timeout=180s
-#    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/processing-worker --timeout=180s
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "master"'
