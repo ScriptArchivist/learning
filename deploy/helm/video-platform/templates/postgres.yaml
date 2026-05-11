@@ -1,21 +1,8 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-secret
-  namespace: video-platform
-type: Opaque
-stringData:
-  POSTGRESQL_POSTGRES_PASSWORD: {{ .Values.postgres.password }}
-  POSTGRESQL_USERNAME: {{ .Values.postgres.user }}
-  POSTGRESQL_PASSWORD: {{ .Values.postgres.password }}
-  POSTGRESQL_DATABASE: {{ .Values.postgres.db }}
-
----
-apiVersion: v1
 kind: Service
 metadata:
   name: postgres-master
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: postgres-master
@@ -29,7 +16,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: postgres-master
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   serviceName: postgres-master
   replicas: 1
@@ -43,29 +30,29 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: bitnami/postgresql:latest
+          image: {{ .Values.image.postgres.repository }}:{{ .Values.image.postgres.tag }}
           ports:
             - containerPort: 5432
           env:
             - name: POSTGRESQL_POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_POSTGRES_PASSWORD
             - name: POSTGRESQL_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_USERNAME
             - name: POSTGRESQL_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_PASSWORD
             - name: POSTGRESQL_DATABASE
               valueFrom:
                 secretKeyRef:
-                  name: postgres-secret
+                  name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_DATABASE
           volumeMounts:
             - name: data
@@ -78,4 +65,4 @@ spec:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 5Gi
+            storage: {{ .Values.postgres.persistence.size }}

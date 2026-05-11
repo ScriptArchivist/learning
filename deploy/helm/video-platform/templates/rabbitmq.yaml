@@ -1,19 +1,8 @@
 apiVersion: v1
-kind: Secret
-metadata:
-  name: rabbitmq-secret
-  namespace: video-platform
-type: Opaque
-stringData:
-  RABBITMQ_DEFAULT_USER: {{ .Values.rabbitmq.user }}
-  RABBITMQ_DEFAULT_PASS: {{ .Values.rabbitmq.password }}
-
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: rabbitmq-plugins
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 data:
   enabled_plugins: |
     [rabbitmq_management,rabbitmq_prometheus].
@@ -23,7 +12,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: rabbitmq
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: rabbitmq
@@ -44,7 +33,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: rabbitmq
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   serviceName: rabbitmq
   replicas: 1
@@ -58,14 +47,14 @@ spec:
     spec:
       containers:
         - name: rabbitmq
-          image: rabbitmq:3-management
+          image: {{ .Values.image.rabbitmq.repository }}:{{ .Values.image.rabbitmq.tag }}
           ports:
             - containerPort: 5672
             - containerPort: 15672
             - containerPort: 15692
           envFrom:
             - secretRef:
-                name: rabbitmq-secret
+                name: {{ .Values.secrets.rabbitmqSecretName }}
           env:
             - name: RABBITMQ_ENABLED_PLUGINS_FILE
               value: /etc/rabbitmq/enabled_plugins
@@ -97,4 +86,4 @@ spec:
           - ReadWriteOnce
         resources:
           requests:
-            storage: 5Gi
+            storage: {{ .Values.rabbitmq.persistence.size }}
