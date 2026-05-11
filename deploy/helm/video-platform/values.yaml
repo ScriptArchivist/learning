@@ -73,7 +73,7 @@ app:
 
 ingress:
   enabled: true
-  className: nginx
+  className: traefik
   host: video-platform.local
   tls:
     enabled: false
