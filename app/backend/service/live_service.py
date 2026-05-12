@@ -84,10 +84,7 @@ def _build_rtmp_url(stream_key: str) -> str:
         getattr(settings, "LIVE_RTMP_URL_TEMPLATE", "rtmp://localhost:1935/live"),
     ).rstrip("/")
 
-    if "{stream_key}" in tpl:
-        return tpl.format(stream_key=stream_key)
-
-    return tpl
+    return f"{tpl}/{stream_key}"
 
 
 def _build_hls_url(stream_key: str) -> str:
