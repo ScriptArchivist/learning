@@ -253,10 +253,8 @@ video-api
 Полный локальный стенд со всеми сервисами.
 
 ```bash
-docker-compose \
-  --env-file deploy/docker/.env.dev \
-  -f deploy/docker/docker-compose.ci.yml \
-  up -d --build
+minikube start
+kubectl apply -R -f deploy/k8s/base/
 ```
 
 ---
