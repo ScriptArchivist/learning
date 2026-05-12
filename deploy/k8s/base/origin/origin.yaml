@@ -30,15 +30,15 @@ data:
         }
 
         location ^~ /origin/live/ {
-          rewrite ^/origin/live/(.*)$ /live/$1 break;
+          rewrite ^/origin/live/(.*)$ /live/$1 last;
         }
 
         location ^~ /origin/hls/ {
-          rewrite ^/origin/hls/(.*)$ /hls/$1 break;
+          rewrite ^/origin/hls/(.*)$ /hls/$1 last;
         }
 
         location ^~ /origin/thumb/ {
-          rewrite ^/origin/thumb/(.*)$ /thumb/$1 break;
+          rewrite ^/origin/thumb/(.*)$ /thumb/$1 last;
         }
 
         location ^~ /live/ {

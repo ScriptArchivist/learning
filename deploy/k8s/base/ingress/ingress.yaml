@@ -49,6 +49,22 @@ spec:
                 port:
                   number: 8000
 
+          - path: /live/active
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3001
+
+          - path: /live
+            pathType: Exact
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 3001
+
           - path: /origin/live
             pathType: Prefix
             backend:
@@ -66,14 +82,6 @@ spec:
                   number: 80
 
           - path: /origin/thumb
-            pathType: Prefix
-            backend:
-              service:
-                name: origin
-                port:
-                  number: 80
-
-          - path: /live
             pathType: Prefix
             backend:
               service:

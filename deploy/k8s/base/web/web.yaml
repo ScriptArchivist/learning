@@ -67,7 +67,7 @@ spec:
             - name: STORAGE_PATH
               value: /app/uploads
             - name: PUBLIC_HOST
-              value: "192.168.49.2"
+              value: "192.168.1.12"
             - name: PUBLIC_HTTP_SCHEME
               value: "http"
             - name: PUBLIC_HTTP_PORT
