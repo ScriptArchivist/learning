@@ -48,6 +48,14 @@ echo
 echo "== Enabling ingress =="
 minikube addons enable ingress
 
+kubectl wait --namespace ingress-nginx \
+  --for=condition=Ready pod \
+  --selector=app.kubernetes.io/component=controller \
+  --timeout=180s
+
+sleep 10
+
+
 echo
 echo "== Building local images inside Minikube Docker =="
 eval "$(minikube docker-env)"
