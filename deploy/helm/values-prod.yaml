@@ -25,8 +25,8 @@ image:
     pullPolicy: IfNotPresent
 
   postgres:
-    repository: bitnami/postgresql
-    tag: "16.4.0"
+    repository: postgres
+    tag: "16"
 
   rabbitmq:
     repository: rabbitmq
