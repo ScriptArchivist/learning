@@ -57,18 +57,52 @@ deploy-vps-helm:
 smoke-vps-helm:
   stage: smoke
   image: alpine:3.20
+
   before_script:
-    - apk add --no-cache curl kubectl
+    - apk add --no-cache curl kubectl bash
     - mkdir -p ~/.kube
     - echo "$KUBE_CONFIG_B64" | base64 -d > ~/.kube/config
     - chmod 600 ~/.kube/config
     - kubectl config use-context default
+
   script:
+    # Pods
     - kubectl -n "$KUBE_NAMESPACE" get pods
+
+    # Rollouts
     - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/video-api --timeout=180s
-    - kubectl -n "$KUBE_NAMESPACE" port-forward svc/video-api 18080:8000 >/tmp/video-api-port-forward.log 2>&1 &
-    - sleep 5
+    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/upload-service --timeout=180s
+    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/web --timeout=180s
+    - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/processing-worker --timeout=180s
+
+    # Internal API checks
+    - kubectl -n "$KUBE_NAMESPACE" port-forward svc/video-api 18080:8000 >/tmp/video-api.log 2>&1 &
+    - kubectl -n "$KUBE_NAMESPACE" port-forward svc/upload-service 18081:8000 >/tmp/upload-api.log 2>&1 &
+    - kubectl -n "$KUBE_NAMESPACE" port-forward svc/web 18082:8000 >/tmp/web.log 2>&1 &
+    - sleep 10
+
+    # Health
+    - curl -fsS "http://127.0.0.1:18080/health"
+    - curl -fsS "http://127.0.0.1:18081/health"
+
+    # OpenAPI
     - curl -fsS "http://127.0.0.1:18080/openapi.json"
+    - curl -fsS "http://127.0.0.1:18082/openapi.json"
+
+    # Worker boot validation
+    - kubectl -n "$KUBE_NAMESPACE" logs deploy/processing-worker --tail=50 | grep "consumer started"
+
+    # RabbitMQ validation
+    - kubectl -n "$KUBE_NAMESPACE" logs deploy/outbox-publisher --tail=50 | grep "leader lock acquired"
+
+    # S3 env validation
+    - kubectl -n "$KUBE_NAMESPACE" exec deploy/upload-service -- env | grep STORAGE_TYPE=s3
+    - kubectl -n "$KUBE_NAMESPACE" exec deploy/upload-service -- env | grep S3_ENDPOINT_URL
+
+    # Ingress external checks
+    - curl -fsS "http://$PROD_DOMAIN/api/upload/health"
+    - curl -fsS "http://$PROD_DOMAIN/api/video/health"
+
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "master"'
