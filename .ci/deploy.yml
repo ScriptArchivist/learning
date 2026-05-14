@@ -32,6 +32,7 @@ deploy-vps-helm:
         --set global.publicBaseUrl="http://$PROD_DOMAIN" \
         --set global.mediaBaseUrl="http://$PROD_DOMAIN" \
         --set ingress.host="$PROD_DOMAIN" \
+        --set ingress.className=traefik \
         --set ingress.tls.enabled=false \
         --set secrets.create=true \
         --set secrets.jwtSecret="$JWT_SECRET" \
