@@ -2,7 +2,9 @@
 import os
 import logging
 import logging.config
+import tempfile
 from datetime import datetime
+from pathlib import Path
 
 from pydantic import ValidationError
 
@@ -19,7 +21,6 @@ from service.correlation import (
     set_trace_id,
 )
 
-# --- LogRecordFactory: гарантируем request_id/trace_id для всех логов ---
 _old_factory = logging.getLogRecordFactory()
 
 
@@ -34,7 +35,6 @@ logging.setLogRecordFactory(record_factory)
 logging.config.fileConfig("/app/logging.ini", disable_existing_loggers=False)
 logger = logging.getLogger("worker")
 
-# ⚠️ Импорты ниже — после настройки логов
 from db.database import SessionLocal  # noqa: E402
 from service.broker import consume_forever, MAX_RETRIES  # noqa: E402
 from service.ffmpeg_utils import ffprobe_metadata, make_hls, make_thumbnail  # noqa: E402
@@ -66,7 +66,7 @@ def _major_version(schema_version) -> int | None:
     if schema_version is None:
         return None
     if isinstance(schema_version, int):
-        return None if schema_version is None else int(schema_version)
+        return int(schema_version)
     if isinstance(schema_version, str):
         s = schema_version.strip()
         if not s:
@@ -78,19 +78,148 @@ def _major_version(schema_version) -> int | None:
     return None
 
 
+def _process_video_artifacts(
+    *,
+    video_id: int,
+    orig_key: str,
+    thumb_key: str,
+    hls_dir_key_str: str,
+    hls_master_key_str: str,
+):
+    """
+    Единая обработка для local и S3 storage.
+
+    Local:
+      ffmpeg работает напрямую с /app/uploads.
+
+    S3:
+      original скачивается во временную директорию;
+      thumbnail/HLS генерируются во временной директории;
+      результат загружается обратно в S3 по тем же object keys.
+    """
+    orig_full = storage.resolve_local_path(orig_key)
+    thumb_full = storage.resolve_local_path(thumb_key)
+    hls_dir_full = storage.resolve_local_path(hls_dir_key_str)
+    hls_master_full = storage.resolve_local_path(hls_master_key_str)
+
+    # ===== Local/PVC backend =====
+    if all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
+        if not os.path.exists(orig_full):
+            raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
+
+        meta = ffprobe_metadata(orig_full)
+        duration = meta["duration"]
+        width = meta["width"]
+        height = meta["height"]
+        size = os.path.getsize(orig_full)
+
+        if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
+            return {
+                "duration": duration,
+                "width": width,
+                "height": height,
+                "size": size,
+                "already_existed": True,
+            }
+
+        make_thumbnail(orig_full, thumb_full, at_seconds=1.0)
+
+        if not os.path.exists(thumb_full):
+            raise RuntimeError(f"thumbnail was not created: {thumb_full} (key={thumb_key})")
+
+        make_hls(orig_full, hls_dir_full)
+
+        if not os.path.exists(hls_master_full):
+            raise RuntimeError(
+                f"hls master was not created: {hls_master_full} (key={hls_master_key_str})"
+            )
+
+        return {
+            "duration": duration,
+            "width": width,
+            "height": height,
+            "size": size,
+            "already_existed": False,
+        }
+
+    # ===== S3-compatible backend =====
+    with tempfile.TemporaryDirectory(prefix=f"video-{video_id}-") as tmp:
+        tmp_dir = Path(tmp)
+
+        orig_suffix = Path(orig_key).suffix or ".mp4"
+        orig_tmp = tmp_dir / f"original{orig_suffix}"
+        thumb_tmp = tmp_dir / "thumb.jpg"
+        hls_tmp_dir = tmp_dir / "hls"
+
+        storage.download_to_path(orig_key, str(orig_tmp))
+
+        if not orig_tmp.exists():
+            raise FileNotFoundError(f"downloaded original not found: {orig_tmp} (key={orig_key})")
+
+        meta = ffprobe_metadata(str(orig_tmp))
+        duration = meta["duration"]
+        width = meta["width"]
+        height = meta["height"]
+        size = os.path.getsize(orig_tmp)
+
+        if storage.file_exists(thumb_key) and storage.file_exists(hls_master_key_str):
+            return {
+                "duration": duration,
+                "width": width,
+                "height": height,
+                "size": size,
+                "already_existed": True,
+            }
+
+        make_thumbnail(str(orig_tmp), str(thumb_tmp), at_seconds=1.0)
+
+        if not thumb_tmp.exists():
+            raise RuntimeError(f"thumbnail was not created: {thumb_tmp} (key={thumb_key})")
+
+        make_hls(str(orig_tmp), str(hls_tmp_dir))
+
+        hls_master_tmp = hls_tmp_dir / "master.m3u8"
+        if not hls_master_tmp.exists():
+            raise RuntimeError(
+                f"hls master was not created: {hls_master_tmp} (key={hls_master_key_str})"
+            )
+
+        storage.upload_file_path(
+            str(thumb_tmp),
+            thumb_key,
+            content_type="image/jpeg",
+        )
+        storage.upload_dir(
+            str(hls_tmp_dir),
+            hls_dir_key_str,
+        )
+
+        if not storage.file_exists(thumb_key):
+            raise RuntimeError(f"thumbnail was not uploaded: key={thumb_key}")
+
+        if not storage.file_exists(hls_master_key_str):
+            raise RuntimeError(f"hls master was not uploaded: key={hls_master_key_str}")
+
+        return {
+            "duration": duration,
+            "width": width,
+            "height": height,
+            "size": size,
+            "already_existed": False,
+        }
+
+
 def handle(message: dict, retry_count: int) -> None:
     """
     Worker принимает только ENVELOPE (единый контракт).
     retry_count — число попаданий в RETRY queue (x-death count).
     """
-    # 1) валидируем envelope
     try:
         envelope = EventEnvelope.model_validate(message)
     except ValidationError:
         logger.exception("invalid EventEnvelope: message=%r", message)
         raise
 
-    # 2) correlation/trace в contextvars
     headers = {}
     if isinstance(message, dict):
         headers = message.get("__headers__") or {}
@@ -102,17 +231,14 @@ def handle(message: dict, retry_count: int) -> None:
     set_request_id(rid)
     set_trace_id(tid)
 
-    # 3) версия схемы
     major = _major_version(getattr(envelope, "schema_version", None))
     if major != 1:
         raise ValueError(f"unsupported schema_version={envelope.schema_version!r}")
 
-    # 4) обрабатываем только нужный event_type
     if envelope.event_type != EVENT_VIDEO_PROCESS_REQUESTED:
         logger.info("skip event_type=%s event_id=%s", envelope.event_type, envelope.event_id)
         return
 
-    # 5) валидируем payload
     try:
         payload = VideoProcessRequestedPayload.model_validate(envelope.payload)
     except ValidationError:
@@ -130,9 +256,14 @@ def handle(message: dict, retry_count: int) -> None:
     job_id = payload.job_id
     event_id = job_id
 
-    logger.info("start video_id=%s key=%s event_id=%s retry_count=%s", video_id, orig_key, event_id, retry_count)
+    logger.info(
+        "start video_id=%s key=%s event_id=%s retry_count=%s",
+        video_id,
+        orig_key,
+        event_id,
+        retry_count,
+    )
 
-    # ---- идемпотентность через DB-claim ----
     lock_token = event_id
     db = SessionLocal()
     try:
@@ -159,60 +290,25 @@ def handle(message: dict, retry_count: int) -> None:
             hls_dir_key_str = output_prefix
             hls_master_key_str = f"{output_prefix}/master.m3u8"
 
-            orig_full = storage.resolve_local_path(orig_key)
-            thumb_full = storage.resolve_local_path(thumb_key)
-            hls_dir_full = storage.resolve_local_path(hls_dir_key_str)
-            hls_master_full = storage.resolve_local_path(hls_master_key_str)
+            result = _process_video_artifacts(
+                video_id=video_id,
+                orig_key=orig_key,
+                thumb_key=thumb_key,
+                hls_dir_key_str=hls_dir_key_str,
+                hls_master_key_str=hls_master_key_str,
+            )
 
-            if not all([orig_full, thumb_full, hls_dir_full, hls_master_full]):
-                raise RuntimeError("Non-local storage is not supported by worker yet")
-
-            if not os.path.exists(orig_full):
-                raise FileNotFoundError(f"file not found: {orig_full} (key={orig_key})")
-
-            meta = ffprobe_metadata(orig_full)
-            duration = meta["duration"]
-            width = meta["width"]
-            height = meta["height"]
-            size = os.path.getsize(orig_full)
-
-            if os.path.exists(thumb_full) and os.path.exists(hls_master_full):
+            if result["already_existed"]:
                 logger.info("artifacts already exist, mark processed video_id=%s", video_id)
-
-                complete_video_processing_with_lock(
-                    video_id=video_id,
-                    lock_token=lock_token,
-                    processed_at=datetime.utcnow(),
-                    file_size=size,
-                    duration=duration,
-                    width=width,
-                    height=height,
-                    thumbnail_path=thumb_key,
-                    mime_type="video/mp4",
-                    hls_master_key=hls_master_key_str,
-                    correlation_id=rid,
-                    trace_id=tid,
-                )
-                inc_video_processing("processing-worker", "completed")
-                logger.info("done video_id=%s (already existed)", video_id)
-                return
-
-            make_thumbnail(orig_full, thumb_full, at_seconds=1.0)
-            if not os.path.exists(thumb_full):
-                raise RuntimeError(f"thumbnail was not created: {thumb_full} (key={thumb_key})")
-
-            make_hls(orig_full, hls_dir_full)
-            if not os.path.exists(hls_master_full):
-                raise RuntimeError(f"hls master was not created: {hls_master_full} (key={hls_master_key_str})")
 
             complete_video_processing_with_lock(
                 video_id=video_id,
                 lock_token=lock_token,
                 processed_at=datetime.utcnow(),
-                file_size=size,
-                duration=duration,
-                width=width,
-                height=height,
+                file_size=result["size"],
+                duration=result["duration"],
+                width=result["width"],
+                height=result["height"],
                 thumbnail_path=thumb_key,
                 mime_type="video/mp4",
                 hls_master_key=hls_master_key_str,
@@ -221,10 +317,13 @@ def handle(message: dict, retry_count: int) -> None:
             )
 
             inc_video_processing("processing-worker", "completed")
-            logger.info("done video_id=%s", video_id)
+
+            if result["already_existed"]:
+                logger.info("done video_id=%s (already existed)", video_id)
+            else:
+                logger.info("done video_id=%s", video_id)
 
     except Exception as e:
-        # MAX_RETRIES — число ретраев (x-death count), первая попытка = retry_count=0
         is_last_attempt = retry_count >= MAX_RETRIES
 
         if not is_last_attempt:

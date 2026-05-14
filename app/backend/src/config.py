@@ -21,8 +21,18 @@ class Settings(BaseSettings):
     algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
 
+    # ===== Storage =====
+    # local | s3
     storage_type: str = "local"
     storage_path: str = "uploads"
+
+    # S3-compatible storage:
+    # Selectel / MinIO / AWS S3
+    s3_endpoint_url: str | None = None
+    s3_region_name: str = "ru-1"
+    s3_bucket: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
 
     # delivery/origin mode
     DELIVERY_MODE: str = "local"  # local | url
@@ -30,13 +40,8 @@ class Settings(BaseSettings):
     DELIVERY_PUBLIC_BASE_URL: str = "http://localhost:8080"  # external (for clients)
 
     # ===== live settings =====
-    # Максимальный возраст live-артефактов, при котором stream ещё считается активным
     live_active_artifact_max_age_seconds: int = 20
-
-    # Grace period после disconnect перед окончательной деактивацией
     live_disconnect_grace_seconds: int = 30
-
-    # Интервал работы live cleaner
     live_ttl_interval_seconds: int = 10
 
     class Config:
