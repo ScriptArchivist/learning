@@ -31,32 +31,28 @@ spec:
       containers:
         - name: postgres
           image: {{ .Values.image.postgres.repository }}:{{ .Values.image.postgres.tag }}
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 5432
           env:
-            - name: POSTGRESQL_POSTGRES_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: {{ .Values.secrets.postgresSecretName }}
-                  key: POSTGRESQL_POSTGRES_PASSWORD
-            - name: POSTGRESQL_USERNAME
+            - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_USERNAME
-            - name: POSTGRESQL_PASSWORD
+            - name: POSTGRES_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_PASSWORD
-            - name: POSTGRESQL_DATABASE
+            - name: POSTGRES_DB
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.secrets.postgresSecretName }}
                   key: POSTGRESQL_DATABASE
           volumeMounts:
             - name: data
-              mountPath: /bitnami/postgresql
+              mountPath: /var/lib/postgresql/data
   volumeClaimTemplates:
     - metadata:
         name: data
