@@ -45,16 +45,39 @@ else
 fi
 
 echo
+echo "== Checking Minikube published ports =="
+
+if ! docker ps --format '{{.Names}} {{.Ports}}' | grep '^minikube ' | grep -q '0.0.0.0:80->80/tcp'; then
+  echo "WARNING: Minikube container does not publish host port 80."
+  echo "Android access through http://<LAN-IP> may not work."
+  echo
+  echo "If this Minikube profile was created without --ports=80:80,"
+  echo "recreate it manually:"
+  echo
+  echo "  minikube delete"
+  echo "  ./scripts/local-k8s-start.sh"
+  echo
+fi
+
+echo
 echo "== Enabling ingress =="
 minikube addons enable ingress
 
-kubectl wait --namespace ingress-nginx \
+echo
+echo "== Waiting for ingress-nginx controller =="
+kubectl rollout status deployment/ingress-nginx-controller \
+  -n ingress-nginx \
+  --timeout=180s
+
+kubectl wait \
+  --namespace ingress-nginx \
   --for=condition=Ready pod \
   --selector=app.kubernetes.io/component=controller \
   --timeout=180s
 
-sleep 10
-
+echo
+echo "== Checking ingress admission webhook =="
+kubectl get svc ingress-nginx-controller-admission -n ingress-nginx >/dev/null
 
 echo
 echo "== Building local images inside Minikube Docker =="
@@ -95,7 +118,14 @@ kubectl rollout status deployment/video-api --timeout=180s
 kubectl rollout status deployment/upload-service --timeout=180s
 kubectl rollout status deployment/live-api --timeout=180s
 kubectl rollout status deployment/ingest --timeout=180s
+kubectl rollout status deployment/origin --timeout=180s
 kubectl rollout status deployment/frontend --timeout=180s
+
+echo
+echo "== Waiting for key statefulsets =="
+kubectl rollout status statefulset/postgres-master --timeout=180s
+kubectl rollout status statefulset/postgres-replica --timeout=180s
+kubectl rollout status statefulset/rabbitmq --timeout=180s
 
 echo
 echo "== Final status =="
@@ -105,16 +135,26 @@ kubectl get ingress -o wide
 
 echo
 echo "== Access info =="
-echo "Minikube IP: $(minikube ip)"
-echo "LAN IPs: $(hostname -I)"
-echo
-echo "URLs:"
-echo "  Web/API:     http://$(minikube ip):30000"
-echo "  Frontend:    http://$(minikube ip):30001"
-echo "  Identity:    http://$(minikube ip):30002"
-echo "  Video API:   http://$(minikube ip):30004"
-echo "  Grafana:     http://$(minikube ip):30300"
-echo "  Prometheus:  http://$(minikube ip):30090"
+MINIKUBE_IP="$(minikube ip)"
+LAN_IPS="$(hostname -I)"
 
+echo "Minikube IP: ${MINIKUBE_IP}"
+echo "LAN IPs:     ${LAN_IPS}"
+echo
+echo "NodePort URLs:"
+echo "  Web/API:     http://${MINIKUBE_IP}:30000"
+echo "  Frontend:    http://${MINIKUBE_IP}:30001"
+echo "  Identity:    http://${MINIKUBE_IP}:30002"
+echo "  Upload API:  http://${MINIKUBE_IP}:30003"
+echo "  Video API:   http://${MINIKUBE_IP}:30004"
+echo "  Live API:    http://${MINIKUBE_IP}:30005"
+echo "  Origin:      http://${MINIKUBE_IP}:30006"
+echo "  Grafana:     http://${MINIKUBE_IP}:30300"
+echo "  Prometheus:  http://${MINIKUBE_IP}:30090"
+echo
+echo "Ingress/LAN URLs:"
+echo "  Docs:        http://192.168.1.12/docs"
+echo "  Videos API:  http://192.168.1.12/api/v1/videos"
+echo "  Frontend:    http://192.168.1.12/"
 echo
 echo "Done."
