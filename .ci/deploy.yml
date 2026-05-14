@@ -66,7 +66,9 @@ smoke-vps-helm:
   script:
     - kubectl -n "$KUBE_NAMESPACE" get pods
     - kubectl -n "$KUBE_NAMESPACE" rollout status deployment/video-api --timeout=180s
-    - curl -fsS "http://video-api.$KUBE_NAMESPACE.svc.cluster.local:8000/openapi.json"
+    - kubectl -n "$KUBE_NAMESPACE" port-forward svc/video-api 18080:8000 >/tmp/video-api-port-forward.log 2>&1 &
+    - sleep 5
+    - curl -fsS "http://127.0.0.1:18080/openapi.json"
   rules:
     - if: '$CI_COMMIT_BRANCH == "main"'
     - if: '$CI_COMMIT_BRANCH == "master"'
