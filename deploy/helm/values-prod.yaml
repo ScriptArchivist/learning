@@ -26,7 +26,7 @@ image:
 
   postgres:
     repository: bitnami/postgresql
-    tag: "16"
+    tag: "16.4.0"
 
   rabbitmq:
     repository: rabbitmq
