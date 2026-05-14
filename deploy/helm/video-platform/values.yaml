@@ -71,6 +71,12 @@ app:
   storageType: local
   storagePath: /app/uploads
 
+  s3:
+    endpointUrl: ""
+    regionName: ru-1
+    bucket: ""
+    verifySsl: true
+
 ingress:
   enabled: true
   className: traefik
@@ -95,6 +101,9 @@ secrets:
   postgresPassword: postgres
   rabbitmqPassword: guest
   grafanaAdminPassword: admin-change-me
+
+  s3AccessKeyId: ""
+  s3SecretAccessKey: ""
 
 postgres:
   host: postgres-master

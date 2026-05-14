@@ -1,8 +1,9 @@
+{{- if eq .Values.app.storageType "local" }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: origin-nginx-config
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 data:
   nginx.conf: |
 {{ .Files.Get "nginx.conf" | indent 4 }}
@@ -12,7 +13,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: origin
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   selector:
     app: origin
@@ -26,7 +27,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: origin
-  namespace: video-platform
+  namespace: {{ .Values.global.namespace }}
 spec:
   replicas: 1
   selector:
@@ -39,7 +40,8 @@ spec:
     spec:
       containers:
         - name: origin
-          image: nginx:1.25-alpine
+          image: {{ .Values.image.nginx.repository }}:{{ .Values.image.nginx.tag }}
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
           ports:
             - containerPort: 80
           volumeMounts:
@@ -66,3 +68,4 @@ spec:
         - name: uploads
           persistentVolumeClaim:
             claimName: {{ .Values.storage.pvcName }}
+{{- end }}

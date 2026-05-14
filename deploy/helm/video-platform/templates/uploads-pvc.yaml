@@ -1,3 +1,4 @@
+{{- if eq .Values.app.storageType "local" }}
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -11,4 +12,5 @@ spec:
       storage: {{ .Values.storage.size }}
 {{- if .Values.storage.storageClassName }}
   storageClassName: {{ .Values.storage.storageClassName }}
+{{- end }}
 {{- end }}

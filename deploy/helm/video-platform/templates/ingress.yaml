@@ -84,6 +84,7 @@ spec:
                 port:
                   number: 8000
 
+{{- if eq .Values.app.storageType "local" }}
           - path: /origin(/|$)(.*)
             pathType: ImplementationSpecific
             backend:
@@ -91,7 +92,9 @@ spec:
                 name: origin
                 port:
                   number: 80
+{{- end }}
 
+{{- if eq .Values.app.storageType "local" }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -129,4 +132,5 @@ spec:
                 name: origin
                 port:
                   number: 80
+{{- end }}
 {{- end }}

@@ -30,6 +30,7 @@ spec:
       imagePullSecrets:
         - name: gitlab-registry-secret
 
+{{- if eq .Values.app.storageType "local" }}
       initContainers:
         - name: prepare-uploads
           image: busybox:1.36
@@ -42,6 +43,7 @@ spec:
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
+{{- end }}
 
       containers:
         - name: web
@@ -62,9 +64,11 @@ spec:
               value: web
           ports:
             - containerPort: 8000
+{{- if eq .Values.app.storageType "local" }}
           volumeMounts:
             - name: uploads
               mountPath: /app/uploads
+{{- end }}
           readinessProbe:
             httpGet:
               path: /health
@@ -76,7 +80,9 @@ spec:
               port: 8000
             initialDelaySeconds: 30
 
+{{- if eq .Values.app.storageType "local" }}
       volumes:
         - name: uploads
           persistentVolumeClaim:
             claimName: {{ .Values.storage.pvcName }}
+{{- end }}

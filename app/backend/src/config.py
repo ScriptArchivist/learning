@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     s3_endpoint_url: str | None = None
     s3_region_name: str = "ru-1"
     s3_bucket: str | None = None
+    s3_verify_ssl: bool = True
     s3_access_key_id: str | None = None
     s3_secret_access_key: str | None = None
 

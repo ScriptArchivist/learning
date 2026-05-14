@@ -18,7 +18,14 @@ data:
 
   storage_type: {{ .Values.app.storageType | quote }}
   storage_path: {{ .Values.app.storagePath | quote }}
+  STORAGE_TYPE: {{ .Values.app.storageType | quote }}
   STORAGE_PATH: {{ .Values.app.storagePath | quote }}
+
+  S3_VERIFY_SSL: {{ .Values.app.s3.verifySsl | quote }}
+
+  S3_ENDPOINT_URL: {{ .Values.app.s3.endpointUrl | quote }}
+  S3_REGION_NAME: {{ .Values.app.s3.regionName | quote }}
+  S3_BUCKET: {{ .Values.app.s3.bucket | quote }}
 
   ORIGIN_BASE_URL: {{ .Values.global.mediaBaseUrl | quote }}
 

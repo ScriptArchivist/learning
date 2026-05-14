@@ -180,6 +180,7 @@ class S3Storage(StorageProvider):
             region_name=self.region_name,
             aws_access_key_id=self.access_key_id,
             aws_secret_access_key=self.secret_access_key,
+            verify=self.verify_ssl,
             config=Config(
                 signature_version="s3v4",
                 s3={"addressing_style": "path"},

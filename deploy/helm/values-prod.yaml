@@ -3,7 +3,12 @@ global:
   namespace: video-platform
   domain: video.example.com
   publicBaseUrl: https://video.example.com
-  mediaBaseUrl: https://video.example.com
+
+  # Для S3/prod сюда ставим публичный URL bucket/CDN.
+  # Пример:
+  # mediaBaseUrl: https://<bucket-public-domain>
+  mediaBaseUrl: https://video-platform-media.s3.firstvds.ru
+
   imagePullPolicy: IfNotPresent
 
 replicaCount: 2
@@ -68,8 +73,16 @@ app:
   deliveryMode: url
   deliveryBaseUrl: http://origin:80
   hlsPublicPathPrefix: hls
-  storageType: local
+
+  # prod/cloud: S3-compatible storage
+  storageType: s3
   storagePath: /app/uploads
+
+  s3:
+    endpointUrl: https://s3.firstvds.ru
+    regionName: default
+    bucket: video-platform-media
+    verifySsl: false
 
 ingress:
   enabled: true
