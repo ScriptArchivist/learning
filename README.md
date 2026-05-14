@@ -253,7 +253,12 @@ video-api
 Полный локальный стенд со всеми сервисами.
 
 ```bash
-minikube start
+minikube addons enable ingress
+
+kubectl rollout status deployment/ingress-nginx-controller \
+  -n ingress-nginx \
+  --timeout=180s
+
 kubectl apply -R -f deploy/k8s/base/
 ```
 
