@@ -1,4 +1,50 @@
 {{- if .Values.ingress.enabled }}
+{{- if eq .Values.ingress.className "traefik" }}
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api-identity
+  namespace: {{ .Values.global.namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /api/identity
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api-video
+  namespace: {{ .Values.global.namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /api/video
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api-upload
+  namespace: {{ .Values.global.namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /api/upload
+
+---
+apiVersion: traefik.io/v1alpha1
+kind: Middleware
+metadata:
+  name: strip-api
+  namespace: {{ .Values.global.namespace }}
+spec:
+  stripPrefix:
+    prefixes:
+      - /api
+
+---
+{{- end }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -29,6 +75,131 @@ spec:
                   number: 3001
 
 ---
+{{- if eq .Values.ingress.className "traefik" }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-platform-api-identity
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: {{ printf "%s-strip-api-identity@kubernetescrd" .Values.global.namespace | quote }}
+{{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api/identity
+            pathType: Prefix
+            backend:
+              service:
+                name: identity-service
+                port:
+                  number: 8000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-platform-api-video
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: {{ printf "%s-strip-api-video@kubernetescrd" .Values.global.namespace | quote }}
+{{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api/video
+            pathType: Prefix
+            backend:
+              service:
+                name: video-api
+                port:
+                  number: 8000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-platform-api-upload
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: {{ printf "%s-strip-api-upload@kubernetescrd" .Values.global.namespace | quote }}
+{{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api/upload
+            pathType: Prefix
+            backend:
+              service:
+                name: upload-service
+                port:
+                  number: 8000
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: video-platform-api-web
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    traefik.ingress.kubernetes.io/router.middlewares: {{ printf "%s-strip-api@kubernetescrd" .Values.global.namespace | quote }}
+{{- range $key, $value := .Values.ingress.annotations }}
+    {{ $key }}: {{ $value | quote }}
+{{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+{{- if .Values.ingress.tls.enabled }}
+  tls:
+    - hosts:
+        - {{ .Values.ingress.host }}
+      secretName: {{ .Values.ingress.tls.secretName }}
+{{- end }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: web
+                port:
+                  number: 8000
+
+{{- else }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -92,6 +263,7 @@ spec:
                 name: origin
                 port:
                   number: 80
+{{- end }}
 {{- end }}
 
 {{- if eq .Values.app.storageType "local" }}
