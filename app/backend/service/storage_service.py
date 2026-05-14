@@ -170,6 +170,7 @@ class S3Storage(StorageProvider):
         self.region_name = getattr(settings, "s3_region_name", None) or "ru-1"
         self.access_key_id = getattr(settings, "s3_access_key_id", None)
         self.secret_access_key = getattr(settings, "s3_secret_access_key", None)
+        self.verify_ssl = getattr(settings, "s3_verify_ssl", True)
 
         if not self.bucket:
             raise RuntimeError("S3_BUCKET is required when STORAGE_TYPE=s3")
