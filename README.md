@@ -22,6 +22,14 @@ Production-oriented видеоплатформа на FastAPI с микросе�
 
 ---
 
+## Monitoring Dashboard
+
+<p align="center">
+  <img src="docs/monitoring/monitoring_overview.png" width="1000" alt="Monitoring Dashboard">
+</p>
+
+---
+
 ## Ключевые возможности
 
 - Event-driven обработка видео
